@@ -24,6 +24,26 @@ const videos = {
 
 const serviceWords = ["Strategy", "Identity", "Design", "Motion"];
 
+const links = {
+  about: "https://studio-b.framer.website/about",
+  article: "https://studio-b.framer.website/article-single",
+  works: {
+    artObjects: "https://studio-b.framer.website/works/art-and-objects",
+    cutPaste: "https://studio-b.framer.website/works/cut-and-paste",
+    dries: "https://studio-b.framer.website/works/dries-van-noten",
+    faune: "https://studio-b.framer.website/works/faune",
+    jacquemus: "https://studio-b.framer.website/works/jacquemus",
+    maison: "https://studio-b.framer.website/works/maison-margiela",
+    margot: "https://studio-b.framer.website/works/margot-glasses",
+    nike: "https://studio-b.framer.website/works/nike",
+    polestar: "https://studio-b.framer.website/works/polestar",
+    raf: "https://studio-b.framer.website/works/raf-simons",
+    rick: "https://studio-b.framer.website/works/rick-owens",
+    tesla: "https://studio-b.framer.website/works/tesla-motors",
+    yangLi: "https://studio-b.framer.website/works/yang-li",
+  },
+};
+
 function londonTime() {
   return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
@@ -80,34 +100,56 @@ function useTypewriter(words: string[]) {
   return `${(words[wordIndex] ?? "").slice(0, visibleChars)}|`;
 }
 
-function Pill({ children }: { children: string }) {
-  return <span className={styles.pill}>{children}</span>;
+function Pill({ action, children }: { action?: string; children: string }) {
+  return (
+    <span className={styles.pill}>
+      <span className={styles.pillLabel}>{children}</span>
+      {action ? (
+        <span className={styles.pillAction} aria-hidden="true">
+          {action}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function CardLink({ href, label }: { href: string; label: string }) {
+  return <a className={styles.cardLink} href={href} aria-label={label} />;
 }
 
 function SimpleCard({
+  action,
+  href,
   label,
   title,
   size = "small",
 }: {
+  action?: string;
+  href?: string;
   label: string;
   title: string;
   size?: "small" | "medium" | "square";
 }) {
   return (
-    <article className={`${styles.card} ${styles.textCard} ${styles[size]}`}>
-      <Pill>{label}</Pill>
+    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.textCard} ${styles[size]}`}>
+      <Pill action={action}>{label}</Pill>
       <h3 className={`${styles.title} ${label === "Services" ? styles.servicesTitle : ""}`}>{title}</h3>
+      {href ? <CardLink href={href} label={`${action ?? "Open"} ${title}`} /> : null}
     </article>
   );
 }
 
 function ImageCard({
+  action = "View",
+  href,
   label = "Work",
   title,
   src,
   size = "square",
   position,
 }: {
+  action?: string;
+  href?: string;
   label?: string;
   title: string;
   src: string;
@@ -115,7 +157,7 @@ function ImageCard({
   position?: string;
 }) {
   return (
-    <article className={`${styles.card} ${styles.imageCard} ${styles[size]}`}>
+    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles[size]}`}>
       <img
         className={`${styles.media} ${styles.softImage}`}
         src={src}
@@ -124,25 +166,30 @@ function ImageCard({
         style={position ? { objectPosition: position } : undefined}
       />
       <div className={styles.overlay} />
-      <Pill>{label}</Pill>
-      <h3 className={styles.title}>{title}</h3>
+      <Pill action={href ? action : undefined}>{label}</Pill>
+      {title ? <h3 className={styles.title}>{title}</h3> : null}
+      {href ? <CardLink href={href} label={`${action} ${title || label}`} /> : null}
     </article>
   );
 }
 
 function VideoCard({
+  action = "View",
+  href,
   label = "Work",
   title,
   src,
   poster,
 }: {
+  action?: string;
+  href?: string;
   label?: string;
   title: string;
   src: string;
   poster?: string;
 }) {
   return (
-    <article className={`${styles.card} ${styles.imageCard} ${styles.square}`}>
+    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles.square}`}>
       <video
         className={styles.media}
         src={src}
@@ -155,43 +202,50 @@ function VideoCard({
         aria-hidden="true"
       />
       <div className={styles.overlay} />
-      <Pill>{label}</Pill>
+      <Pill action={href ? action : undefined}>{label}</Pill>
       <h3 className={styles.title}>{title}</h3>
+      {href ? <CardLink href={href} label={`${action} ${title}`} /> : null}
     </article>
   );
 }
 
 function NewsCard({
+  href,
   label,
   title,
   caption,
 }: {
+  href?: string;
   label: string;
   title: string;
   caption: string;
 }) {
   return (
-    <article className={`${styles.card} ${styles.greenCard} ${styles.medium}`}>
-      <Pill>{label}</Pill>
+    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.greenCard} ${styles.medium}`}>
+      <Pill action={href ? "Read" : undefined}>{label}</Pill>
       <h3 className={styles.greenTitle}>{title}</h3>
       <p className={styles.caption}>{caption}</p>
+      {href ? <CardLink href={href} label={`Read ${title}`} /> : null}
     </article>
   );
 }
 
 function CopyCard({
+  href,
   label = "Studio",
   children,
   large = false,
 }: {
+  href?: string;
   label?: string;
   children: string;
   large?: boolean;
 }) {
   return (
-    <article className={`${styles.card} ${styles.textCard} ${styles.medium}`}>
-      <Pill>{label}</Pill>
+    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.textCard} ${styles.medium}`}>
+      <Pill action={href ? "About" : undefined}>{label}</Pill>
       <p className={large ? styles.bigCopy : styles.bodyCopy}>{children}</p>
+      {href ? <CardLink href={href} label="About Studio B" /> : null}
     </article>
   );
 }
@@ -218,6 +272,9 @@ function LogosCard() {
           <span>FILIPPE MONET</span>
           <span>APEX I</span>
           <span>ena</span>
+          <span>Sensa</span>
+          <span>FILIPPE MONET</span>
+          <span>APEX I</span>
         </div>
       </div>
     </article>
@@ -235,9 +292,16 @@ function AwardsCard() {
 
 function SoundsCard() {
   return (
-    <article className={`${styles.card} ${styles.textCard} ${styles.square}`}>
-      <Pill>Studio</Pill>
+    <article className={`${styles.card} ${styles.interactive} ${styles.textCard} ${styles.square} ${styles.soundsCard}`}>
+      <Pill action="Sounds">Studio</Pill>
       <h3 className={styles.soundsTitle}>What we listen in the studio</h3>
+      <iframe
+        className={styles.spotify}
+        src="https://open.spotify.com/embed/playlist/22KovfchogcaO7CcFsIzHl?theme=1"
+        title="Studio B Spotify playlist"
+        loading="lazy"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      />
     </article>
   );
 }
@@ -306,52 +370,67 @@ export function StudioBFeed() {
     <section ref={feedRef} className={styles.feed} aria-label="Studio B inspired feed">
       <div className={styles.grid}>
         <div className={styles.column}>
-          <SimpleCard label="Work" title="Raf Simons" />
+          <SimpleCard action="View" href={links.works.raf} label="Work" title="Raf Simons" />
           <NewsCard
+            href={links.article}
             label="Feature"
             title="We built a new online presence"
             caption="7 projects selected for the AKQA 10 Year Book"
           />
-          <VideoCard title="Maison Margiela" src={videos.maison} poster={images.maison} />
-          <CopyCard large>
+          <VideoCard href={links.works.maison} title="Maison Margiela" src={videos.maison} poster={images.maison} />
+          <CopyCard href={links.about} large>
             We are driven by concepts, dedicated to creating, expressing, and enhancing brand identities.
           </CopyCard>
-          <ImageCard title="Cut and Paste" src={images.cutPaste} />
+          <ImageCard href={links.works.cutPaste} title="Cut and Paste" src={images.cutPaste} />
           <TimeCard />
           <NewsCard
+            href={links.article}
             label="Interview"
             title="We spoke to The Brand Identity"
             caption="All about Studio life and how we approach projects"
           />
-          <ImageCard title="Tesla Motors" src={images.tesla} />
+          <ImageCard href={links.works.tesla} title="Tesla Motors" src={images.tesla} />
         </div>
 
         <div className={styles.column}>
-          <VideoCard title="Polestar" src={videos.polestar} poster={images.polestar} />
-          <CopyCard>
+          <VideoCard href={links.works.polestar} title="Polestar" src={videos.polestar} poster={images.polestar} />
+          <CopyCard href={links.about}>
             For us, everything begins with the strength of a compelling concept. Our methodology stems from transforming
             stories into unique and adaptable creations designed for growth and precision.
           </CopyCard>
-          <ImageCard title="Art and Objects" src={images.artObjects} />
-          <SimpleCard label="Work" title="Jacquemus" />
-          <ImageCard label="Studio" title="" src={images.studio} />
-          <ImageCard title="Dries Van Noten" src={images.dries} size="medium" position="center 44%" />
+          <ImageCard href={links.works.artObjects} title="Art and Objects" src={images.artObjects} />
+          <SimpleCard action="View" href={links.works.jacquemus} label="Work" title="Jacquemus" />
+          <ImageCard action="About" href={links.about} label="Studio" title="" src={images.studio} />
+          <ImageCard
+            href={links.works.dries}
+            title="Dries Van Noten"
+            src={images.dries}
+            size="medium"
+            position="center 44%"
+          />
           <AwardsCard />
-          <ImageCard title="Yang Li" src={images.yangLi} size="medium" />
+          <ImageCard href={links.works.yangLi} title="Yang Li" src={images.yangLi} size="medium" />
         </div>
 
         <div className={styles.column}>
-          <ImageCard title="Margot Glasses" src={images.margot} size="medium" position="center 54%" />
+          <ImageCard
+            href={links.works.margot}
+            title="Margot Glasses"
+            src={images.margot}
+            size="medium"
+            position="center 54%"
+          />
           <NewsCard
+            href={links.article}
             label="Talk"
             title="Talk at the Art Directors Club"
             caption="Our founders will speak at the festival conference in Spain"
           />
           <LogosCard />
-          <ImageCard title="Faune" src={images.faune} />
+          <ImageCard href={links.works.faune} title="Faune" src={images.faune} />
           <ServicesCard />
-          <ImageCard title="Rick Owens" src={images.rick} />
-          <SimpleCard label="Work" title="Nike" />
+          <ImageCard href={links.works.rick} title="Rick Owens" src={images.rick} />
+          <SimpleCard action="View" href={links.works.nike} label="Work" title="Nike" />
           <SoundsCard />
         </div>
       </div>
