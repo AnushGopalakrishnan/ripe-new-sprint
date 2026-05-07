@@ -1,0 +1,91 @@
+/* Stacking context on body so overlay z-index:-1 stays above body bg */
+body.theme-active,
+body.theme-fading {
+  isolation: isolate;
+}
+
+/* Gradient overlay — injected div, not pseudo-element */
+#hover-theme-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--theme-bg, #fff) 0%, #fff 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+body.theme-active #hover-theme-overlay {
+  opacity: 1;
+}
+
+body.theme-fading #hover-theme-overlay {
+  opacity: 0;
+}
+
+/* Sections transparent when themed or fading */
+body.theme-active .nav_wrap,
+body.theme-active .filters.section,
+body.theme-active section.main,
+body.theme-active section.section,
+body.theme-fading .nav_wrap,
+body.theme-fading .filters.section,
+body.theme-fading section.main,
+body.theme-fading section.section {
+  background-color: transparent !important;
+}
+
+/* Grid toggle always transparent */
+.grid-toggle {
+  background-color: transparent !important;
+}
+
+/* Invert entire select (text + arrow) for light-on-dark theme */
+.grid-toggle.is-inverted {
+  filter: invert(1);
+}
+
+/* Smooth transitions on themed elements */
+body.theme-active-ready .ripe_logo path,
+body.theme-active-ready .nav_menu-btn,
+body.theme-active-ready .nav_circle,
+body.theme-active-ready .checkbox-label,
+body.theme-active-ready .filter-checkbox,
+body.theme-active-ready .grid-switch,
+body.theme-active-ready .horizontal-rule,
+body.theme-active-ready .casestudy_title-text,
+body.theme-active-ready .casestudy_description,
+body.theme-active-ready .large-card-description,
+body.theme-active-ready .masonry-item .link {
+  transition: color 0.4s ease, fill 0.4s ease, background-color 0.4s ease, border-color 0.4s ease;
+}
+
+body.theme-active-ready .grid-toggle {
+  transition: filter 0.4s ease;
+}
+
+/* Card hover: fade non-hovered cards and greyscale their images */
+.masonry-item .casestudy_coverimage {
+  transition: filter 0.4s ease, opacity 0.4s ease !important;
+  pointer-events: none;
+}
+
+.masonry-item .content-wrap,
+.masonry-item .collection-list-wrapper-7,
+.masonry-item .large-card-description {
+  transition: opacity 0.4s ease, color 0.4s ease !important;
+}
+
+body.theme-active .masonry-item:not(.is-hovered) .casestudy_coverimage {
+  filter: grayscale(100%) !important;
+  opacity: 0.4 !important;
+}
+
+body.theme-active .masonry-item:not(.is-hovered) .content-wrap,
+body.theme-active .masonry-item:not(.is-hovered) .collection-list-wrapper-7,
+body.theme-active .masonry-item:not(.is-hovered) .large-card-description {
+  opacity: 0.4 !important;
+}

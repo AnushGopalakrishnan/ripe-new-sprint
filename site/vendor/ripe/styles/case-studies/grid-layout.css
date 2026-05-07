@@ -1,0 +1,170 @@
+/* === Large card every 9th item === */
+
+/* Body is display:flex — force grid wrapper to fill full width */
+.case-studies-wrapper.is-grid {
+  width: 100% !important;
+}
+
+/* Fix equal grid columns */
+.masonry-item {
+  min-width: 0 !important;
+}
+
+/* Show the large description only on every 9th item */
+.masonry-item:nth-child(9n) .large-card-description {
+  display: block;
+}
+
+/* Hide the regular small description on every 9th item */
+.masonry-item:nth-child(9n) .content-wrap .casestudy_description {
+  display: none;
+}
+
+/* Full-width spanning item */
+.masonry-item:nth-child(9n) {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  padding: 8rem 12rem;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card becomes horizontal layout */
+.masonry-item:nth-child(9n) .feed_card-wrap {
+  width: 100%;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3.5rem;
+}
+
+/* Image sizing to match small card */
+.masonry-item:nth-child(9n) .img-wrap {
+  width: calc((100cqi - 3rem) / 4) !important;
+  flex-shrink: 0 !important;
+  align-self: center !important;
+}
+
+.masonry-item:nth-child(9n) .casestudy_coverimage {
+  width: 100% !important;
+  max-height: none !important;
+  aspect-ratio: 2/3 !important;
+}
+
+/* Content area: narrow, right-aligned, ordered first */
+.masonry-item:nth-child(9n) .content-wrap {
+  width: 150px;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  align-self: center !important;
+  order: -9999;
+  overflow: visible;
+  margin-top: 0;
+}
+
+/* Title: right-aligned */
+.masonry-item:nth-child(9n) .casestudy_title-text {
+  width: 100%;
+  text-align: right;
+}
+
+/* Tags area: narrow, ordered last */
+.masonry-item:nth-child(9n) .collection-list-wrapper-7 {
+  width: 150px;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-self: center !important;
+  order: 9999;
+}
+
+/* Tag links full width */
+.masonry-item:nth-child(9n) .case_study-tag {
+  width: 100%;
+}
+
+/* === RESPONSIVE === */
+
+@media screen and (max-width: 1440px) {
+  .masonry-item:nth-child(9n) {
+    padding: 6rem 8rem;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .masonry-item:nth-child(9n) {
+    padding: 4rem 4rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .masonry-item:nth-child(9n) {
+    padding: 6rem 1.5rem;
+  }
+
+  /* Stack vertically on mobile */
+  .masonry-item:nth-child(9n) .feed_card-wrap {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+  }
+
+  /* Description text on top, smaller */
+  .masonry-item:nth-child(9n) .large-card-description {
+    order: -4;
+    font-size: 2rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Tag below description, centered */
+  .masonry-item:nth-child(9n) .collection-list-wrapper-7 {
+    width: 100%;
+    order: -3;
+    margin-top: 0;
+    align-self: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center;
+  }
+
+  .masonry-item:nth-child(9n) .collection-list-wrapper-7 .w-dyn-list,
+  .masonry-item:nth-child(9n) .collection-list-wrapper-7 .w-dyn-items {
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .masonry-item:nth-child(9n) .case_study-tag {
+    width: auto !important;
+    text-align: center !important;
+  }
+
+  /* Image: match grid card width (2-col grid with 1rem gap) */
+  .masonry-item:nth-child(9n) .img-wrap {
+    width: calc((100% - 1rem) / 2) !important;
+    order: -2;
+    margin-top: 1.5rem;
+  }
+
+  /* Project name below the image, aligned to image */
+  .masonry-item:nth-child(9n) .content-wrap {
+    width: calc((100% - 1rem) / 2) !important;
+    align-items: flex-start !important;
+    order: -1;
+    margin-top: 0.5rem;
+  }
+
+  .masonry-item:nth-child(9n) .casestudy_title-text {
+    text-align: left;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .masonry-item:nth-child(9n) {
+    padding: 5rem 1rem;
+  }
+}

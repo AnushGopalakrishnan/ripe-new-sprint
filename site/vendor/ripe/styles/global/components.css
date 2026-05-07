@@ -1,0 +1,27 @@
+/* Comma-separated tag labels */
+.checkbox-label::after {
+  content: ",\00a0";
+}
+.w-dyn-item:last-child .checkbox-label::after {
+  content: ".";
+}
+
+/* Comma-separated feed card tags */
+.collection-list-9 {
+  gap: 0 !important;
+}
+.collection-list-9 .w-dyn-item .link::after {
+  content: ",\00a0";
+}
+.collection-list-9 .w-dyn-item:last-child .link::after {
+  content: none;
+}
+
+/* Feed card hover */
+.feed_card-wrap {
+  transition: all 0.4s ease !important;
+}
+.feed_card-wrap:hover {
+  transform: translateY(-0.25rem) !important;
+  transition: all 0.4s ease !important;
+}

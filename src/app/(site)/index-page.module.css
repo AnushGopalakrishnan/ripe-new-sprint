@@ -1,0 +1,11 @@
+.hero {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+  padding: 1.5rem;
+}
+
+.collection {
+  display: grid;
+  gap: 1rem;
+}

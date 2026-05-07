@@ -1,0 +1,92 @@
+/* ===== Site-wide theme transitions ===== */
+body {
+  transition: background-color 0.6s ease, color 0.6s ease;
+}
+
+/* ===== Nav wrap theme ===== */
+.nav_wrap {
+  transition: background-color 0.6s ease, color 0.6s ease;
+}
+
+[data-site-theme="dark"] .nav_wrap {
+  background-color: var(--brand);
+  color: var(--white);
+}
+
+[data-site-theme="dark"] .nav_wrap .nav_logo {
+  background-color: var(--brand);
+  color: var(--white);
+}
+
+[data-site-theme="dark"] .horizontal-rule {
+  background-color: var(--beige) !important;
+}
+
+[data-site-theme="dark"] .nav_menu-btn {
+  background-color: var(--brand);
+  color: var(--white);
+}
+
+[data-site-theme="dark"] .nav_circle {
+  background-color: var(--white);
+}
+
+[data-site-theme="light"] .nav_wrap {
+  background-color: var(--white);
+  color: var(--brand);
+}
+
+/* ===== Site Theme - Light (default) ===== */
+[data-site-theme="light"] {
+  background-color: var(--white);
+  color: var(--brand);
+}
+
+/* ===== Site Theme - Dark ===== */
+[data-site-theme="dark"] {
+  background-color: var(--brand);
+  color: var(--white);
+}
+
+[data-site-theme="dark"] .text-btn {
+  color: var(--white);
+}
+
+[data-site-theme="dark"] .your-button-class {
+  border-color: var(--white);
+}
+
+/* ===== Background variants ===== */
+[data-site-bg="blue"] {
+  background-color: #204b63;
+}
+
+[data-site-bg="pink"] {
+  background-color: #562041;
+}
+
+/* ===== Nav inner theme ===== */
+[data-theme-nav="light"] .nav__inner {
+  color: var(--brand);
+}
+
+[data-theme-nav="dark"] .nav__inner {
+  color: #EFEEEC;
+}
+
+/* ===== Nav inner background ===== */
+[data-bg-nav="pink"] .nav__inner {
+  background-color: #562041;
+}
+
+[data-bg-nav="black"] .nav__inner {
+  background-color: #1F1F1F;
+}
+
+[data-bg-nav="lightblue"] .nav__inner {
+  background-color: #204b63;
+}
+
+[data-bg-nav="darkgreen"] .nav__inner {
+  background-color: #C9FC7D;
+}

@@ -1,0 +1,12 @@
+.post-article,
+.post-casestudy,
+.article-card {
+  transition: all 0.2s ease !important;
+}
+
+.post-article:hover,
+.post-casestudy:hover,
+.article-card:hover {
+  transform: translateY(-0.25rem) !important;
+  transition: all 0.2s ease !important;
+}

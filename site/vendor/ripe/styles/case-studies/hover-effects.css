@@ -1,0 +1,10 @@
+.collection-item-2 {
+  opacity: 100% !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.case-studies-list:has(.collection-item-2:hover) .collection-item-2:not(:hover) {
+  opacity: 50% !important;
+  transform: translateY(0.25rem) !important;
+  transition: all 0.2s ease-in-out !important;
+}
