@@ -46,6 +46,18 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   await expect(
     page.getByLabel("Studio B inspired feed").locator("article", { hasText: "Services" }),
   ).toContainText(/Strategy|Identity|Design|Motion/);
+  await expect(page.getByLabel("View Raf Simons")).toHaveAttribute(
+    "href",
+    "https://studio-b.framer.website/works/raf-simons",
+  );
+  await expect(page.getByLabel("Read We built a new online presence")).toHaveAttribute(
+    "href",
+    "https://studio-b.framer.website/article-single",
+  );
+  await expect(page.locator('iframe[title="Studio B Spotify playlist"]')).toHaveAttribute(
+    "src",
+    "https://open.spotify.com/embed/playlist/22KovfchogcaO7CcFsIzHl?theme=1",
+  );
 });
 
 test("canonical case studies route renders visible cards", async ({ page }) => {
