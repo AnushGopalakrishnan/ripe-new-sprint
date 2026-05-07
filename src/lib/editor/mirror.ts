@@ -4,11 +4,6 @@ import { bridgeScript } from "@/lib/editor/bridge-source";
 import type { MirrorRoute } from "@/lib/editor/types";
 
 const siteRoot = path.join(/* turbopackIgnore: true */ process.cwd(), "site");
-const exportRoot = path.join(
-  /* turbopackIgnore: true */ process.cwd(),
-  ".context",
-  "webflow-export",
-);
 
 const mimeTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -45,12 +40,6 @@ function routeToHtmlPath(routePath: string) {
   return path.join(siteRoot, routePath.replace(/^\/+/, ""), "index.html");
 }
 
-function exportHtmlFallback(routePath: string) {
-  const clean = routePath.replace(/^\/+/, "");
-  if (!clean) return path.join(exportRoot, "index.html");
-  return path.join(exportRoot, `${clean}.html`);
-}
-
 async function firstExisting(paths: string[]) {
   for (const candidate of paths) {
     try {
@@ -61,18 +50,18 @@ async function firstExisting(paths: string[]) {
   return null;
 }
 
-function localAssetPath(assetPath: string) {
+function localAssetCandidates(assetPath: string) {
   const clean = assetPath.replace(/^\/+/, "");
-  if (clean.startsWith("vendor/")) return path.join(siteRoot, clean);
+  if (clean.startsWith("vendor/")) return [path.join(siteRoot, clean)];
   if (
     clean.startsWith("css/") ||
     clean.startsWith("fonts/") ||
     clean.startsWith("images/") ||
     clean.startsWith("js/")
   ) {
-    return path.join(exportRoot, clean);
+    return [path.join(siteRoot, clean)];
   }
-  return path.join(siteRoot, clean);
+  return [path.join(siteRoot, clean)];
 }
 
 function rewriteInternalAnchors(html: string) {
@@ -131,6 +120,18 @@ function stripLocalIntegrity(html: string) {
   );
 }
 
+function injectMirrorStyles(html: string) {
+  const styles =
+    "<style data-ripe-mirror-fixes>" +
+    ".w-webflow-badge{display:none!important;visibility:hidden!important;}" +
+    ".w-form-done,.w-form-fail{display:none!important;visibility:hidden!important;}" +
+    "</style>";
+
+  if (html.includes("data-ripe-mirror-fixes")) return html;
+  if (html.includes("</head>")) return html.replace("</head>", `${styles}</head>`);
+  return `${styles}${html}`;
+}
+
 function injectBridge(html: string) {
   const injected = `<script data-ripe-editor-bridge>${bridgeScript}</script>`;
   if (html.includes("data-ripe-editor-bridge")) return html;
@@ -140,9 +141,11 @@ function injectBridge(html: string) {
 
 export function rewriteMirrorHtml(html: string) {
   return injectBridge(
-    stripLocalIntegrity(
-      rewriteVendorPaths(
-        rewriteRemoteWebflowAssets(rewriteExportRelativeAssets(rewriteInternalAnchors(html))),
+    injectMirrorStyles(
+      stripLocalIntegrity(
+        rewriteVendorPaths(
+          rewriteRemoteWebflowAssets(rewriteExportRelativeAssets(rewriteInternalAnchors(html))),
+        ),
       ),
     ),
   );
@@ -154,9 +157,9 @@ export async function readMirrorResource(segments: string[] = []) {
   const extension = path.extname(requestedPath);
 
   if (extension) {
-    const assetPath = localAssetPath(requestedPath);
-    const assetRoot = requestedPath.startsWith("vendor/") ? siteRoot : exportRoot;
-    if (!within(assetRoot, assetPath)) return null;
+    const assetPath = await firstExisting(localAssetCandidates(requestedPath));
+    if (!assetPath) return null;
+    if (!within(siteRoot, assetPath)) return null;
     const body = await fs.readFile(assetPath);
     const contentType = mimeTypes[extension.toLowerCase()] ?? "application/octet-stream";
     const source =
@@ -167,13 +170,10 @@ export async function readMirrorResource(segments: string[] = []) {
   }
 
   const routePath = `/${requestedPath}`.replace(/\/$/, "") || "/";
-  const htmlPath = await firstExisting([
-    routeToHtmlPath(routePath),
-    exportHtmlFallback(routePath),
-  ]);
+  const htmlPath = await firstExisting([routeToHtmlPath(routePath)]);
 
   if (!htmlPath) return null;
-  if (!within(siteRoot, htmlPath) && !within(exportRoot, htmlPath)) return null;
+  if (!within(siteRoot, htmlPath)) return null;
 
   const html = await fs.readFile(htmlPath, "utf8");
   return {
@@ -186,10 +186,27 @@ export async function getMirrorRoutes(): Promise<MirrorRoute[]> {
   try {
     const manifest = await fs.readFile(path.join(siteRoot, "routes.json"), "utf8");
     const routes = JSON.parse(manifest) as string[];
-    return routes.map((route) => ({
-      path: route,
-      label: route === "/" ? "Home" : route.replace(/^\//, ""),
-    }));
+    const canonicalRoutes = routes.map((route) => {
+      if (route === "/case-studies-new" || route === "/case-studies-new-copy") return "/case-studies";
+      if (route.startsWith("/case-studies-tags/")) {
+        return route.replace(/^\/case-studies-tags\//, "/case-studies/tags/");
+      }
+      if (route === "/archive/writing" || route === "/archive/writing-new-copy") return "/writing";
+      if (route === "/archive/team" || route === "/archive/team-new") return "/team";
+      if (route === "/archive/services") return "/services";
+      if (route === "/archive/careers") return "/careers";
+      if (route === "/archive/work") return "/work";
+      return route;
+    });
+    const uniqueRoutes = [...new Set(canonicalRoutes)];
+    const routesWithCustomPages = [
+      { path: "/home-new-feed", label: "Home (new feed)" },
+      ...uniqueRoutes.map((route) => ({
+        path: route,
+        label: route === "/" ? "Home" : route.replace(/^\//, ""),
+      })),
+    ];
+    return routesWithCustomPages;
   } catch {
     return [{ path: "/", label: "Home" }];
   }

@@ -108,8 +108,34 @@ function normalizePath(path: string) {
   return `/${clean.replace(/^\/+/, "").replace(/\/+$/, "")}`;
 }
 
-function mirrorPath(path: string) {
+function canvasPath(path: string) {
   const normalized = normalizePath(path);
+
+  const editorQuery = "__editor=1";
+  const withEditorQuery = (route: string) =>
+    route === "/" ? `/?${editorQuery}` : `${route}?${editorQuery}`;
+
+  if (normalized === "/") return withEditorQuery("/");
+  if (normalized === "/home-new-feed") return withEditorQuery("/home-new-feed");
+  if (normalized === "/case-studies" || normalized === "/case-studies-new" || normalized === "/case-studies-new-copy") {
+    return withEditorQuery("/case-studies");
+  }
+  if (normalized.startsWith("/case-studies/tags/") || normalized.startsWith("/case-studies-tags/")) {
+    const canonical = normalized.replace(/^\/case-studies-tags\//, "/case-studies/tags/");
+    return withEditorQuery(canonical);
+  }
+  if (normalized === "/writing" || normalized === "/archive/writing" || normalized === "/archive/writing-new-copy") {
+    return withEditorQuery("/writing");
+  }
+  if (normalized.startsWith("/writing/")) return withEditorQuery(normalized);
+  if (normalized === "/team" || normalized === "/archive/team" || normalized === "/archive/team-new") {
+    return withEditorQuery("/team");
+  }
+  if (normalized.startsWith("/team/")) return withEditorQuery(normalized);
+  if (normalized === "/services" || normalized === "/archive/services") return withEditorQuery("/services");
+  if (normalized === "/careers" || normalized === "/archive/careers") return withEditorQuery("/careers");
+  if (normalized === "/work" || normalized === "/archive/work") return withEditorQuery("/work");
+
   return normalized === "/" ? "/__mirror" : `/__mirror${normalized}`;
 }
 
@@ -273,7 +299,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [patches, setPatches] = useState<EditorPatch[]>(() => readDrafts(normalizedInitialPath));
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
 
-  const iframeSrc = useMemo(() => mirrorPath(route), [route]);
+  const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
 
   useEffect(() => {

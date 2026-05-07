@@ -1,25 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const routeAliases = new Map<string, string>([
-  ["/", "/"],
-  ["/case-studies", "/case-studies-new"],
-  ["/writing", "/archive/writing-new-copy"],
-  ["/team", "/archive/team-new"],
-  ["/careers", "/archive/careers"],
-  ["/services", "/archive/services"],
-  ["/work", "/archive/work"],
+const legacyRedirects = new Map<string, string>([
+  ["/case-studies-new", "/case-studies"],
+  ["/case-studies-new-copy", "/case-studies"],
+  ["/archive/writing", "/writing"],
+  ["/archive/writing-new-copy", "/writing"],
+  ["/archive/team", "/team"],
+  ["/archive/team-new", "/team"],
+  ["/archive/services", "/services"],
+  ["/archive/careers", "/careers"],
+  ["/archive/work", "/work"],
 ]);
-
-const mirroredPrefixes = [
-  "/archive/",
-  "/case-studies-new",
-  "/case-studies-tags/",
-  "/case-studies/",
-  "/feed-posts/",
-  "/job-listings/",
-  "/team/",
-  "/writing/",
-];
 
 function toVisualMirrorPath(routePath: string) {
   if (routePath === "/") {
@@ -29,12 +20,29 @@ function toVisualMirrorPath(routePath: string) {
   return `/visual-mirror${routePath}`;
 }
 
-function shouldRewriteToMirror(pathname: string) {
-  if (routeAliases.has(pathname)) {
-    return true;
+function legacyRedirectTarget(pathname: string) {
+  if (legacyRedirects.has(pathname)) {
+    return legacyRedirects.get(pathname) ?? null;
   }
 
-  return mirroredPrefixes.some((prefix) => pathname.startsWith(prefix));
+  const caseStudyTagMatch = pathname.match(/^\/case-studies-tags\/(.+)$/);
+  if (caseStudyTagMatch) {
+    return `/case-studies/tags/${caseStudyTagMatch[1]}`;
+  }
+
+  return null;
+}
+
+function shouldRewriteToMirror(pathname: string) {
+  if (pathname.startsWith("/case-studies/") && !pathname.startsWith("/case-studies/tags/")) {
+    return pathname !== "/case-studies";
+  }
+
+  return pathname.startsWith("/feed-posts/") || pathname.startsWith("/job-listings/");
+}
+
+function shouldServeExportAsset(pathname: string) {
+  return /^(?:\/css\/|\/fonts\/|\/images\/|\/js\/|\/vendor\/)/.test(pathname);
 }
 
 export function proxy(request: NextRequest) {
@@ -50,9 +58,19 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  if (shouldServeExportAsset(url.pathname)) {
+    url.pathname = `/visual-mirror${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  const redirectTarget = legacyRedirectTarget(url.pathname);
+  if (redirectTarget) {
+    url.pathname = redirectTarget;
+    return NextResponse.redirect(url, 308);
+  }
+
   if (shouldRewriteToMirror(url.pathname)) {
-    const target = routeAliases.get(url.pathname) ?? url.pathname;
-    url.pathname = toVisualMirrorPath(target);
+    url.pathname = toVisualMirrorPath(url.pathname);
     return NextResponse.rewrite(url);
   }
 
@@ -65,7 +83,13 @@ export const config = {
     "/__editor/:path*",
     "/__mirror/:path*",
     "/archive/:path*",
+    "/css/:path*",
+    "/fonts/:path*",
+    "/images/:path*",
+    "/js/:path*",
+    "/vendor/:path*",
     "/case-studies",
+    "/case-studies/tags/:path*",
     "/case-studies-new",
     "/case-studies-new/:path*",
     "/case-studies-new-copy",

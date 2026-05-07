@@ -71,3 +71,35 @@ export const createMetadata = ({
     images: [absoluteUrl("/twitter-image")],
   },
 });
+
+export const createExactTitleMetadata = ({
+  title = siteName,
+  description = baseDescription,
+  path = "/",
+}: MetadataOptions): Metadata => ({
+  title: {
+    absolute: title,
+  },
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    title,
+    description,
+    url: absoluteUrl(path),
+    images: [
+      {
+        url: absoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: title,
+      },
+    ],
+  },
+  twitter: {
+    title,
+    description,
+    images: [absoluteUrl("/twitter-image")],
+  },
+});
