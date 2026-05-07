@@ -1,5 +1,4 @@
 function initGridListToggle() {
-  var gridView = document.querySelector('.case-studies-wrapper.is-grid');
   var gridList = gridView && (
     gridView.querySelector('.case-studies-list[fs-list-element="list"]') ||
     gridView.querySelector('#masonry1') ||
@@ -8,6 +7,7 @@ function initGridListToggle() {
   var listViewItems = document.querySelectorAll('.cases-list-view-row');
   var listContainer = document.querySelector('.preview-container');
   var listWrapper = document.querySelector('.cases_listview-wrapper');
+  var gridView = document.querySelector('.case-studies-wrapper.is-grid');
 
   if (!gridList || !gridView || !listContainer || !listWrapper) return;
 

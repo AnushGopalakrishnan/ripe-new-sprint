@@ -5,6 +5,8 @@ const BASE_URL =
   "https://ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.io";
 const OUTPUT_DIR = path.resolve("site");
 const VENDOR_DIR = path.join(OUTPUT_DIR, "vendor");
+const EXPORT_DIR = path.resolve(".context", "webflow-export");
+const EXPORTED_ASSET_DIRS = ["css", "fonts", "images", "js"];
 
 const seedRoutes = [
   "/",
@@ -27,6 +29,8 @@ const localAssetMap = new Map([
   ],
   ["https://slater.app/18806.js", "/vendor/slater-18806.js"],
   ["https://vxmgyv.csb.app/src/style.css", "/vendor/vxmgyv-style.css"],
+  ["https://vxmgyv.csb.app/src/index.js", "/vendor/vxmgyv-index.js"],
+  ["https://vxmgyv.csb.app/src/bunnjs.js", "/vendor/vxmgyv-bunnjs.js"],
 ]);
 
 const ripeBase = "https://ripe-studios.netlify.app";
@@ -118,7 +122,7 @@ function rewriteHtml(html) {
 
   nextHtml = nextHtml.replace(
     "</head>",
-    "<style>.w-webflow-badge{display:none!important;visibility:hidden!important;}</style></head>"
+    "<style>.w-webflow-badge{display:none!important;visibility:hidden!important;}.w-form-done,.w-form-fail{display:none!important;visibility:hidden!important;}</style></head>"
   );
 
   return nextHtml;
@@ -141,6 +145,14 @@ async function downloadVendorText(url, filePath, transform) {
   const body = await fetchText(url);
   await ensureDir(filePath);
   await fs.writeFile(filePath, transform ? transform(body) : body, "utf8");
+}
+
+async function copyExportAssets() {
+  for (const directory of EXPORTED_ASSET_DIRS) {
+    const source = path.join(EXPORT_DIR, directory);
+    const destination = path.join(OUTPUT_DIR, directory);
+    await fs.cp(source, destination, { recursive: true, force: true });
+  }
 }
 
 function patchRipeScriptModule(moduleName, source) {
@@ -238,6 +250,7 @@ async function mirrorRoute(route) {
 async function main() {
   await fs.rm(OUTPUT_DIR, { recursive: true, force: true });
   await fs.mkdir(VENDOR_DIR, { recursive: true });
+  await copyExportAssets();
 
   const routes = await buildRouteSet();
   for (const route of routes) {
@@ -264,6 +277,14 @@ async function main() {
   await downloadVendorFile(
     "https://vxmgyv.csb.app/src/style.css",
     "vendor/vxmgyv-style.css"
+  );
+  await downloadVendorFile(
+    "https://vxmgyv.csb.app/src/index.js",
+    "vendor/vxmgyv-index.js"
+  );
+  await downloadVendorFile(
+    "https://vxmgyv.csb.app/src/bunnjs.js",
+    "vendor/vxmgyv-bunnjs.js"
   );
 
   for (const moduleName of ripeScriptModules) {

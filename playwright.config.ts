@@ -10,10 +10,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "PORT=3100 node scripts/serve-site.mjs",
+    command: "pnpm start --hostname 127.0.0.1 --port 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
-    timeout: 30000,
+    timeout: 60000,
   },
   projects: [
     {

@@ -112,7 +112,10 @@
   };
 
   // Match current path — exact match first, then prefix match
-  var path = window.location.pathname.replace(/\/$/, '') || '/';
+  var path = (window.__RIPE_NATIVE_SOURCE_ROUTE__ || window.location.pathname).replace(/\/$/, '') || '/';
+  if (window.__RIPE_LOADER_ACTIVE_PATH__ === path) return;
+  window.__RIPE_LOADER_ACTIVE_PATH__ = path;
+
   var scripts = PAGE_SCRIPTS[path];
   var styles = PAGE_STYLES[path];
   var externalScripts = EXACT_EXTERNAL_SCRIPTS[path] || [];

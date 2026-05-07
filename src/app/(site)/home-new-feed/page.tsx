@@ -1,0 +1,56 @@
+import { NativeRouteDocument } from "@/components/native-route-document";
+import { NativeRouteRuntime } from "@/components/native-route-runtime";
+import { StudioBFeed } from "@/components/studio-b-feed";
+import { createExactTitleMetadata } from "@/lib/metadata";
+import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
+import parse from "html-react-parser";
+
+const sourceRoute = "/";
+const canonicalPath = "/home-new-feed";
+const title = "Home (new feed)";
+const latestUpdatesMarker = '<section data-theme-section="light" class="latest-updates">';
+const latestUpdatesEndMarker = '</section></section><div data-wf-target';
+
+export async function generateMetadata() {
+  return createExactTitleMetadata({
+    title,
+    path: canonicalPath,
+  });
+}
+
+export default async function HomeNewFeedPage() {
+  const document = await loadNativeMirrorDocument(sourceRoute);
+  const nextDocument = { ...document, title };
+  const split = splitHomeFeed(nextDocument);
+
+  if (!split) {
+    return <NativeRouteDocument document={nextDocument} />;
+  }
+
+  return (
+    <>
+      <NativeRouteRuntime
+        bodyAttributes={nextDocument.bodyAttributes}
+        htmlAttributes={nextDocument.htmlAttributes}
+        sourceRoute={nextDocument.sourceRoute}
+      />
+      {parse(nextDocument.headMarkup)}
+      {parse(split.before)}
+      <StudioBFeed />
+      {parse(split.after)}
+    </>
+  );
+}
+
+function splitHomeFeed(document: NativeMirrorDocument) {
+  const start = document.bodyMarkup.indexOf(latestUpdatesMarker);
+  if (start === -1) return null;
+
+  const end = document.bodyMarkup.indexOf(latestUpdatesEndMarker, start);
+  if (end === -1) return null;
+
+  return {
+    before: document.bodyMarkup.slice(0, start),
+    after: document.bodyMarkup.slice(end + "</section>".length),
+  };
+}
