@@ -32,6 +32,47 @@ test("home page renders the mirrored homepage", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Latest Updates" })).toBeVisible();
 });
 
+test("home page server-renders the final masonry footprint before loader scripts", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context.route("**/*", (route) => {
+    if (route.request().resourceType() === "script") {
+      return route.abort();
+    }
+
+    return route.continue();
+  });
+
+  const page = await context.newPage();
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const masonryState = await page.evaluate(() => {
+    const list = document.querySelector(".latest-updates .masonry-list");
+    const first = document.querySelector(".latest-updates .masonry-item");
+    const listRect = list?.getBoundingClientRect();
+    const firstRect = first?.getBoundingClientRect();
+
+    return {
+      firstPosition: first ? window.getComputedStyle(first).position : null,
+      firstWidth: firstRect ? Math.round(firstRect.width) : null,
+      listHeight: listRect ? Math.round(listRect.height) : null,
+      listOpacity: list ? window.getComputedStyle(list).opacity : null,
+      scrollHeight: Math.round(document.documentElement.scrollHeight),
+    };
+  });
+
+  expect(masonryState).toEqual({
+    firstPosition: "absolute",
+    firstWidth: 309,
+    listHeight: 2965,
+    listOpacity: "1",
+    scrollHeight: 6937,
+  });
+
+  await context.close();
+});
+
 test("home new feed duplicate renders the mirrored homepage", async ({ page }) => {
   await gotoAppPage(page, "/home-new-feed");
   await expect(page).toHaveURL(/\/home-new-feed$/);
@@ -167,6 +208,47 @@ test("canonical writing detail route renders exported content", async ({ page })
   await expect(page.locator("html[data-wf-item-slug='the-power-of-words']")).toHaveCount(1);
 });
 
+test("canonical writing detail route server-renders visible article panels", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context.route("**/*", (route) => {
+    if (route.request().resourceType() === "script") {
+      return route.abort();
+    }
+
+    return route.continue();
+  });
+
+  const page = await context.newPage();
+  await page.goto("/writing/the-power-of-words", { waitUntil: "domcontentloaded" });
+
+  const articleState = await page.evaluate(() => {
+    const wrap = document.querySelector("[data-horizontal-scroll-wrap]");
+    const visiblePanels = Array.from(document.querySelectorAll(".article__panel")).filter(
+      (element) => window.getComputedStyle(element).display !== "none",
+    );
+
+    return {
+      panels: visiblePanels.length,
+      firstText: visiblePanels[0]?.textContent?.trim().slice(0, 24),
+      secondText: visiblePanels[1]?.textContent?.trim().slice(0, 24),
+      track: document.querySelectorAll(".writing-article-track").length,
+      wrapOpacity: wrap ? window.getComputedStyle(wrap).opacity : null,
+    };
+  });
+
+  expect(articleState).toEqual({
+    panels: 2,
+    firstText: "Writing / LanguageThe Po",
+    secondText: "Words have the power to ",
+    track: 1,
+    wrapOpacity: "1",
+  });
+
+  await context.close();
+});
+
 for (const route of canonicalMirrorPages) {
   test(`canonical route ${route.path} resolves through the native page`, async ({ page }) => {
     await gotoAppPage(page, route.path);
@@ -174,6 +256,29 @@ for (const route of canonicalMirrorPages) {
     await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   });
 }
+
+test("canonical work route server-renders the final grid footprint", async ({ page }) => {
+  await gotoAppPage(page, "/work");
+
+  const gridState = await page.evaluate(() => {
+    const grid = document.querySelector(".case-studies-list");
+    const first = document.querySelector(".case-studies-list .masonry-item");
+    const gridRect = grid?.getBoundingClientRect();
+    const firstRect = first?.getBoundingClientRect();
+
+    return {
+      firstWidth: firstRect ? Math.round(firstRect.width) : null,
+      gridWidth: gridRect ? Math.round(gridRect.width) : null,
+      scrollHeight: Math.round(document.documentElement.scrollHeight),
+    };
+  });
+
+  expect(gridState).toEqual({
+    firstWidth: 308,
+    gridWidth: 1280,
+    scrollHeight: 2818,
+  });
+});
 
 test("canonical team detail route renders exported content", async ({ page }) => {
   await gotoAppPage(page, "/team/anush-gopalakrishnan");

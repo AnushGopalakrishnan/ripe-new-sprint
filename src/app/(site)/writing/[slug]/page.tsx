@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { getNativeWritingSlugs, loadNativeMirrorDocument } from "@/lib/native-mirror";
+import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
+import { prepareWritingArticleDocument } from "@/lib/writing-article-ssr";
 
 type WritingPageProps = {
   params: Promise<{ slug: string }>;
@@ -31,5 +33,5 @@ export default async function WritingPostPage({ params }: WritingPageProps) {
     notFound();
   }
 
-  return <NativeRouteDocument document={document} />;
+  return <NativeRouteDocument document={prepareWritingArticleDocument(withRipeLoaderStyles(document))} />;
 }

@@ -6,6 +6,7 @@ import {
   loadNativeMirrorDocument,
   sourceRouteForCanonicalCaseStudyTag,
 } from "@/lib/native-mirror";
+import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 
 type CaseStudyTagPageProps = {
   params: Promise<{ slug: string }>;
@@ -35,5 +36,5 @@ export default async function CaseStudyTagPage({ params }: CaseStudyTagPageProps
     notFound();
   }
 
-  return <NativeRouteDocument document={document} />;
+  return <NativeRouteDocument document={withRipeLoaderStyles(document)} />;
 }

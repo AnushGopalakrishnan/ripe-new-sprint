@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { getNativeTeamSlugs, loadNativeMirrorDocument } from "@/lib/native-mirror";
+import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 
 type TeamDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -31,5 +32,5 @@ export default async function TeamDetailPage({ params }: TeamDetailPageProps) {
     notFound();
   }
 
-  return <NativeRouteDocument document={document} />;
+  return <NativeRouteDocument document={withRipeLoaderStyles(document)} />;
 }

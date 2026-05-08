@@ -45,6 +45,22 @@ function applyAttributes(element: HTMLElement, attributes: Record<string, string
   }
 }
 
+function escapeInlineJson(value: unknown) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function createAttributeBootstrapScript(
+  bodyAttributes: Record<string, string>,
+  htmlAttributes: Record<string, string>,
+  sourceRoute: string,
+) {
+  return `(function(){var body=${escapeInlineJson(bodyAttributes)};var html=${escapeInlineJson(
+    htmlAttributes,
+  )};window.__RIPE_NATIVE_SOURCE_ROUTE__=${escapeInlineJson(
+    sourceRoute,
+  )};function apply(el,attrs){if(!el)return;if(Object.prototype.hasOwnProperty.call(attrs,"class")){el.className=attrs["class"]||"";}for(var k in attrs){if(k==="class")continue;el.setAttribute(k,attrs[k]);}}apply(document.documentElement,html);apply(document.body,body);})();`;
+}
+
 async function executeNativeScripts() {
   const scripts = Array.from(
     document.querySelectorAll<HTMLTemplateElement>("template[data-ripe-native-script]"),
@@ -103,5 +119,12 @@ export function NativeRouteRuntime({
     }
   }, [bodyAttributes, htmlAttributes, sourceRoute]);
 
-  return null;
+  return (
+    <script
+      data-ripe-native-attribute-bootstrap=""
+      dangerouslySetInnerHTML={{
+        __html: createAttributeBootstrapScript(bodyAttributes, htmlAttributes, sourceRoute),
+      }}
+    />
+  );
 }
