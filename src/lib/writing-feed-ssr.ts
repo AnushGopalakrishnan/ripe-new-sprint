@@ -81,6 +81,7 @@ body.writing-feed-page .writing-feed-filter-band {
   box-sizing: border-box;
   width: 100%;
   max-width: none;
+  height: 42px;
   min-height: 42px;
   padding-left: 64px;
   padding-right: 64px;
@@ -128,6 +129,13 @@ body.writing-feed-page .writing-feed-filter-option,
 body.writing-feed-page .writing-feed-filter-label {
   font-size: 1.25rem !important;
   line-height: 1.2;
+}
+
+.writing-feed-filter-divider,
+body.writing-feed-page .writing-feed-filter-divider {
+  width: 100%;
+  height: 2px !important;
+  flex: 0 0 2px;
 }
 
 [data-horizontal-scroll-wrap][data-ssr-writing-feed="true"],
