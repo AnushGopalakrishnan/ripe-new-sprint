@@ -1,0 +1,94 @@
+@font-face {
+  font-family: "Plantin MT Pro";
+  src: url("/fonts/PlantinMTProLight.TTF") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Plantin MT Pro";
+  src: url("/fonts/PlantinMTProRg.TTF") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Plantin MT Pro";
+  src: url("/fonts/PlantinMTProRgIt.TTF") format("truetype");
+  font-display: swap;
+  font-style: italic;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Graphik";
+  src: url("/fonts/GraphikRegular.otf") format("opentype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Graphik";
+  src: url("/fonts/GraphikMedium.otf") format("opentype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Graphik";
+  src: url("/fonts/GraphikSemibold.otf") format("opentype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "Chivo Mono";
+  src: url("/fonts/ChivoMono-Regular.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
+:root {
+  --ripe-color-ink: #191919;
+  --ripe-color-ink-60: #19191999;
+  --ripe-color-ink-40: #19191966;
+  --ripe-color-ink-10: #1919191a;
+  --ripe-color-ink-05: #3c1b0b0d;
+  --ripe-color-paper: #ffffff;
+  --ripe-color-beige: #f1ebe2;
+  --ripe-color-accent: #ff4c24;
+  --ripe-color-charcoal: #201d1d;
+  --ripe-font-serif: "Plantin MT Pro", "Times New Roman", serif;
+  --ripe-font-sans: "Graphik", Arial, sans-serif;
+  --ripe-font-mono: "Chivo Mono", monospace;
+  --ripe-max-width: 1440px;
+  --ripe-space-2xs: 0.25rem;
+  --ripe-space-xs: 0.5rem;
+  --ripe-space-sm: 0.75rem;
+  --ripe-space-md: 1rem;
+  --ripe-space-lg: 1.5rem;
+  --ripe-space-xl: 2rem;
+  --ripe-space-2xl: 3rem;
+  --ripe-space-3xl: 4.5rem;
+  --ripe-radius-pill: 999px;
+  --ripe-radius-sm: 0.35rem;
+  --ripe-radius-md: 0.75rem;
+  --ripe-line: 1px solid var(--ripe-color-ink);
+  --ripe-line-muted: 1px solid var(--ripe-color-ink-10);
+  --ripe-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ripe-duration-fast: 180ms;
+  --ripe-duration-base: 280ms;
+  --ripe-duration-slow: 560ms;
+  --brand: var(--ripe-color-ink);
+  --beige: var(--ripe-color-beige);
+  --white: var(--ripe-color-paper);
+  --brand-60: var(--ripe-color-ink-60);
+  --brand-5: var(--ripe-color-ink-05);
+  --max-width: var(--ripe-max-width);
+}

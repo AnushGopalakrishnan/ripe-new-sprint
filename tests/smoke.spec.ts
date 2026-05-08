@@ -60,6 +60,17 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   );
 });
 
+test("internal style guide renders the Ripe design system", async ({ page }) => {
+  await gotoAppPage(page, "/style-guide");
+
+  await expect(page).toHaveTitle("Ripe Style Guide | Ripe Studios");
+  await expect(page.getByRole("heading", { name: "The Natural Outcome" })).toBeVisible();
+  await expect(page.locator("section#typography")).toBeVisible();
+  await expect(page.locator("section#color")).toBeVisible();
+  await expect(page.locator("section#components")).toBeVisible();
+  await expect(page.locator("meta[name='robots']")).toHaveAttribute("content", /noindex/);
+});
+
 test("canonical case studies route renders visible cards", async ({ page }) => {
   await gotoAppPage(page, "/case-studies");
 
