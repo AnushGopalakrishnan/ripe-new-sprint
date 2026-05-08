@@ -22,6 +22,10 @@ const canonicalRedirects = new Map<string, string>([
   ["/archive/work", "/work"],
 ]);
 
+function encodeScriptContent(content: string) {
+  return Buffer.from(content, "utf8").toString("base64");
+}
+
 export type NativeMirrorDocument = {
   bodyAttributes: Record<string, string>;
   bodyMarkup: string;
@@ -133,8 +137,12 @@ function rewriteLocalAssetUrls(html: string) {
   );
   next = next.replace(
     /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
-    (_match, attributes: string, content: string) =>
-      `<template data-ripe-native-script${attributes}>${content}</template>`,
+    (_match, attributes: string, content: string) => {
+      const encodedContent = content.trim()
+        ? ` data-ripe-native-script-content="${encodeScriptContent(content)}"`
+        : "";
+      return `<template data-ripe-native-script${encodedContent}${attributes}></template>`;
+    },
   );
 
   return next;

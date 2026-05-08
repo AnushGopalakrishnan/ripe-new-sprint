@@ -68,7 +68,8 @@ async function executeNativeScripts() {
       script.onerror = () => resolve();
 
       if (!script.src) {
-        script.text = original.textContent ?? "";
+        const encodedContent = original.dataset.ripeNativeScriptContent;
+        script.text = encodedContent ? window.atob(encodedContent) : original.textContent ?? "";
       }
 
       original.after(script);

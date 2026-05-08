@@ -117,6 +117,50 @@ test("canonical writing route renders mirrored posts", async ({ page }) => {
   await expect(page.locator("text=The Power of Words").first()).toBeVisible();
 });
 
+test("canonical writing route server-renders the final feed rail before loader scripts", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
+  await context.route("**/*", (route) => {
+    if (route.request().resourceType() === "script") {
+      return route.abort();
+    }
+
+    return route.continue();
+  });
+
+  const page = await context.newPage();
+  await page.goto("/writing", { waitUntil: "domcontentloaded" });
+
+  const feedState = await page.evaluate(() => {
+    const wrap = document.querySelector("[data-horizontal-scroll-wrap]");
+    const track = document.querySelector(".writing-feed-track");
+    const hiddenCms = document.querySelector(".writings-hidden-cms");
+
+    return {
+      cards: document.querySelectorAll(".writing-feed-track .demo-card").length,
+      firstTitle: document.querySelector(".writing-feed-track .writing_item-title")?.textContent?.trim(),
+      hiddenCmsHeight: hiddenCms ? window.getComputedStyle(hiddenCms).height : null,
+      templatesVisible: Array.from(document.querySelectorAll("[data-template]")).filter(
+        (element) => window.getComputedStyle(element).display !== "none",
+      ).length,
+      trackDisplay: track ? window.getComputedStyle(track).display : null,
+      wrapOpacity: wrap ? window.getComputedStyle(wrap).opacity : null,
+    };
+  });
+
+  expect(feedState).toEqual({
+    cards: 6,
+    firstTitle: "Understanding Writing Techniques",
+    hiddenCmsHeight: "1px",
+    templatesVisible: 0,
+    trackDisplay: "flex",
+    wrapOpacity: "1",
+  });
+
+  await context.close();
+});
+
 test("canonical writing detail route renders exported content", async ({ page }) => {
   await gotoAppPage(page, "/writing/the-power-of-words");
   await expect(page).toHaveTitle("Ripe Studios — New Style");

@@ -1,6 +1,7 @@
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument } from "@/lib/native-mirror";
+import { prepareWritingIndexDocument } from "@/lib/writing-feed-ssr";
 
 const sourceRoute = "/archive/writing-new-copy";
 
@@ -14,5 +15,5 @@ export async function generateMetadata() {
 
 export default async function WritingIndexPage() {
   const document = await loadNativeMirrorDocument(sourceRoute);
-  return <NativeRouteDocument document={document} />;
+  return <NativeRouteDocument document={prepareWritingIndexDocument(document)} />;
 }

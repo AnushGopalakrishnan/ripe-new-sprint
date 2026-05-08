@@ -1347,6 +1347,13 @@
       }
     );
 
+    Array.prototype.forEach.call(
+      wrap.querySelectorAll('.writing-feed-track'),
+      function (track) {
+        track.remove();
+      }
+    );
+
     applyTheme();
     setupHoverEffects();
     render(false);
