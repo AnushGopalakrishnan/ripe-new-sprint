@@ -76,9 +76,9 @@
   --ripe-space-xl: 2rem;
   --ripe-space-2xl: 3rem;
   --ripe-space-3xl: 4.5rem;
-  --ripe-radius-pill: 999px;
-  --ripe-radius-sm: 0.35rem;
-  --ripe-radius-md: 0.75rem;
+  --ripe-radius-pill: 0;
+  --ripe-radius-sm: 0;
+  --ripe-radius-md: 0;
   --ripe-line: 1px solid var(--ripe-color-ink);
   --ripe-line-muted: 1px solid var(--ripe-color-ink-10);
   --ripe-ease: cubic-bezier(0.22, 1, 0.36, 1);
