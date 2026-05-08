@@ -1,4 +1,12 @@
 @font-face {
+  font-family: "Plantin MT Pro Light";
+  src: url("/fonts/PlantinMTProLight.TTF") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 300;
+}
+
+@font-face {
   font-family: "Plantin MT Pro";
   src: url("/fonts/PlantinMTProLight.TTF") format("truetype");
   font-display: swap;
@@ -64,7 +72,8 @@
   --ripe-color-beige: #f1ebe2;
   --ripe-color-accent: #ff4c24;
   --ripe-color-charcoal: #201d1d;
-  --ripe-font-serif: "Plantin MT Pro", "Times New Roman", serif;
+  --ripe-font-serif: "Plantin MT Pro Light", "Plantin MT Pro", "Times New Roman", serif;
+  --ripe-font-serif-weight: 300;
   --ripe-font-sans: "Graphik", Arial, sans-serif;
   --ripe-font-mono: "Chivo Mono", monospace;
   --ripe-max-width: 1440px;
@@ -90,5 +99,8 @@
   --white: var(--ripe-color-paper);
   --brand-60: var(--ripe-color-ink-60);
   --brand-5: var(--ripe-color-ink-05);
+  --font-serif: var(--ripe-font-serif);
+  --font-sans: var(--ripe-font-sans);
+  --font-mono: var(--ripe-font-mono);
   --max-width: var(--ripe-max-width);
 }

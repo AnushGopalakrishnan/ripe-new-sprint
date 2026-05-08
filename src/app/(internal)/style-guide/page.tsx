@@ -115,18 +115,19 @@ export default function StyleGuidePage() {
             <span className={styles.pill}>Typography</span>
             <h2 className={styles.sectionTitle}>Editorial first, utility second.</h2>
             <p className={styles.sectionCopy}>
-              Use Plantin for the brand voice and large expressive moments. Use Graphik for UI
-              structure, cards, labels, and dense content. Chivo Mono stays reserved for metadata.
+              Use Plantin MT Pro Light at 300 for the brand voice and large expressive moments. Use
+              Graphik for UI structure, cards, labels, and dense content. Chivo Mono stays reserved
+              for metadata.
             </p>
           </div>
           <div className={styles.stack}>
             <div className={styles.typeSpec}>
               <p className={styles.displayType}>Ripe Studios</p>
-              <p className={styles.spec}>Display / Plantin / 300 / tight tracking / hero only</p>
+              <p className={styles.spec}>Display / Plantin MT Pro Light / 300 / tight tracking / hero only</p>
             </div>
             <div className={styles.typeSpec}>
               <p className={styles.serifType}>The color notes are visual notes.</p>
-              <p className={styles.spec}>Editorial / Plantin / section headlines and feature copy</p>
+              <p className={styles.spec}>Editorial / Plantin MT Pro Light / 300 / section headlines</p>
             </div>
             <div className={styles.typeSpec}>
               <p className={styles.sansType}>Case studies, writing, team, services.</p>

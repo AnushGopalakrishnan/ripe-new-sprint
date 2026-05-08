@@ -39,6 +39,7 @@
 .brandWord {
   font-family: var(--ripe-font-serif);
   font-size: clamp(1.65rem, 2.4vw, 2.6rem);
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 0.85;
 }
 
@@ -108,7 +109,7 @@
   margin: 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(4.6rem, 14vw, 14rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.078em;
   line-height: 0.75;
 }
@@ -119,6 +120,7 @@
   color: var(--ripe-color-ink-60);
   font-family: var(--ripe-font-serif);
   font-size: clamp(1.45rem, 2.6vw, 3rem);
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 0.98;
 }
 
@@ -153,6 +155,7 @@
   margin: var(--ripe-space-lg) 0 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.8rem, 5vw, 5.5rem);
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 0.78;
 }
 
@@ -174,7 +177,7 @@
   margin: var(--ripe-space-md) 0 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.7rem, 5.4vw, 6.4rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.074em;
   line-height: 0.78;
 }
@@ -210,7 +213,7 @@
 .displayType {
   font-family: var(--ripe-font-serif);
   font-size: clamp(5rem, 10vw, 11rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.085em;
   line-height: 0.74;
 }
@@ -218,7 +221,7 @@
 .serifType {
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.6rem, 4.6vw, 5.2rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.065em;
   line-height: 0.84;
 }
@@ -285,6 +288,7 @@
   margin: 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.6rem, 4.2vw, 5.4rem);
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.074em;
   line-height: 0.78;
 }
@@ -347,7 +351,7 @@
   margin: 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.6rem, 4.8vw, 5.8rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.076em;
   line-height: 0.78;
 }
@@ -388,7 +392,7 @@
   margin: 0;
   font-family: var(--ripe-font-serif);
   font-size: clamp(3.7rem, 6.6vw, 8rem);
-  font-weight: 300;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.08em;
   line-height: 0.74;
 }
@@ -458,6 +462,7 @@
   margin: 0;
   font-family: var(--ripe-font-serif);
   font-size: 2.8rem;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.07em;
   line-height: 0.82;
 }
