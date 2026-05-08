@@ -44,12 +44,102 @@ body.writing-feed-page .writings-hidden-cms {
   border: 0 !important;
 }
 
+.writing-feed-pin-shell,
+body.writing-feed-page .writing-feed-pin-shell {
+  width: 100%;
+  height: 100vh;
+  overflow: clip;
+  position: relative;
+}
+
+.writing-feed-pin-shell > .main.u-display-block.is-writing,
+body.writing-feed-page .writing-feed-pin-shell > .main.u-display-block.is-writing {
+  will-change: transform;
+}
+
+.writing-feed-hero.hero_section,
+body.writing-feed-page .writing-feed-hero.hero_section {
+  box-sizing: border-box;
+  height: 400px;
+  padding: 128px 64px !important;
+}
+
+.writing-feed-title,
+body.writing-feed-page .writing-feed-title {
+  width: 100%;
+  max-width: 688px !important;
+  margin: 0;
+  font-size: 40px;
+  line-height: 48px;
+}
+
+.writing-feed-filter-band,
+body.writing-feed-page .writing-feed-filter-band {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-height: 42px;
+  padding-left: 64px;
+  padding-right: 64px;
+  margin-bottom: 64px;
+}
+
+.writing-feed-filter-band > .grid-form.w-form,
+.writing-feed-filter-form,
+.writing-feed-filter-shell,
+.writing-feed-filter-list,
+body.writing-feed-page .writing-feed-filter-band > .grid-form.w-form,
+body.writing-feed-page .writing-feed-filter-form,
+body.writing-feed-page .writing-feed-filter-shell,
+body.writing-feed-page .writing-feed-filter-list {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.writing-feed-filter-band > .grid-form.w-form,
+body.writing-feed-page .writing-feed-filter-band > .grid-form.w-form {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.writing-feed-filter-shell,
+body.writing-feed-page .writing-feed-filter-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.writing-feed-filter-list,
+body.writing-feed-page .writing-feed-filter-list {
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+}
+
+.writing-feed-filter-reset.w-button,
+.writing-feed-filter-option,
+.writing-feed-filter-label,
+body.writing-feed-page .writing-feed-filter-reset.w-button,
+body.writing-feed-page .writing-feed-filter-option,
+body.writing-feed-page .writing-feed-filter-label {
+  font-size: 1.25rem !important;
+  line-height: 1.2;
+}
+
 [data-horizontal-scroll-wrap][data-ssr-writing-feed="true"],
 body.writing-feed-page [data-horizontal-scroll-wrap][data-ssr-writing-feed="true"] {
+  display: flex;
+  align-items: flex-start;
   width: 100%;
   height: 60vh;
   min-height: 0;
   max-height: 60vh;
+  padding-top: 12px;
+  padding-bottom: 12px;
   opacity: 1 !important;
   overflow-x: hidden;
   overflow-y: hidden;
@@ -113,6 +203,15 @@ body.writing-feed-page [data-horizontal-scroll-wrap][data-ssr-writing-feed="true
   }
 }
 </style>`;
+
+const writingFeedStylesheetLinks = [
+  "/vendor/ripe/styles/global/components.css",
+  "/vendor/ripe/styles/global/theme.css",
+  "/vendor/ripe/styles/global/card-hover.css",
+  "/vendor/ripe/styles/writings/horizontal-feed.css",
+]
+  .map((href) => `<link data-ripe-writing-feed-ssr href="${href}" rel="stylesheet"/>`)
+  .join("");
 
 function getAttribute(markup: string, name: string) {
   const pattern = new RegExp(`${name}=(["'])(.*?)\\1`, "i");
@@ -254,6 +353,40 @@ function addBodyClass(document: NativeMirrorDocument, className: string) {
   return { ...document.bodyAttributes, class: Array.from(classes).join(" ") };
 }
 
+function wrapWritingMainInPinShell(bodyMarkup: string) {
+  if (bodyMarkup.includes('class="writing-feed-pin-shell"')) return bodyMarkup;
+
+  const mainOpen = bodyMarkup.match(/<section\b(?=[^>]*\bmain\b)(?=[^>]*\bis-writing\b)[^>]*>/i);
+  if (!mainOpen || mainOpen.index === undefined) return bodyMarkup;
+
+  const start = mainOpen.index;
+  const sectionPattern = /<\/?section\b[^>]*>/gi;
+  sectionPattern.lastIndex = start;
+
+  let depth = 0;
+  let match: RegExpExecArray | null = null;
+
+  while ((match = sectionPattern.exec(bodyMarkup))) {
+    const token = match[0];
+
+    if (token.startsWith("</")) {
+      depth -= 1;
+      if (depth === 0) {
+        const end = sectionPattern.lastIndex;
+        return `${bodyMarkup.slice(0, start)}<div class="writing-feed-pin-shell">${bodyMarkup.slice(
+          start,
+          end,
+        )}</div>${bodyMarkup.slice(end)}`;
+      }
+      continue;
+    }
+
+    depth += 1;
+  }
+
+  return bodyMarkup;
+}
+
 function getTemplateMarkup(wrapInner: string) {
   const largeStart = wrapInner.indexOf('<div data-template="large"');
   const smallStart = wrapInner.indexOf('<div data-template="small"', largeStart + 1);
@@ -270,7 +403,7 @@ export function prepareWritingIndexDocument(document: NativeMirrorDocument): Nat
   const items = getWritingFeedItems(document.bodyMarkup);
   if (!items.length) return document;
 
-  const bodyMarkup = document.bodyMarkup.replace(
+  const bodyMarkup = wrapWritingMainInPinShell(document.bodyMarkup.replace(
     /<section\b(?=[^>]*data-horizontal-scroll-wrap)[^>]*>([\s\S]*?)<\/section>/i,
     (wrapMarkup, wrapInner: string) => {
       const openTag = wrapMarkup.match(/^<section\b[^>]*>/i)?.[0] ?? "";
@@ -283,7 +416,7 @@ export function prepareWritingIndexDocument(document: NativeMirrorDocument): Nat
         items,
       )}</div>${templates}</section>`;
     },
-  );
+  ));
 
   return {
     ...document,
@@ -291,6 +424,6 @@ export function prepareWritingIndexDocument(document: NativeMirrorDocument): Nat
     bodyMarkup,
     headMarkup: document.headMarkup.includes("data-ripe-writing-feed-ssr")
       ? document.headMarkup
-      : `${document.headMarkup}${ssrStyles}`,
+      : `${document.headMarkup}${writingFeedStylesheetLinks}${ssrStyles}`,
   };
 }
