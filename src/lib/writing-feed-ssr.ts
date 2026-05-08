@@ -205,12 +205,22 @@ body.writing-feed-page [data-horizontal-scroll-wrap][data-ssr-writing-feed="true
 </style>`;
 
 const writingFeedStylesheetLinks = [
+  "/fonts/PlantinMTProLight.TTF::font/ttf",
+  "/fonts/GraphikRegular.otf::font/otf",
   "/vendor/ripe/styles/global/components.css",
   "/vendor/ripe/styles/global/theme.css",
   "/vendor/ripe/styles/global/card-hover.css",
   "/vendor/ripe/styles/writings/horizontal-feed.css",
 ]
-  .map((href) => `<link data-ripe-writing-feed-ssr href="${href}" rel="stylesheet"/>`)
+  .map((asset) => {
+    const [href, type] = asset.split("::");
+
+    if (type) {
+      return `<link data-ripe-writing-feed-ssr href="${href}" rel="preload" as="font" type="${type}" crossorigin/>`;
+    }
+
+    return `<link data-ripe-writing-feed-ssr href="${href}" rel="stylesheet"/>`;
+  })
   .join("");
 
 function getAttribute(markup: string, name: string) {
