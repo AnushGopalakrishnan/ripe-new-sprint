@@ -118,6 +118,7 @@ function canvasPath(path: string) {
   if (normalized === "/") return withEditorQuery("/");
   if (normalized === "/home-new-feed") return withEditorQuery("/home-new-feed");
   if (normalized === "/work-new") return withEditorQuery("/work-new");
+  if (normalized === "/work-new-alternate") return withEditorQuery("/work-new-alternate");
   if (normalized === "/case-studies" || normalized === "/case-studies-new" || normalized === "/case-studies-new-copy") {
     return withEditorQuery("/case-studies");
   }

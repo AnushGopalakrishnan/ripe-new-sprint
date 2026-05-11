@@ -8,8 +8,8 @@ import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 import { parseWorkJournalUrlState, type WorkJournalSearchParams } from "@/lib/work-journal-url-state";
 
 const sourceRoute = "/archive/work";
-const canonicalPath = "/work-new";
-const title = "Work (new journal)";
+const canonicalPath = "/work-new-alternate";
+const title = "Work (alternate journal)";
 const mainMarker = '<section class="main">';
 const footerMarker = '<section class="footer-wrap">';
 
@@ -31,7 +31,9 @@ export default async function WorkNewPage({ searchParams }: WorkNewPageProps) {
   const split = splitWorkShell(document);
 
   if (!split) {
-    return <WorkJournalSection filters={workJournalFilters} items={workJournalItems} {...initialState} />;
+    return (
+      <WorkJournalSection filters={workJournalFilters} items={workJournalItems} layout="alternating" {...initialState} />
+    );
   }
 
   return (
@@ -44,7 +46,12 @@ export default async function WorkNewPage({ searchParams }: WorkNewPageProps) {
       {parse(document.headMarkup)}
       {parse(split.beforeMain)}
       <main className="main">
-        <WorkJournalSection filters={workJournalFilters} items={workJournalItems} {...initialState} />
+        <WorkJournalSection
+          filters={workJournalFilters}
+          items={workJournalItems}
+          layout="alternating"
+          {...initialState}
+        />
       </main>
       {parse(split.footerAndScripts)}
     </>

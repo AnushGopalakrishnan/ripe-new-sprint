@@ -1,3 +1,23 @@
 @import "../styles/ripe-tokens.css";
 
 /* Public mirror pages load their exported Webflow styles from each route document. */
+
+.ripe-page-entering body {
+  animation: ripe-page-fade-in 420ms ease both;
+}
+
+@keyframes ripe-page-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ripe-page-entering body {
+    animation: none;
+  }
+}

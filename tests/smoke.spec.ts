@@ -330,11 +330,17 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   await gotoAppPage(page, "/work-new");
 
   await expect(page).toHaveTitle("Work (new journal)");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveCount(1);
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "list");
   await expect(page.getByLabel("Work filters").getByRole("button")).toHaveCount(5);
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("grid");
 
   const workJournal = page.getByLabel("Work journal");
   await expect(workJournal.getByRole("link")).toHaveCount(12);
   await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
+  await workJournal.getByRole("link").first().evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))),
+  );
   await expect(workJournal.getByRole("img", { name: "Sticky Notes" })).toBeVisible();
 
   const firstCard = workJournal.getByRole("link").first();
@@ -347,14 +353,303 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   expect(firstCardBox?.x).toBe(17);
   expect(Math.round(firstCardBox?.width ?? 0)).toBe(339);
 
-  await page.getByLabel("Work filters").getByRole("button", { name: "Motion" }).click();
+  const regularGridMediaState = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const mediaHeights = Array.from(document.querySelectorAll('[aria-label="Work journal"] a [class*="media"]'))
+      .slice(0, 4)
+      .map((media) => Math.round(media.getBoundingClientRect().height));
+
+    return {
+      layout: grid?.getAttribute("data-layout"),
+      mediaHeights,
+      uniqueHeights: [...new Set(mediaHeights)],
+    };
+  });
+
+  expect(regularGridMediaState.layout).toBe("standard");
+  expect(regularGridMediaState.mediaHeights).toHaveLength(4);
+  expect(regularGridMediaState.uniqueHeights).toHaveLength(1);
+
+  const viewButton = page.getByLabel("Project view").getByRole("button", { name: /Switch to list view/i });
+  await expect(viewButton).toHaveAttribute("data-button-view", "list");
+  await viewButton.hover();
+  await expect(viewButton).toHaveAttribute("data-button-view", "grid");
+  const hoverPreviewState = await page.evaluate(() => {
+    const section = document.querySelector('[aria-label="Work journal"]');
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+
+    return {
+      sectionView: section?.getAttribute("data-view"),
+      gridView: grid?.getAttribute("data-view"),
+      transition: grid?.getAttribute("data-transition"),
+      viewParam: new URL(window.location.href).searchParams.get("view"),
+    };
+  });
+
+  expect(hoverPreviewState).toEqual({
+    sectionView: "grid",
+    gridView: "grid",
+    transition: "idle",
+    viewParam: "grid",
+  });
+  await page.mouse.move(8, 8);
+  await expect(viewButton).toHaveAttribute("data-button-view", "list");
+
+  await viewButton.click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("list");
+  await firstCard.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))),
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+  await page.mouse.move(8, 8);
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-view", "list");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "grid");
+  const listViewState = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const listHeader = document.querySelector('[aria-label="Work journal"] [class*="listHeader"]');
+    const listHeaderYear = listHeader?.querySelector('[class*="listHeaderYear"]');
+    const first = document.querySelector('[aria-label="Work journal"] a');
+    const firstTitle = first?.querySelector("h2");
+    const firstDescription = first?.querySelector("p");
+    const firstIndustry = first?.querySelector('[class*="listIndustry"]');
+    const firstService = first?.querySelector('[class*="listService"]');
+    const firstYear = first?.querySelector('[class*="listYear"]');
+    const firstMedia = first?.querySelector('[class*="media"]');
+    const headerRect = listHeader?.getBoundingClientRect();
+    const firstRect = first?.getBoundingClientRect();
+    const firstTitleRect = firstTitle?.getBoundingClientRect();
+    const firstDescriptionRect = firstDescription?.getBoundingClientRect();
+    const firstIndustryRect = firstIndustry?.getBoundingClientRect();
+    const firstServiceRect = firstService?.getBoundingClientRect();
+    const firstYearRect = firstYear?.getBoundingClientRect();
+    const firstYearStyle = firstYear ? getComputedStyle(firstYear) : null;
+
+    return {
+      view: grid?.getAttribute("data-view"),
+      headerText: listHeader?.textContent?.trim(),
+      headerYearTextAlign: listHeaderYear ? getComputedStyle(listHeaderYear).textAlign : null,
+      headerDisplay: listHeader ? getComputedStyle(listHeader).display : null,
+      headerWidth: headerRect ? Math.round(headerRect.width) : 0,
+      firstCardWidth: firstRect ? Math.round(firstRect.width) : 0,
+      firstCardHeight: firstRect ? Math.round(firstRect.height) : 0,
+      firstIndustryText: firstIndustry?.textContent?.trim(),
+      firstIndustryWidth: firstIndustryRect ? Math.round(firstIndustryRect.width) : 0,
+      firstTitleText: firstTitle?.textContent?.trim(),
+      firstTitleWidth: firstTitleRect ? Math.round(firstTitleRect.width) : 0,
+      firstDescriptionDisplay: firstDescription ? getComputedStyle(firstDescription).display : null,
+      firstDescriptionWidth: firstDescriptionRect ? Math.round(firstDescriptionRect.width) : 0,
+      firstServiceText: firstService?.textContent?.trim(),
+      firstServiceWidth: firstServiceRect ? Math.round(firstServiceRect.width) : 0,
+      firstYearText: firstYear?.textContent?.trim(),
+      firstYearTextAlign: firstYearStyle?.textAlign,
+      firstYearWidth: firstYearRect ? Math.round(firstYearRect.width) : 0,
+      firstMediaOpacity: firstMedia ? Number(getComputedStyle(firstMedia).opacity) : 1,
+    };
+  });
+
+  expect(listViewState).toEqual({
+    view: "list",
+    headerText: "IndustryProject NameServicesYear",
+    headerYearTextAlign: "right",
+    headerDisplay: "grid",
+    headerWidth: 1406,
+    firstCardWidth: 1406,
+    firstCardHeight: 44,
+    firstIndustryText: "Hospitality",
+    firstIndustryWidth: 339,
+    firstTitleText: "Sticky Notes",
+    firstTitleWidth: 339,
+    firstDescriptionDisplay: "none",
+    firstDescriptionWidth: 0,
+    firstServiceText: "Brand Extensions",
+    firstServiceWidth: 339,
+    firstYearText: "2026",
+    firstYearTextAlign: "right",
+    firstYearWidth: 339,
+    firstMediaOpacity: 0,
+  });
+
+  await workJournal.getByRole("link").first().hover();
+  await page.waitForTimeout(80);
+  const firstListPreviewState = await page.evaluate(() => {
+    const first = document.querySelector('[aria-label="Work journal"] a');
+    const media = first?.querySelector('[class*="media"]');
+    const mediaStyle = media ? getComputedStyle(media) : null;
+
+    return {
+      bodyThemeActive: document.body.className.includes("themeActive"),
+      entry: first?.getAttribute("data-list-preview-entry"),
+      hovering: document.querySelector('[aria-label="Work journal"] [class*="grid"]')?.getAttribute("data-hovering"),
+      hovered: first?.getAttribute("data-hovered"),
+      opacity: mediaStyle ? Number(mediaStyle.opacity) : 0,
+      theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
+      transitionProperty: mediaStyle?.transitionProperty ?? "",
+    };
+  });
+
+  expect(firstListPreviewState.bodyThemeActive).toBe(false);
+  expect(firstListPreviewState.entry).toBe("true");
+  expect(firstListPreviewState.hovering).toBe("true");
+  expect(firstListPreviewState.hovered).toBe("true");
+  expect(firstListPreviewState.opacity).toBeGreaterThan(0);
+  expect(firstListPreviewState.theme).toBe("");
+  expect(firstListPreviewState.transitionProperty).toContain("opacity");
+  expect(firstListPreviewState.transitionProperty).toContain("transform");
+
+  await workJournal.getByRole("link").nth(1).hover();
+  await page.waitForTimeout(80);
+  const secondListPreviewState = await page.evaluate(() => {
+    const rows = document.querySelectorAll('[aria-label="Work journal"] a');
+    const first = rows[0];
+    const second = rows[1];
+    const firstMedia = first?.querySelector('[class*="media"]');
+    const secondMedia = second?.querySelector('[class*="media"]');
+    const firstMediaStyle = firstMedia ? getComputedStyle(firstMedia) : null;
+    const secondMediaStyle = secondMedia ? getComputedStyle(secondMedia) : null;
+
+    return {
+      bodyThemeActive: document.body.className.includes("themeActive"),
+      hovering: document.querySelector('[aria-label="Work journal"] [class*="grid"]')?.getAttribute("data-hovering"),
+      firstEntry: first?.getAttribute("data-list-preview-entry"),
+      firstOpacity: firstMediaStyle ? Number(firstMediaStyle.opacity) : 1,
+      firstHovered: first?.getAttribute("data-hovered"),
+      secondEntry: second?.getAttribute("data-list-preview-entry"),
+      secondOpacity: secondMediaStyle ? Number(secondMediaStyle.opacity) : 0,
+      secondHovered: second?.getAttribute("data-hovered"),
+      secondTransitionProperty: secondMediaStyle?.transitionProperty ?? "",
+      theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
+    };
+  });
+
+  expect(secondListPreviewState).toEqual({
+    bodyThemeActive: false,
+    hovering: "true",
+    firstEntry: "false",
+    firstHovered: "false",
+    firstOpacity: 0,
+    secondEntry: "false",
+    secondHovered: "true",
+    secondOpacity: 1,
+    secondTransitionProperty: "none",
+    theme: "",
+  });
+
+  await page.getByLabel("Project view").getByRole("button", { name: /Switch to grid view/i }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("grid");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+  await page.mouse.move(8, 8);
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-view", "grid");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "list");
+  await expect(firstCard).toHaveAttribute("data-hovered", "false");
+  const restoredGridState = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const first = document.querySelector('[aria-label="Work journal"] a');
+    const firstRect = first?.getBoundingClientRect();
+
+    return {
+      view: grid?.getAttribute("data-view"),
+      firstCardWidth: firstRect ? Math.round(firstRect.width) : 0,
+    };
+  });
+
+  expect(restoredGridState).toEqual({
+    view: "grid",
+    firstCardWidth: 339,
+  });
+
+  const dividerGeometry = await page.evaluate(() => {
+    const section = document.querySelector('[aria-label="Work journal"]');
+    const divider = document.querySelector('[aria-label="Work journal"] [class*="filterDivider"]');
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    if (!section || !divider || !grid) return null;
+    const sectionRect = section.getBoundingClientRect();
+    const dividerRect = divider.getBoundingClientRect();
+    const gridRect = grid.getBoundingClientRect();
+
+    return {
+      dividerX: Math.round(dividerRect.x),
+      dividerWidth: Math.round(dividerRect.width),
+      dividerHeight: Math.round(dividerRect.height),
+      sectionX: Math.round(sectionRect.x),
+      sectionWidth: Math.round(sectionRect.width),
+      gapToGrid: Math.round(gridRect.top - dividerRect.bottom),
+    };
+  });
+
+  expect(dividerGeometry).toEqual({
+    dividerX: 17,
+    dividerWidth: 1406,
+    dividerHeight: 2,
+    sectionX: 0,
+    sectionWidth: 1440,
+    gapToGrid: 32,
+  });
+
+  const motionFilter = page.getByLabel("Work filters").getByRole("button", { name: "Motion" });
+  const motionFilterTopBeforeActive = await motionFilter.evaluate((element) => element.getBoundingClientRect().top);
+  await motionFilter.click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("filters")).toBe("Motion");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+  const motionFilterTopAfterActive = await motionFilter.evaluate((element) => element.getBoundingClientRect().top);
+  expect(motionFilterTopAfterActive).toBeLessThan(motionFilterTopBeforeActive);
+
   await expect(workJournal.getByRole("link")).toHaveCount(4);
   await expect(workJournal.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
   await expect(workJournal.getByRole("heading", { name: "Volvo" })).toBeVisible();
   await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toHaveCount(0);
 
-  await page.getByLabel("Work filters").getByRole("button", { name: "Motion" }).click();
+  await motionFilter.click();
+  await expect.poll(() => new URL(page.url()).searchParams.has("filters")).toBe(false);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
   await expect(workJournal.getByRole("link")).toHaveCount(12);
+
+  const navBackgroundBeforeTheme = await page.evaluate(() => {
+    const nav = document.querySelector(".nav_wrap");
+    const navContain = document.querySelector(".nav_contain.u-container");
+
+    return {
+      nav: nav ? getComputedStyle(nav).backgroundColor : "",
+      navContain: navContain ? getComputedStyle(navContain).backgroundColor : "",
+    };
+  });
+
+  expect(navBackgroundBeforeTheme).toEqual({
+    nav: "rgba(0, 0, 0, 0)",
+    navContain: "rgba(0, 0, 0, 0)",
+  });
+
   await firstCard.hover();
   await page.waitForTimeout(650);
 
@@ -366,27 +661,36 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
     const firstTitle = document.querySelector('[aria-label="Work journal"] h2');
     const firstDescription = document.querySelector('[aria-label="Work journal"] p');
     const firstImage = document.querySelector('[aria-label="Work journal"] img');
+    const firstMedia = document.querySelector('[aria-label="Work journal"] a [class*="media"]');
     const firstOverlay = document.querySelector('[aria-label="Work journal"] a [class*="overlay"]');
     const firstTag = document.querySelector('[aria-label="Work journal"] a [class*="tag"]');
     const secondTag = secondCard?.querySelector('[class*="tag"]');
+    const divider = document.querySelector('[aria-label="Work journal"] [class*="filterDivider"]');
     const nav = document.querySelector(".nav_wrap");
     const firstDescriptionStyle = firstDescription ? getComputedStyle(firstDescription) : null;
     const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
+    const firstMediaStyle = firstMedia ? getComputedStyle(firstMedia) : null;
     const firstTagStyle = firstTag ? getComputedStyle(firstTag) : null;
     const secondTagStyle = secondTag ? getComputedStyle(secondTag) : null;
+    const firstTitleStyle = firstTitle ? getComputedStyle(firstTitle) : null;
 
     return {
       theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
       tone: document.body.getAttribute("data-work-journal-tone"),
       overlayOpacity: overlay ? Number(getComputedStyle(overlay).opacity) : 0,
       overlayBackgroundColor: overlay ? getComputedStyle(overlay).backgroundColor : "",
+      dividerBackgroundColor: divider ? getComputedStyle(divider).backgroundColor : "",
       secondCardOpacity: secondCard ? Number(getComputedStyle(secondCard).opacity) : 1,
       secondMediaOpacity: secondMedia ? Number(getComputedStyle(secondMedia).opacity) : 1,
       secondImageFilter: secondImage ? getComputedStyle(secondImage).filter : "",
       firstTitleOpacity: firstTitle ? Number(getComputedStyle(firstTitle).opacity) : 0,
+      firstCardTextTone: firstTitle?.closest("a")?.getAttribute("data-card-text-tone") ?? "",
+      firstTitleColor: firstTitleStyle?.color ?? "",
       firstDescriptionOpacity: firstDescription ? Number(getComputedStyle(firstDescription).opacity) : 0,
+      firstDescriptionColor: firstDescriptionStyle?.color ?? "",
       firstImageFilter: firstImageStyle?.filter ?? "",
       firstImageTransform: firstImageStyle?.transform ?? "",
+      firstMediaBorderRadius: firstMediaStyle?.borderRadius ?? "",
       firstOverlayOpacity: firstOverlay ? Number(getComputedStyle(firstOverlay).opacity) : 1,
       firstTagOpacity: firstTagStyle ? Number(firstTagStyle.opacity) : 0,
       firstTagTransform: firstTagStyle?.transform ?? "",
@@ -403,13 +707,18 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   expect(hoverThemeState.tone).toBe("light");
   expect(hoverThemeState.overlayOpacity).toBeGreaterThan(0.9);
   expect(hoverThemeState.overlayBackgroundColor).toBe("rgb(78, 58, 170)");
+  expect(hoverThemeState.dividerBackgroundColor).toBe("rgb(255, 255, 255)");
   expect(hoverThemeState.secondCardOpacity).toBe(1);
   expect(hoverThemeState.secondMediaOpacity).toBeLessThan(0.5);
   expect(hoverThemeState.secondImageFilter).toContain("grayscale");
   expect(hoverThemeState.firstTitleOpacity).toBe(1);
+  expect(hoverThemeState.firstCardTextTone).toBe("dark");
+  expect(hoverThemeState.firstTitleColor).toBe("rgb(10, 10, 10)");
   expect(hoverThemeState.firstDescriptionOpacity).toBe(1);
-  expect(hoverThemeState.firstImageFilter).toContain("blur");
+  expect(hoverThemeState.firstDescriptionColor).toBe("rgba(10, 10, 10, 0.6)");
+  expect(hoverThemeState.firstImageFilter).toBe("none");
   expect(hoverThemeState.firstImageTransform).toContain("matrix");
+  expect(hoverThemeState.firstMediaBorderRadius).toBe("0px");
   expect(hoverThemeState.firstOverlayOpacity).toBe(0);
   expect(hoverThemeState.firstTagOpacity).toBe(1);
   expect(["none", "matrix(1, 0, 0, 1, 0, 0)"]).toContain(hoverThemeState.firstTagTransform);
@@ -435,6 +744,36 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   expect(cardToCardHoverState.overlayOpacity).toBeGreaterThan(0.9);
   expect(cardToCardHoverState.isFading).toBe(false);
 
+  const emptyGridPoint = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const cards = Array.from(document.querySelectorAll('[aria-label="Work journal"] a')).map((card) =>
+      card.getBoundingClientRect(),
+    );
+    const gridRect = grid?.getBoundingClientRect();
+    if (!gridRect) return null;
+
+    for (let y = gridRect.top + 4; y < Math.min(gridRect.bottom, window.innerHeight - 4); y += 12) {
+      for (let x = gridRect.left + 4; x < gridRect.right - 4; x += 12) {
+        const isInsideCard = cards.some((card) => x >= card.left && x <= card.right && y >= card.top && y <= card.bottom);
+        if (!isInsideCard) return { x, y };
+      }
+    }
+
+    return null;
+  });
+
+  expect(emptyGridPoint).not.toBeNull();
+  await page.mouse.move(emptyGridPoint!.x, emptyGridPoint!.y);
+  await page.waitForTimeout(170);
+
+  const emptyGridHoverState = await page.evaluate(() => ({
+    hovering: document.querySelector('[aria-label="Work journal"] [class*="grid"]')?.getAttribute("data-hovering"),
+    active: document.body.className.includes("themeActive"),
+  }));
+
+  expect(emptyGridHoverState.hovering).toBe("false");
+  expect(emptyGridHoverState.active).toBe(false);
+
   await page.mouse.move(8, 8);
   await page.waitForTimeout(50);
 
@@ -445,6 +784,264 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   );
 
   expect(runningCardAnimationsAfterLeave).toBe(0);
+});
+
+test("work new route restores journal state from query params", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await gotoAppPage(page, "/work-new?view=list&filters=Motion,Web%20Design");
+
+  await expect(page).toHaveTitle("Work (new journal)");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "grid");
+
+  const workJournal = page.getByLabel("Work journal");
+  await expect(workJournal.getByRole("link")).toHaveCount(5);
+  await expect(workJournal.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
+  await expect(workJournal.getByRole("heading", { name: "Volvo" })).toBeVisible();
+  await expect(workJournal.getByRole("heading", { name: "Oum Ceramics" })).toBeVisible();
+  await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toHaveCount(0);
+
+  const restoredState = await page.evaluate(() => {
+    const url = new URL(window.location.href);
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const first = document.querySelector('[aria-label="Work journal"] a');
+    const firstIndustry = first?.querySelector('[class*="listIndustry"]');
+    const firstTitle = first?.querySelector("h2");
+    const firstYear = first?.querySelector('[class*="listYear"]');
+    const firstRect = first?.getBoundingClientRect();
+    const desktopFilters = document.querySelector('[class*="desktopFilters"]');
+    const activeFilters = Array.from(desktopFilters?.querySelectorAll('button[data-active="true"]') ?? [])
+      .map((button) => button.textContent?.trim())
+      .filter(Boolean);
+
+    return {
+      activeFilters,
+      filtersParam: url.searchParams.get("filters"),
+      firstCardHeight: firstRect ? Math.round(firstRect.height) : 0,
+      firstIndustry: firstIndustry?.textContent?.trim(),
+      firstTitle: firstTitle?.textContent?.trim(),
+      firstYear: firstYear?.textContent?.trim(),
+      view: grid?.getAttribute("data-view"),
+      viewParam: url.searchParams.get("view"),
+    };
+  });
+
+  expect(restoredState).toEqual({
+    activeFilters: ["Motion", "Web Design"],
+    filtersParam: "Motion,Web Design",
+    firstCardHeight: 44,
+    firstIndustry: "Technology",
+    firstTitle: "ZetaChain",
+    firstYear: "2026",
+    view: "list",
+    viewParam: "list",
+  });
+});
+
+test("work new route uses mobile categories modal controls", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAppPage(page, "/work-new?view=grid");
+
+  await expect(page.getByRole("heading", { name: "All Work" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /categories/i })).toBeVisible();
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "list");
+  await expect(page.getByLabel("Work filters").first()).not.toBeVisible();
+  await page.waitForLoadState("networkidle").catch(() => {});
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.querySelector('[aria-label="Work journal"] a[data-hovered="true"] h2')?.textContent?.trim()),
+    )
+    .toBe("Sticky Notes");
+
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const active = document.querySelector('[aria-label="Work journal"] a[data-hovered="true"]');
+        const activeImage = active?.querySelector("img");
+        const inactive = Array.from(document.querySelectorAll('[aria-label="Work journal"] a')).find(
+          (card) => card !== active,
+        );
+        const inactiveImage = inactive?.querySelector("img");
+
+        return {
+          activeImageFilter: activeImage ? getComputedStyle(activeImage).filter : "",
+          activeTitle: active?.querySelector("h2")?.textContent?.trim(),
+          inactiveImageFilter: inactiveImage ? getComputedStyle(inactiveImage).filter : "",
+          theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
+        };
+      }),
+    )
+    .toMatchObject({
+      activeTitle: "ZetaChain",
+      theme: "#0d7c5f",
+    });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const active = document.querySelector('[aria-label="Work journal"] a[data-hovered="true"]');
+        const inactive = Array.from(document.querySelectorAll('[aria-label="Work journal"] a')).find(
+          (card) => card !== active,
+        );
+        const activeImage = active?.querySelector("img");
+        const inactiveImage = inactive?.querySelector("img");
+
+        return {
+          activeImageFilter: activeImage ? getComputedStyle(activeImage).filter : "",
+          inactiveImageFilter: inactiveImage ? getComputedStyle(inactiveImage).filter : "",
+        };
+      }),
+    )
+    .toEqual({
+      activeImageFilter: "none",
+      inactiveImageFilter: "grayscale(1)",
+    });
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByRole("button", { name: /categories/i })).toBeVisible();
+
+  await page.getByRole("button", { name: /categories/i }).click();
+
+  const modal = page.getByRole("dialog", { name: "Work categories" });
+  await expect(modal).toBeVisible();
+  await expect(modal).toHaveCSS("background-color", "rgb(241, 235, 226)");
+  await expect(modal).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  await expect(modal.getByText("Viewing")).toHaveCount(0);
+  await expect(modal.getByRole("heading")).toHaveCount(0);
+  await expect(modal.getByRole("button", { name: "Motion" })).toBeVisible();
+  await expect(modal.getByRole("button", { name: "Motion" })).toHaveCSS("color", "rgb(10, 10, 10)");
+  await expect(modal.getByRole("button", { name: "Motion" })).toHaveCSS("text-align", "center");
+  await expect(modal.getByRole("button", { name: "Motion" })).toHaveCSS("font-family", /Times New Roman/);
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+
+  await modal.getByRole("button", { name: "Motion" }).click();
+  await expect(modal).toBeHidden();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+  await expect.poll(() => new URL(page.url()).searchParams.get("filters")).toBe("Motion");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+  await expect(page.getByLabel("Work journal").getByRole("link")).toHaveCount(4);
+  await expect(page.getByLabel("Work journal").getByRole("heading", { name: "ZetaChain" })).toBeVisible();
+
+  await page.getByLabel("Project view").getByRole("button", { name: /Switch to list view/i }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("list");
+});
+
+test("work new alternate route renders mixed small and big project cards", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await gotoAppPage(page, "/work-new-alternate");
+
+  await expect(page).toHaveTitle("Work (alternate journal)");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveCount(1);
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveAttribute("data-button-view", "list");
+  await expect(page.getByLabel("Work filters").getByRole("button")).toHaveCount(5);
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("grid");
+
+  const workJournal = page.getByLabel("Work journal");
+  await expect(workJournal.getByRole("link")).toHaveCount(12);
+  await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
+
+  const layoutState = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const cards = Array.from(document.querySelectorAll('[aria-label="Work journal"] a'))
+      .slice(0, 4)
+      .map((card) => Math.round(card.getBoundingClientRect().width));
+    const mediaHeights = Array.from(document.querySelectorAll('[aria-label="Work journal"] a [class*="media"]'))
+      .slice(0, 4)
+      .map((media) => Math.round(media.getBoundingClientRect().height));
+
+    return {
+      layout: grid?.getAttribute("data-layout"),
+      cardWidths: cards,
+      mediaHeights,
+      view: grid?.getAttribute("data-view"),
+      uniqueHeights: [...new Set(mediaHeights)].sort((a, b) => a - b),
+    };
+  });
+
+  expect(layoutState.layout).toBe("alternating");
+  expect(layoutState.view).toBe("grid");
+  expect(Math.max(...layoutState.cardWidths) - Math.min(...layoutState.cardWidths)).toBeLessThanOrEqual(4);
+  expect(layoutState.mediaHeights[2]).toBeGreaterThan(layoutState.mediaHeights[0]);
+  expect(layoutState.mediaHeights[0]).toBeGreaterThan(layoutState.mediaHeights[1]);
+  expect(layoutState.mediaHeights[1]).toBeGreaterThan(layoutState.mediaHeights[3]);
+  expect(layoutState.uniqueHeights.length).toBeGreaterThan(2);
+
+  await page.getByLabel("Work filters").getByRole("button", { name: "Motion" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("filters")).toBe("Motion");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+  await expect(workJournal.getByRole("link")).toHaveCount(4);
+  await expect(workJournal.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
+
+  await page.getByLabel("Project view").getByRole("button", { name: /Switch to list view/i }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("list");
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        document
+          .querySelector('[aria-label="Work journal"] [class*="grid"]')
+          ?.getAttribute("data-transition"),
+      ),
+    )
+    .toBe("idle");
+
+  const alternateListState = await page.evaluate(() => {
+    const grid = document.querySelector('[aria-label="Work journal"] [class*="grid"]');
+    const first = document.querySelector('[aria-label="Work journal"] a');
+    const firstIndustry = first?.querySelector('[class*="listIndustry"]');
+    const firstMedia = first?.querySelector('[class*="media"]');
+    const firstTitle = first?.querySelector("h2");
+    const firstYear = first?.querySelector('[class*="listYear"]');
+    const firstRect = first?.getBoundingClientRect();
+    const industryRect = firstIndustry?.getBoundingClientRect();
+    const titleRect = firstTitle?.getBoundingClientRect();
+    const mediaStyle = firstMedia ? getComputedStyle(firstMedia) : null;
+    const yearStyle = firstYear ? getComputedStyle(firstYear) : null;
+
+    return {
+      firstCardHeight: firstRect ? Math.round(firstRect.height) : 0,
+      firstIndustry: firstIndustry?.textContent?.trim(),
+      firstTitle: firstTitle?.textContent?.trim(),
+      titleAfterIndustry: industryRect && titleRect ? titleRect.x > industryRect.x : false,
+      firstYear: firstYear?.textContent?.trim(),
+      firstYearTextAlign: yearStyle?.textAlign,
+      mediaOpacity: mediaStyle ? Number(mediaStyle.opacity) : 1,
+      mediaTransition: mediaStyle?.transitionProperty ?? "",
+      view: grid?.getAttribute("data-view"),
+    };
+  });
+
+  expect(alternateListState.firstCardHeight).toBeGreaterThanOrEqual(43);
+  expect(alternateListState.firstCardHeight).toBeLessThanOrEqual(44);
+  expect(alternateListState).toMatchObject({
+    firstIndustry: "Technology",
+    firstTitle: "ZetaChain",
+    titleAfterIndustry: true,
+    firstYear: "2026",
+    firstYearTextAlign: "right",
+    mediaOpacity: 0,
+    mediaTransition: "none",
+    view: "list",
+  });
+
+  await expect(page.request.get("/__editor?path=/work-new-alternate").then((response) => response.ok())).resolves.toBe(
+    true,
+  );
 });
 
 test("canonical team detail route renders exported content", async ({ page }) => {
