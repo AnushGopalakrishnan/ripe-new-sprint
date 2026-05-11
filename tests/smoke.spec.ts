@@ -101,6 +101,51 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   );
 });
 
+test("home new feed keeps the hero and custom feed stable after hydration", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.addInitScript(() => {
+    const win = window as unknown as Window & { __cls: number };
+    win.__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const layoutShift = entry as PerformanceEntry & {
+          hadRecentInput?: boolean;
+          value?: number;
+        };
+        if (!layoutShift.hadRecentInput) win.__cls += layoutShift.value ?? 0;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+
+  await page.goto("/home-new-feed", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(50);
+
+  const readGeometry = () =>
+    page.evaluate(() => {
+      const heroTitle = document.querySelector(".h1-wrap");
+      const customFeed = document.querySelector('[aria-label="Studio B inspired feed"]');
+      const heroTitleRect = heroTitle?.getBoundingClientRect();
+      const customFeedRect = customFeed?.getBoundingClientRect();
+
+      return {
+        customFeedY: customFeedRect ? Math.round(customFeedRect.y) : null,
+        heroTitleY: heroTitleRect ? Math.round(heroTitleRect.y) : null,
+        scrollHeight: Math.round(document.documentElement.scrollHeight),
+        cls: (window as unknown as Window & { __cls?: number }).__cls ?? 0,
+      };
+    });
+
+  const early = await readGeometry();
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForTimeout(1000);
+  const late = await readGeometry();
+
+  expect(late.scrollHeight).toBe(early.scrollHeight);
+  expect(late.customFeedY).toBe(early.customFeedY);
+  expect(late.heroTitleY).toBe(early.heroTitleY);
+  expect(late.cls).toBeLessThan(0.005);
+});
+
 test("internal style guide renders the Ripe design system", async ({ page }) => {
   await gotoAppPage(page, "/style-guide");
 
@@ -278,6 +323,128 @@ test("canonical work route server-renders the final grid footprint", async ({ pa
     gridWidth: 1280,
     scrollHeight: 2818,
   });
+});
+
+test("work new route renders the Swissfolio-style filtered journal grid", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await gotoAppPage(page, "/work-new");
+
+  await expect(page).toHaveTitle("Work (new journal)");
+  await expect(page.getByLabel("Work filters").getByRole("button")).toHaveCount(5);
+
+  const workJournal = page.getByLabel("Work journal");
+  await expect(workJournal.getByRole("link")).toHaveCount(12);
+  await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
+  await expect(workJournal.getByRole("img", { name: "Sticky Notes" })).toBeVisible();
+
+  const firstCard = workJournal.getByRole("link").first();
+  await expect(firstCard).toHaveAttribute("href", "/case-studies/case-study-20");
+  await firstCard.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))),
+  );
+
+  const firstCardBox = await firstCard.boundingBox();
+  expect(firstCardBox?.x).toBe(17);
+  expect(Math.round(firstCardBox?.width ?? 0)).toBe(339);
+
+  await page.getByLabel("Work filters").getByRole("button", { name: "Motion" }).click();
+  await expect(workJournal.getByRole("link")).toHaveCount(4);
+  await expect(workJournal.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
+  await expect(workJournal.getByRole("heading", { name: "Volvo" })).toBeVisible();
+  await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toHaveCount(0);
+
+  await page.getByLabel("Work filters").getByRole("button", { name: "Motion" }).click();
+  await expect(workJournal.getByRole("link")).toHaveCount(12);
+  await firstCard.hover();
+  await page.waitForTimeout(650);
+
+  const hoverThemeState = await page.evaluate(() => {
+    const overlay = document.querySelector('[class*="themeOverlay"]');
+    const secondCard = document.querySelectorAll('[aria-label="Work journal"] a')[1];
+    const secondMedia = secondCard?.querySelector('[class*="media"]');
+    const secondImage = secondCard?.querySelector("img");
+    const firstTitle = document.querySelector('[aria-label="Work journal"] h2');
+    const firstDescription = document.querySelector('[aria-label="Work journal"] p');
+    const firstImage = document.querySelector('[aria-label="Work journal"] img');
+    const firstOverlay = document.querySelector('[aria-label="Work journal"] a [class*="overlay"]');
+    const firstTag = document.querySelector('[aria-label="Work journal"] a [class*="tag"]');
+    const secondTag = secondCard?.querySelector('[class*="tag"]');
+    const nav = document.querySelector(".nav_wrap");
+    const firstDescriptionStyle = firstDescription ? getComputedStyle(firstDescription) : null;
+    const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
+    const firstTagStyle = firstTag ? getComputedStyle(firstTag) : null;
+    const secondTagStyle = secondTag ? getComputedStyle(secondTag) : null;
+
+    return {
+      theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
+      tone: document.body.getAttribute("data-work-journal-tone"),
+      overlayOpacity: overlay ? Number(getComputedStyle(overlay).opacity) : 0,
+      overlayBackgroundColor: overlay ? getComputedStyle(overlay).backgroundColor : "",
+      secondCardOpacity: secondCard ? Number(getComputedStyle(secondCard).opacity) : 1,
+      secondMediaOpacity: secondMedia ? Number(getComputedStyle(secondMedia).opacity) : 1,
+      secondImageFilter: secondImage ? getComputedStyle(secondImage).filter : "",
+      firstTitleOpacity: firstTitle ? Number(getComputedStyle(firstTitle).opacity) : 0,
+      firstDescriptionOpacity: firstDescription ? Number(getComputedStyle(firstDescription).opacity) : 0,
+      firstImageFilter: firstImageStyle?.filter ?? "",
+      firstImageTransform: firstImageStyle?.transform ?? "",
+      firstOverlayOpacity: firstOverlay ? Number(getComputedStyle(firstOverlay).opacity) : 1,
+      firstTagOpacity: firstTagStyle ? Number(firstTagStyle.opacity) : 0,
+      firstTagTransform: firstTagStyle?.transform ?? "",
+      secondTagOpacity: secondTagStyle ? Number(secondTagStyle.opacity) : 1,
+      firstDescriptionFontFamily: firstDescriptionStyle?.fontFamily ?? "",
+      firstDescriptionFontSize: firstDescriptionStyle ? Number.parseFloat(firstDescriptionStyle.fontSize) : 0,
+      firstDescriptionLineHeight: firstDescriptionStyle ? Number.parseFloat(firstDescriptionStyle.lineHeight) : 0,
+      firstDescriptionLetterSpacing: firstDescriptionStyle ? Number.parseFloat(firstDescriptionStyle.letterSpacing) : 0,
+      navBackground: nav ? getComputedStyle(nav).backgroundColor : "",
+    };
+  });
+
+  expect(hoverThemeState.theme).toBe("#4e3aaa");
+  expect(hoverThemeState.tone).toBe("light");
+  expect(hoverThemeState.overlayOpacity).toBeGreaterThan(0.9);
+  expect(hoverThemeState.overlayBackgroundColor).toBe("rgb(78, 58, 170)");
+  expect(hoverThemeState.secondCardOpacity).toBe(1);
+  expect(hoverThemeState.secondMediaOpacity).toBeLessThan(0.5);
+  expect(hoverThemeState.secondImageFilter).toContain("grayscale");
+  expect(hoverThemeState.firstTitleOpacity).toBe(1);
+  expect(hoverThemeState.firstDescriptionOpacity).toBe(1);
+  expect(hoverThemeState.firstImageFilter).toContain("blur");
+  expect(hoverThemeState.firstImageTransform).toContain("matrix");
+  expect(hoverThemeState.firstOverlayOpacity).toBe(0);
+  expect(hoverThemeState.firstTagOpacity).toBe(1);
+  expect(["none", "matrix(1, 0, 0, 1, 0, 0)"]).toContain(hoverThemeState.firstTagTransform);
+  expect(hoverThemeState.secondTagOpacity).toBe(0);
+  expect(hoverThemeState.firstDescriptionFontFamily).toContain("Graphik");
+  expect(hoverThemeState.firstDescriptionFontSize).toBeCloseTo(14, 1);
+  expect(hoverThemeState.firstDescriptionLineHeight).toBeCloseTo(20, 1);
+  expect(hoverThemeState.firstDescriptionLetterSpacing).toBeCloseTo(0.15, 1);
+  expect(hoverThemeState.navBackground).toBe("rgba(0, 0, 0, 0)");
+
+  await workJournal.getByRole("link").nth(1).hover();
+  await page.waitForTimeout(140);
+
+  const cardToCardHoverState = await page.evaluate(() => ({
+    theme: getComputedStyle(document.body).getPropertyValue("--work-journal-theme").trim(),
+    overlayBackgroundColor: getComputedStyle(document.querySelector('[class*="themeOverlay"]') as Element).backgroundColor,
+    overlayOpacity: Number(getComputedStyle(document.querySelector('[class*="themeOverlay"]') as Element).opacity),
+    isFading: document.body.className.includes("themeFading"),
+  }));
+
+  expect(cardToCardHoverState.theme).toBe("#0d7c5f");
+  expect(cardToCardHoverState.overlayBackgroundColor).not.toBe("rgb(78, 58, 170)");
+  expect(cardToCardHoverState.overlayOpacity).toBeGreaterThan(0.9);
+  expect(cardToCardHoverState.isFading).toBe(false);
+
+  await page.mouse.move(8, 8);
+  await page.waitForTimeout(50);
+
+  const runningCardAnimationsAfterLeave = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[aria-label="Work journal"] a')).flatMap((card) =>
+      card.getAnimations().filter((animation) => animation.playState !== "finished"),
+    ).length,
+  );
+
+  expect(runningCardAnimationsAfterLeave).toBe(0);
 });
 
 test("canonical team detail route renders exported content", async ({ page }) => {

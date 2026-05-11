@@ -1,8 +1,10 @@
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { NativeRouteRuntime } from "@/components/native-route-runtime";
 import { StudioBFeed } from "@/components/studio-b-feed";
+import { prepareHomeNewFeedFirstPaintDocument } from "@/lib/home-new-feed-first-paint";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
+import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 import parse from "html-react-parser";
 
 const sourceRoute = "/";
@@ -20,7 +22,7 @@ export async function generateMetadata() {
 
 export default async function HomeNewFeedPage() {
   const document = await loadNativeMirrorDocument(sourceRoute);
-  const nextDocument = { ...document, title };
+  const nextDocument = prepareHomeNewFeedFirstPaintDocument(withRipeLoaderStyles({ ...document, title }));
   const split = splitHomeFeed(nextDocument);
 
   if (!split) {
