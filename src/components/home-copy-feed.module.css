@@ -1,0 +1,244 @@
+.feed {
+  background: #000;
+  color: #fff;
+  padding: 10.25rem 3rem 8rem;
+  width: 100%;
+}
+
+.grid {
+  align-items: start;
+  display: grid;
+  gap: 1.875rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+
+.column {
+  display: grid;
+  gap: 1.875rem;
+  min-width: 0;
+}
+
+.card {
+  border-radius: 0.875rem;
+  min-height: 18rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.small {
+  min-height: 25.25rem;
+}
+
+.medium {
+  min-height: 37rem;
+}
+
+.large {
+  min-height: 52.5rem;
+}
+
+.wide {
+  min-height: 43rem;
+}
+
+.textCard {
+  align-items: center;
+  color: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.white {
+  background: #f4f4f3;
+}
+
+.cream {
+  background: #f1ebe2;
+}
+
+.textCard h3,
+.imageCard h3,
+.servicesCard h3 {
+  font-family: var(--ripe-font-serif);
+  font-size: clamp(3.35rem, 3.28vw, 5.25rem);
+  font-weight: 300;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  margin: 0;
+  max-width: 78%;
+  text-wrap: balance;
+}
+
+.textCard h3 {
+  margin: auto 0;
+}
+
+.label,
+.imageLabel,
+.eyebrow {
+  font-family: var(--ripe-font-sans);
+  font-size: clamp(1.1rem, 1.05vw, 1.75rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.eyebrow {
+  margin-bottom: auto;
+}
+
+.label {
+  margin-top: auto;
+}
+
+.imageCard,
+.servicesCard {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.imageCard img,
+.servicesCard img {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+  z-index: 0;
+}
+
+.imageShade {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.34) 72%, rgba(0, 0, 0, 0.62) 100%);
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.imageCard h3,
+.servicesCard h3 {
+  color: #fff;
+  position: relative;
+  text-shadow: 0 0.08em 0.32em rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.imageLabel {
+  bottom: 2.25rem;
+  color: #fff;
+  left: 2rem;
+  position: absolute;
+  right: 2rem;
+  text-shadow: 0 0.08em 0.32em rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+.darkText h3,
+.darkText .imageLabel {
+  color: #000;
+  text-shadow: none;
+}
+
+.clientsCard {
+  align-items: center;
+  background: #4a1f0e;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.clientsMarquee {
+  font-family: var(--ripe-font-serif);
+  font-size: clamp(3.2rem, 3vw, 5rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: auto 0;
+  overflow: hidden;
+  width: 100%;
+}
+
+.clientsMarquee div {
+  animation: clientMarquee 18s linear infinite;
+  display: flex;
+  gap: 3.5rem;
+  width: max-content;
+}
+
+.clientsMarquee span {
+  white-space: nowrap;
+}
+
+.servicesCard {
+  background: #004b36;
+}
+
+.servicesCard::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.68) 100%);
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.servicesCard h3,
+.servicesCard .imageLabel {
+  z-index: 2;
+}
+
+.arrowStack {
+  background: #000;
+  color: #00aee8;
+  display: grid;
+  font-family: var(--ripe-font-sans);
+  font-size: 4.25rem;
+  gap: 1.125rem;
+  line-height: 0.82;
+  padding: 1.125rem 1.25rem;
+  position: absolute;
+  right: 1.25rem;
+  top: 1.25rem;
+  z-index: 3;
+}
+
+@keyframes clientMarquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 68rem) {
+  .feed {
+    padding: 6rem 1rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .small,
+  .medium,
+  .large,
+  .wide {
+    min-height: min(34rem, 92vw);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clientsMarquee div {
+    animation: none;
+  }
+}

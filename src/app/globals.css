@@ -2,22 +2,48 @@
 
 /* Public mirror pages load their exported Webflow styles from each route document. */
 
-.ripe-page-entering body {
-  animation: ripe-page-fade-in 420ms ease both;
+.transition {
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+  position: fixed;
+  z-index: 900;
 }
 
-@keyframes ripe-page-fade-in {
-  from {
-    opacity: 0;
-  }
+.transition__panel {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  left: 0;
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
 
-  to {
-    opacity: 1;
-  }
+.transition__shutter {
+  background-color: #f1ebe2;
+  flex: 1 1 0;
+  height: 100%;
+  width: 100%;
+}
+
+.nav_wrap {
+  z-index: 1000;
+}
+
+.hero_section .article-card {
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+html.w-mod-js:not(.w-mod-ix3) .hero_section .article-card {
+  visibility: visible !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ripe-page-entering body {
-    animation: none;
+  .transition {
+    display: none;
   }
 }

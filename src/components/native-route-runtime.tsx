@@ -5,12 +5,15 @@ import { bridgeScript } from "@/lib/editor/bridge-source";
 
 type NativeRouteRuntimeProps = {
   bodyAttributes: Record<string, string>;
+  executeScripts?: boolean;
   htmlAttributes: Record<string, string>;
   sourceRoute: string;
+  webflowRuntime?: boolean;
 };
 
 declare global {
   interface Window {
+    __RIPE_EXECUTED_NATIVE_SCRIPT_SRCS__?: Set<string>;
     __RIPE_NATIVE_SOURCE_ROUTE__?: string;
   }
 }
@@ -25,7 +28,14 @@ const managedHtmlAttributes = [
   "lang",
 ];
 
-function applyAttributes(element: HTMLElement, attributes: Record<string, string>) {
+function stripWebflowRuntimeClasses(element: HTMLElement) {
+  element.className = element.className
+    .split(/\s+/)
+    .filter((className) => className && !className.startsWith("w-mod-") && !className.startsWith("wf-"))
+    .join(" ");
+}
+
+function applyAttributes(element: HTMLElement, attributes: Record<string, string>, webflowRuntime: boolean) {
   for (const name of Array.from(element.attributes).map((attribute) => attribute.name)) {
     if (name === "class") continue;
     if (!(name in attributes) && (name.startsWith("data-wf-") || managedHtmlAttributes.includes(name))) {
@@ -41,24 +51,13 @@ function applyAttributes(element: HTMLElement, attributes: Record<string, string
 
   for (const [name, value] of Object.entries(attributes)) {
     if (name === "class") continue;
+    if (!webflowRuntime && name.startsWith("data-wf-")) continue;
     element.setAttribute(name, value);
   }
-}
 
-function escapeInlineJson(value: unknown) {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
-}
-
-function createAttributeBootstrapScript(
-  bodyAttributes: Record<string, string>,
-  htmlAttributes: Record<string, string>,
-  sourceRoute: string,
-) {
-  return `(function(){var body=${escapeInlineJson(bodyAttributes)};var html=${escapeInlineJson(
-    htmlAttributes,
-  )};window.__RIPE_NATIVE_SOURCE_ROUTE__=${escapeInlineJson(
-    sourceRoute,
-  )};function apply(el,attrs){if(!el)return;if(Object.prototype.hasOwnProperty.call(attrs,"class")){el.className=attrs["class"]||"";}for(var k in attrs){if(k==="class")continue;el.setAttribute(k,attrs[k]);}}apply(document.documentElement,html);apply(document.body,body);})();`;
+  if (!webflowRuntime && element === document.documentElement) {
+    stripWebflowRuntimeClasses(element);
+  }
 }
 
 async function executeNativeScripts() {
@@ -69,6 +68,15 @@ async function executeNativeScripts() {
   for (const original of scripts) {
     if (original.dataset.ripeNativeExecuted === "true") continue;
     original.dataset.ripeNativeExecuted = "true";
+
+    const src = original.getAttribute("src");
+    const resolvedSrc = src ? new URL(src, window.location.href).href : "";
+
+    if (resolvedSrc) {
+      window.__RIPE_EXECUTED_NATIVE_SCRIPT_SRCS__ ??= new Set<string>();
+      if (window.__RIPE_EXECUTED_NATIVE_SCRIPT_SRCS__.has(resolvedSrc)) continue;
+      window.__RIPE_EXECUTED_NATIVE_SCRIPT_SRCS__.add(resolvedSrc);
+    }
 
     await new Promise<void>((resolve) => {
       const script = document.createElement("script");
@@ -89,7 +97,6 @@ async function executeNativeScripts() {
       }
 
       original.after(script);
-      original.remove();
 
       if (!script.src) resolve();
     });
@@ -98,15 +105,17 @@ async function executeNativeScripts() {
 
 export function NativeRouteRuntime({
   bodyAttributes,
+  executeScripts = true,
   htmlAttributes,
   sourceRoute,
+  webflowRuntime = true,
 }: NativeRouteRuntimeProps) {
   useEffect(() => {
     window.__RIPE_NATIVE_SOURCE_ROUTE__ = sourceRoute;
 
-    applyAttributes(document.documentElement, htmlAttributes);
-    applyAttributes(document.body, bodyAttributes);
-    void executeNativeScripts();
+    applyAttributes(document.documentElement, htmlAttributes, webflowRuntime);
+    applyAttributes(document.body, bodyAttributes, webflowRuntime);
+    if (executeScripts) void executeNativeScripts();
 
     if (
       new URLSearchParams(window.location.search).get("__editor") === "1" &&
@@ -117,14 +126,7 @@ export function NativeRouteRuntime({
       script.text = bridgeScript;
       document.body.appendChild(script);
     }
-  }, [bodyAttributes, htmlAttributes, sourceRoute]);
+  }, [bodyAttributes, executeScripts, htmlAttributes, sourceRoute, webflowRuntime]);
 
-  return (
-    <script
-      data-ripe-native-attribute-bootstrap=""
-      dangerouslySetInnerHTML={{
-        __html: createAttributeBootstrapScript(bodyAttributes, htmlAttributes, sourceRoute),
-      }}
-    />
-  );
+  return <template data-ripe-native-attribute-bootstrap="" />;
 }

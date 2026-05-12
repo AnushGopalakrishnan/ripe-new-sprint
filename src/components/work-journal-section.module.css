@@ -197,7 +197,7 @@
 .grid {
   align-items: start;
   display: grid;
-  gap: 8rem var(--journal-gap);
+  gap: 4rem var(--journal-gap);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   position: relative;
   width: 100%;
@@ -212,13 +212,13 @@
   padding-bottom: 8rem;
 }
 
-.grid[data-layout="alternating"] {
-  gap: 8rem var(--journal-gap);
+.grid[data-layout="alternating"][data-view="grid"] {
+  gap: 4rem var(--journal-gap);
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .grid[data-layout="alternating"][data-view="grid"] .card:nth-child(n + 5) {
-  margin-top: 8rem;
+  margin-top: 4rem;
 }
 
 .grid[data-transition="exiting"],

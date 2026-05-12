@@ -6,6 +6,20 @@ body[data-home-masonry-ssr="true"] .masonry-list.w-dyn-items {
   display: block !important;
 }
 
+body[data-home-masonry-ssr="true"] .article-cards-wrap.u-align-center {
+  width: 100% !important;
+}
+
+body[data-home-masonry-ssr="true"] .hero_feature,
+body[data-home-masonry-ssr="true"] .hero_articles-list {
+  width: 100% !important;
+}
+
+body[data-home-masonry-ssr="true"] .article-card {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 body[data-home-masonry-ssr="true"] .masonry-list {
   position: relative !important;
   width: 100% !important;

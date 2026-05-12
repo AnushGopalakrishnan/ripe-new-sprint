@@ -1,30 +1,30 @@
+import parse from "html-react-parser";
+import { HomeCopyFeed } from "@/components/home-copy-feed";
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { NativeRouteRuntime } from "@/components/native-route-runtime";
-import { StudioBFeed } from "@/components/studio-b-feed";
-import { prepareHomeNewFeedFirstPaintDocument } from "@/lib/home-new-feed-first-paint";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
+import { prepareHomeFirstPaintDocument } from "@/lib/home-first-paint";
 import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 import { prepareStaticMirrorDocument } from "@/lib/static-mirror-document";
-import parse from "html-react-parser";
 
-const sourceRoute = "/";
-const canonicalPath = "/home-new-feed";
-const title = "Home (new feed)";
+const path = "/home-copy";
+const title = "Home Copy";
 const latestUpdatesMarker = '<section data-theme-section="light" class="latest-updates">';
 const latestUpdatesEndMarker = '</section></section><div data-wf-target';
 
 export async function generateMetadata() {
+  const document = await loadNativeMirrorDocument("/");
   return createExactTitleMetadata({
     title,
-    path: canonicalPath,
+    path,
   });
 }
 
-export default async function HomeNewFeedPage() {
-  const document = await loadNativeMirrorDocument(sourceRoute);
+export default async function HomeCopyPage() {
+  const document = await loadNativeMirrorDocument("/");
   const nextDocument = prepareStaticMirrorDocument(
-    prepareHomeNewFeedFirstPaintDocument(withRipeLoaderStyles({ ...document, title })),
+    prepareHomeFirstPaintDocument(withRipeLoaderStyles({ ...document, title })),
   );
   const split = splitHomeFeed(nextDocument);
 
@@ -43,7 +43,7 @@ export default async function HomeNewFeedPage() {
       />
       {parse(nextDocument.headMarkup)}
       {parse(split.before)}
-      <StudioBFeed />
+      <HomeCopyFeed />
       {parse(split.after)}
     </>
   );
