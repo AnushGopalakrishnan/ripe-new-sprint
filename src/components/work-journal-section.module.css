@@ -197,7 +197,7 @@
 .grid {
   align-items: start;
   display: grid;
-  gap: 3.75rem var(--journal-gap);
+  gap: 8rem var(--journal-gap);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   position: relative;
   width: 100%;
@@ -213,8 +213,12 @@
 }
 
 .grid[data-layout="alternating"] {
-  gap: var(--journal-gap);
+  gap: 8rem var(--journal-gap);
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid[data-layout="alternating"][data-view="grid"] .card:nth-child(n + 5) {
+  margin-top: 8rem;
 }
 
 .grid[data-transition="exiting"],
@@ -842,6 +846,10 @@
 
   .grid[data-layout="alternating"] {
     grid-template-columns: 1fr;
+  }
+
+  .grid[data-layout="alternating"][data-view="grid"] .card:nth-child(n + 5) {
+    margin-top: 0;
   }
 
   .grid[data-layout="alternating"] .media {
