@@ -2,14 +2,44 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import type { CSSProperties, PointerEvent } from "react";
+import imageUrlBuilder from "@sanity/image-url";
 import type { ObjectInputProps } from "sanity";
-import { PatchEvent, set, unset } from "sanity";
+import { PatchEvent, set, unset, useFormValue } from "sanity";
+import {
+  sanityFallbackDataset,
+  sanityFallbackProjectId,
+} from "@/lib/env";
 
 type CommentPositionValue = {
   _type?: string;
   x?: number;
   y?: number;
 };
+
+type SanityImageValue = {
+  _type?: "image";
+  asset?: {
+    _ref?: string;
+  };
+};
+
+type KeyedPathSegment = {
+  _key: string;
+};
+
+type ImageCommentSection = {
+  _key?: string;
+  image?: SanityImageValue;
+};
+
+type CommentPlacementDocument = {
+  imageSections?: ImageCommentSection[];
+};
+
+const imageBuilder = imageUrlBuilder({
+  dataset: sanityFallbackDataset,
+  projectId: sanityFallbackProjectId,
+});
 
 const surfaceStyle: CSSProperties = {
   background:
@@ -22,6 +52,23 @@ const surfaceStyle: CSSProperties = {
   overflow: "hidden",
   position: "relative",
   width: "100%",
+};
+
+const imageStyle: CSSProperties = {
+  display: "block",
+  height: "100%",
+  inset: 0,
+  objectFit: "cover",
+  position: "absolute",
+  width: "100%",
+};
+
+const imageOverlayStyle: CSSProperties = {
+  background:
+    "linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.2))",
+  inset: 0,
+  pointerEvents: "none",
+  position: "absolute",
 };
 
 const pinStyle: CSSProperties = {
@@ -67,6 +114,21 @@ const buttonStyle: CSSProperties = {
   textDecoration: "underline",
 };
 
+const missingImageStyle: CSSProperties = {
+  alignItems: "center",
+  color: "rgba(20, 20, 20, 0.66)",
+  display: "flex",
+  fontFamily: "monospace",
+  fontSize: "0.75rem",
+  inset: 0,
+  justifyContent: "center",
+  lineHeight: 1.4,
+  padding: "1rem",
+  pointerEvents: "none",
+  position: "absolute",
+  textAlign: "center",
+};
+
 function clampPercent(value: number) {
   return Math.min(100, Math.max(0, value));
 }
@@ -75,20 +137,73 @@ function roundPercent(value: number) {
   return Math.round(value * 10) / 10;
 }
 
+function isKeyedPathSegment(segment: unknown): segment is KeyedPathSegment {
+  return Boolean(
+    segment &&
+      typeof segment === "object" &&
+      "_key" in segment &&
+      typeof (segment as KeyedPathSegment)._key === "string",
+  );
+}
+
+function getParentSectionImage(
+  document: unknown,
+  path: readonly unknown[] | undefined,
+) {
+  const imageSectionsIndex = path?.findIndex((segment) => segment === "imageSections") ?? -1;
+  const sectionKeySegment =
+    imageSectionsIndex >= 0 ? path?.[imageSectionsIndex + 1] : undefined;
+
+  if (!isKeyedPathSegment(sectionKeySegment)) return undefined;
+
+  const imageSections = (document as CommentPlacementDocument | undefined)?.imageSections;
+  if (!Array.isArray(imageSections)) return undefined;
+
+  return imageSections.find((section) => section._key === sectionKeySegment._key)?.image;
+}
+
+function getImageDimensions(image: SanityImageValue | undefined) {
+  const ref = image?.asset?._ref;
+  const match = ref?.match(/-(\d+)x(\d+)-[^-]+$/);
+  if (!match) return undefined;
+
+  return {
+    height: Number(match[2]),
+    width: Number(match[1]),
+  };
+}
+
+function getImageUrl(image: SanityImageValue | undefined) {
+  if (!image?.asset?._ref || sanityFallbackProjectId === "replace-me") return undefined;
+
+  try {
+    return imageBuilder.image(image).width(1600).fit("max").auto("format").url();
+  } catch {
+    return undefined;
+  }
+}
+
 export function CommentPositionInput(props: ObjectInputProps<CommentPositionValue>) {
-  const { onChange, value } = props;
+  const { onChange, path, value } = props;
+  const document = useFormValue([]);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const x = typeof value?.x === "number" ? value.x : 50;
   const y = typeof value?.y === "number" ? value.y : 50;
   const hasValue = typeof value?.x === "number" && typeof value?.y === "number";
+  const image = getParentSectionImage(document, path);
+  const imageUrl = getImageUrl(image);
+  const dimensions = getImageDimensions(image);
 
   const style = useMemo(
     () =>
       ({
         "--comment-position-x": `${x}%`,
         "--comment-position-y": `${y}%`,
+        ...(dimensions
+          ? { aspectRatio: `${dimensions.width} / ${dimensions.height}`, height: "auto" }
+          : null),
       }) as CSSProperties,
-    [x, y],
+    [dimensions, x, y],
   );
 
   const updateFromPointer = useCallback(
@@ -131,6 +246,16 @@ export function CommentPositionInput(props: ObjectInputProps<CommentPositionValu
         ref={surfaceRef}
         style={{ ...surfaceStyle, ...style }}
       >
+        {imageUrl ? (
+          <>
+            <img alt="" draggable={false} src={imageUrl} style={imageStyle} />
+            <div style={imageOverlayStyle} />
+          </>
+        ) : (
+          <div style={missingImageStyle}>
+            Add an image to this image section to place comments on it.
+          </div>
+        )}
         <div style={pinStyle}>C</div>
       </div>
       <div style={metaStyle}>
