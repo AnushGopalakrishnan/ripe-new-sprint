@@ -42,6 +42,7 @@
 .title {
   font-family: var(--font-serif), serif;
   font-size: 1.7rem;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 0.98;
   letter-spacing: -0.04em;
 }

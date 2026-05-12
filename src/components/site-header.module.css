@@ -30,6 +30,7 @@
 .brandName {
   font-family: var(--font-serif), serif;
   font-size: 1.3rem;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 1;
 }
 

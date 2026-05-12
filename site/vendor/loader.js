@@ -201,7 +201,10 @@
       '}';
   }
 
-  if (path === '/archive/writing-new-copy') {
+  if (
+    path === '/archive/writing-new-copy' &&
+    !document.querySelector('[data-ssr-writing-feed="true"]')
+  ) {
     criticalCSSRules +=
       '[data-horizontal-scroll-wrap] { opacity: 0 !important; }' +
       '.writings-hidden-cms {' +

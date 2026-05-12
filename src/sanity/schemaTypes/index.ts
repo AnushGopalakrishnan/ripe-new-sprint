@@ -10,6 +10,10 @@ import {
 } from "@/sanity/schemaTypes/objects";
 import { caseStudyType } from "@/sanity/schemaTypes/caseStudy";
 import { caseStudyTagType } from "@/sanity/schemaTypes/caseStudyTag";
+import {
+  commentPlacementTestType,
+  commentPositionType,
+} from "@/sanity/schemaTypes/commentPlacementTest";
 import { feedPostType } from "@/sanity/schemaTypes/feedPost";
 import { feedTagType } from "@/sanity/schemaTypes/feedTag";
 import { homePageType } from "@/sanity/schemaTypes/homePage";
@@ -30,6 +34,8 @@ export const schemaTypes = [
   homeStatType,
   testimonialType,
   siteSettingsType,
+  commentPositionType,
+  commentPlacementTestType,
   homePageType,
   caseStudyTagType,
   caseStudyType,

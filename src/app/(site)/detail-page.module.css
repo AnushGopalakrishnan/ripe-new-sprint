@@ -37,6 +37,7 @@
 .metricValue {
   font-family: var(--font-serif), serif;
   font-size: 2.25rem;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 0.9;
 }
 
@@ -54,6 +55,7 @@
 .sectionTitle {
   font-family: var(--font-serif), serif;
   font-size: 1.6rem;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 1;
 }
 

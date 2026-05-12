@@ -59,6 +59,7 @@
   var wrap = document.querySelector('[data-horizontal-scroll-wrap]');
   var richTextWrap = document.querySelector('[data-article-richtext-wrap]');
   if (!wrap || !richTextWrap) return;
+  var hasServerRenderedLayout = wrap.getAttribute('data-ssr-writing-article') === 'true';
 
   function getHeroLeadInset() {
     var wrapPaddingLeft = parseFloat(getComputedStyle(wrap).paddingLeft) || 0;
@@ -157,14 +158,18 @@
     var el = wrap.querySelector('[data-template="' + type + '"]');
     if (el) {
       templates[type] = el.cloneNode(true);
-      if (type !== 'hero') el.remove();
+      if (!hasServerRenderedLayout && type !== 'hero') el.remove();
     }
   });
 
-  var heroPanel = wrap.querySelector('[data-template="hero"]');
-  if (heroPanel) heroPanel.removeAttribute('data-template');
+  var heroPanel = hasServerRenderedLayout
+    ? wrap.querySelector('.writing-article-track .article__panel.is-hero')
+    : wrap.querySelector('[data-template="hero"]');
+  if (heroPanel && !hasServerRenderedLayout) heroPanel.removeAttribute('data-template');
 
-  wrap.querySelectorAll('[data-template]').forEach(function (el) { el.remove(); });
+  if (!hasServerRenderedLayout) {
+    wrap.querySelectorAll('[data-template]').forEach(function (el) { el.remove(); });
+  }
 
   // ── Helpers ──
 
@@ -794,6 +799,39 @@
   }
 
   function setupScroll() {
+    var existingTrack = null;
+    Array.prototype.some.call(wrap.children, function (child) {
+      if (child.classList && child.classList.contains('writing-article-track')) {
+        existingTrack = child;
+        return true;
+      }
+      return false;
+    });
+
+    if (existingTrack) {
+      trackEl = existingTrack;
+      if (!trackEl.querySelector('[data-writing-article-end-spacer]')) {
+        var existingSpacer = document.createElement('div');
+        existingSpacer.setAttribute('data-writing-article-end-spacer', '');
+        existingSpacer.setAttribute('aria-hidden', 'true');
+        existingSpacer.style.cssText =
+          'flex:0 0 ' + runtimeConfig.edgeOffset + ';' +
+          'width:' + runtimeConfig.edgeOffset + ';' +
+          'height:1px;pointer-events:none;';
+        trackEl.appendChild(existingSpacer);
+      }
+
+      if (!scrollListenersBound) {
+        window.addEventListener('wheel', handleWheel, { passive: false });
+        window.addEventListener('scroll', updateOverscrollLock, { passive: true });
+        wrap.addEventListener('touchstart', handleTouchStart, { passive: true });
+        wrap.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('keydown', handleKeydown);
+        scrollListenersBound = true;
+      }
+      return;
+    }
+
     var track = document.createElement('div');
     track.style.cssText =
       'display:flex;flex-direction:row;height:100%;will-change:transform;flex-shrink:0;' +
@@ -976,6 +1014,14 @@
 
   var allBlocks = parseBlocks();
   updateHeroReadTime(formatReadTime(countReadableWords(richText)));
+
+  if (hasServerRenderedLayout) {
+    wrap.querySelectorAll('[data-template]').forEach(function (el) { el.remove(); });
+    applyHeroPanelSizing();
+    setupScroll();
+    wrap.style.opacity = '1';
+    return;
+  }
 
   Promise.all([
     preloadImages(allBlocks),

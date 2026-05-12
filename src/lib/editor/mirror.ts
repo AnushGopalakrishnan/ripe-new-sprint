@@ -201,6 +201,8 @@ export async function getMirrorRoutes(): Promise<MirrorRoute[]> {
     const uniqueRoutes = [...new Set(canonicalRoutes)];
     const routesWithCustomPages = [
       { path: "/home-new-feed", label: "Home (new feed)" },
+      { path: "/work-new", label: "Work (new journal)" },
+      { path: "/work-new-alternate", label: "Work (alternate journal)" },
       ...uniqueRoutes.map((route) => ({
         path: route,
         label: route === "/" ? "Home" : route.replace(/^\//, ""),

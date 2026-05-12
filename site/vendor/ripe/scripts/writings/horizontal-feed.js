@@ -1008,20 +1008,38 @@
     });
   }
 
+  function getDirectWritingFeedTrack() {
+    if (!state.wrap) return null;
+
+    for (var i = 0; i < state.wrap.children.length; i++) {
+      var child = state.wrap.children[i];
+      if (child.classList && child.classList.contains('writing-feed-track')) {
+        return child;
+      }
+    }
+
+    return null;
+  }
+
   function initScrolling() {
     teardownScroll();
     if (!state.wrap || !isDesktopRail()) return;
 
     syncResponsivePanelWidth();
 
-    var track = document.createElement('div');
-    track.className = 'writing-feed-track';
+    var track = getDirectWritingFeedTrack();
 
-    while (state.wrap.firstChild) {
-      track.appendChild(state.wrap.firstChild);
+    if (!track) {
+      track = document.createElement('div');
+      track.className = 'writing-feed-track';
+
+      while (state.wrap.firstChild) {
+        track.appendChild(state.wrap.firstChild);
+      }
+
+      state.wrap.appendChild(track);
     }
 
-    state.wrap.appendChild(track);
     state.trackEl = track;
     syncTrackTrailingInset();
 
@@ -1328,6 +1346,12 @@
     state.smallTemplate = smallTemplate.cloneNode(true);
     state.sourceList = sourceList;
 
+    var serverRenderedTrack = getDirectWritingFeedTrack();
+    var hasServerRenderedLayout = !!(
+      serverRenderedTrack &&
+      serverRenderedTrack.querySelector('[data-horizontal-scroll-panel]')
+    );
+
     populateTemporaryFilterTags();
     bindFilterUi();
     bindFilterObserver();
@@ -1340,16 +1364,39 @@
         console.warn('[Writing Feed]', error.message);
       });
 
-    Array.prototype.forEach.call(
-      wrap.querySelectorAll('[data-horizontal-scroll-panel], [data-template]'),
-      function (node) {
-        node.remove();
-      }
-    );
+    if (hasServerRenderedLayout) {
+      Array.prototype.forEach.call(
+        wrap.querySelectorAll('[data-template]'),
+        function (node) {
+          node.remove();
+        }
+      );
 
-    applyTheme();
-    setupHoverEffects();
-    render(false);
+      applyTheme();
+      setupHoverEffects();
+      state.currentMaxCards = getMaxSmallCards();
+      state.wrap.style.setProperty('opacity', '1', 'important');
+      initScrolling();
+      refreshAfterImagesLoad();
+    } else {
+      Array.prototype.forEach.call(
+        wrap.querySelectorAll('[data-horizontal-scroll-panel], [data-template]'),
+        function (node) {
+          node.remove();
+        }
+      );
+
+      Array.prototype.forEach.call(
+        wrap.querySelectorAll('.writing-feed-track'),
+        function (track) {
+          track.remove();
+        }
+      );
+
+      applyTheme();
+      setupHoverEffects();
+      render(false);
+    }
 
     window.addEventListener('resize', handleResize);
 
