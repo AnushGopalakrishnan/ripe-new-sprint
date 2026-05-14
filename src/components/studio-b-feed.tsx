@@ -374,7 +374,7 @@ export function StudioBFeed() {
     <section ref={feedRef} className={styles.feed} aria-label="Studio B inspired feed">
       <div className={styles.grid}>
         <div className={styles.column}>
-          <SimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simmons" />
+          <SimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simons" />
           <NewsCard
             href={links.article}
             label="Studio Thoughts"
