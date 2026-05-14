@@ -34,10 +34,6 @@ function legacyRedirectTarget(pathname: string) {
 }
 
 function shouldRewriteToMirror(pathname: string) {
-  if (pathname.startsWith("/case-studies/") && !pathname.startsWith("/case-studies/tags/")) {
-    return pathname !== "/case-studies";
-  }
-
   return pathname.startsWith("/feed-posts/") || pathname.startsWith("/job-listings/");
 }
 
