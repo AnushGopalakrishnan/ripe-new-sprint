@@ -2,6 +2,10 @@
 
 /* Public mirror pages load their exported Webflow styles from each route document. */
 
+[data-page-transition-container] {
+  width: 100%;
+}
+
 .transition {
   inset: 0;
   overflow: clip;

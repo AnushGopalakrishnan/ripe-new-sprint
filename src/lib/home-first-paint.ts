@@ -2,32 +2,32 @@ import type { NativeMirrorDocument } from "@/lib/native-mirror";
 
 const homeFirstPaintStyles = `
 <style data-ripe-home-first-paint>
-body[data-home-masonry-ssr="true"] .masonry-list.w-dyn-items {
+.masonry-list.w-dyn-items {
   display: block !important;
 }
 
-body[data-home-masonry-ssr="true"] .article-cards-wrap.u-align-center {
+.article-cards-wrap.u-align-center {
   width: 100% !important;
 }
 
-body[data-home-masonry-ssr="true"] .hero_feature,
-body[data-home-masonry-ssr="true"] .hero_articles-list {
+.hero_feature,
+.hero_articles-list {
   width: 100% !important;
 }
 
-body[data-home-masonry-ssr="true"] .article-card {
+.article-card {
   opacity: 1 !important;
   transform: none !important;
 }
 
-body[data-home-masonry-ssr="true"] .masonry-list {
+.masonry-list {
   position: relative !important;
   width: 100% !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
 
-body[data-home-masonry-ssr="true"] .masonry-item {
+.masonry-item {
   width: calc((100% - 192px) / 3) !important;
   box-sizing: border-box !important;
   padding-bottom: 96px !important;
@@ -35,80 +35,80 @@ body[data-home-masonry-ssr="true"] .masonry-item {
 }
 
 @media screen and (min-width: 992px) {
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) {
+  .masonry-list:not(.is-ready) {
     height: 2964.5px !important;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item {
+  .masonry-list:not(.is-ready) > .masonry-item {
     position: absolute !important;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(1) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(1) {
     left: 0;
     top: 0;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(2) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(2) {
     left: calc((100% - 192px) / 3 + 96px);
     top: 0;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(3) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(3) {
     left: calc(((100% - 192px) / 3 + 96px) * 2);
     top: 0;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(4) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(4) {
     left: calc((100% - 192px) / 3 + 96px);
     top: 730px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(5) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(5) {
     left: 0;
     top: 768.672px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(6) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(6) {
     left: calc(((100% - 192px) / 3 + 96px) * 2);
     top: 768.672px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(7) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(7) {
     left: 0;
     top: 1427.16px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(8) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(8) {
     left: calc((100% - 192px) / 3 + 96px);
     top: 1509.98px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(9) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(9) {
     left: calc(((100% - 192px) / 3 + 96px) * 2);
     top: 1537.34px;
   }
 
-  body[data-home-masonry-ssr="true"] .masonry-list:not(.is-ready) > .masonry-item:nth-child(10) {
+  .masonry-list:not(.is-ready) > .masonry-item:nth-child(10) {
     left: 0;
     top: 2195.83px;
   }
 }
 
 @media screen and (max-width: 991px) {
-  body[data-home-masonry-ssr="true"] .masonry-item {
+  .masonry-item {
     width: calc((100% - 128px) / 2) !important;
   }
 }
 
 @media screen and (max-width: 767px) {
-  body[data-home-masonry-ssr="true"] .masonry-item {
+  .masonry-item {
     width: calc((100% - 64px) / 2) !important;
     padding-bottom: 64px !important;
   }
 }
 
 @media screen and (max-width: 479px) {
-  body[data-home-masonry-ssr="true"] .masonry-item {
+  .masonry-item {
     width: calc((100% - 24px) / 2) !important;
   }
 }

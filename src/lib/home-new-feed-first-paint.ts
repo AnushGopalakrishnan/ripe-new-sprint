@@ -2,23 +2,23 @@ import type { NativeMirrorDocument } from "@/lib/native-mirror";
 
 const homeNewFeedFirstPaintStyles = `
 <style data-ripe-home-new-feed-first-paint>
-body[data-home-new-feed-ssr="true"] .article-cards-wrap.u-align-center {
+.article-cards-wrap.u-align-center {
   width: 100%;
 }
 
-body[data-home-new-feed-ssr="true"] .hero_feature,
-body[data-home-new-feed-ssr="true"] .hero_articles-list {
+.hero_feature,
+.hero_articles-list {
   width: 100%;
 }
 
-body[data-home-new-feed-ssr="true"] .article-card {
+.article-card {
   border-radius: 10px;
   opacity: 1;
   overflow: hidden;
   transform: none;
 }
 
-body[data-home-new-feed-ssr="true"] .article-card-img-wrap {
+.article-card-img-wrap {
   border-radius: inherit;
   overflow: hidden;
 }
