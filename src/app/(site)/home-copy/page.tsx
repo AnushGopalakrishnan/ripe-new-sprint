@@ -14,7 +14,6 @@ const latestUpdatesMarker = '<section data-theme-section="light" class="latest-u
 const latestUpdatesEndMarker = '</section></section><div data-wf-target';
 
 export async function generateMetadata() {
-  const document = await loadNativeMirrorDocument("/");
   return createExactTitleMetadata({
     title,
     path,
