@@ -12,6 +12,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* eslint-disable-next-line @next/next/no-css-tags -- Exported Webflow CSS must be render-blocking to prevent first-paint FOUC on mirrored routes. */}
+        <link
+          rel="stylesheet"
+          href="/css/ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.css"
+        />
         <link rel="preload" href="/fonts/PlantinMTProLight.TTF" as="font" type="font/ttf" crossOrigin="" />
         <link rel="preload" href="/fonts/GraphikRegular.otf" as="font" type="font/otf" crossOrigin="" />
         <link rel="preload" href="/fonts/ChivoMono-Regular.ttf" as="font" type="font/ttf" crossOrigin="" />
