@@ -120,6 +120,9 @@ export function WorkJournalSection({
       ? -1
       : visibleItems.findIndex((item) => item.slug === activeListPreviewSlideSlug);
   const activeListPreviewItem = activeListPreviewIndex === -1 ? null : visibleItems[activeListPreviewIndex];
+  const listPreviewCount = Math.max(visibleItems.length, 1);
+  const listPreviewOffset =
+    activeListPreviewIndex <= 0 ? "0%" : `-${(activeListPreviewIndex / listPreviewCount) * 100}%`;
 
   useEffect(() => {
     visibleItemsRef.current = visibleItems;
@@ -318,6 +321,7 @@ export function WorkJournalSection({
     setListPreviewExitSlug(slug);
     listPreviewExitTimer.current = window.setTimeout(() => {
       setListPreviewExitSlug(null);
+      setListPreviewSlideSlug(null);
       listPreviewExitTimer.current = null;
     }, LIST_PREVIEW_EXIT_MS);
   }
@@ -769,6 +773,8 @@ export function WorkJournalSection({
           style={
             {
               "--list-preview-index": Math.max(activeListPreviewIndex, 0),
+              "--list-preview-count": listPreviewCount,
+              "--list-preview-offset": listPreviewOffset,
               "--list-preview-y": `${listPreviewY}px`,
             } as CSSProperties
           }
