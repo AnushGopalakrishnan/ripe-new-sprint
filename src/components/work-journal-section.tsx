@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { FocusEvent } from "react";
@@ -15,6 +16,8 @@ const LIST_PREVIEW_LABEL_DELAY_MS = 180;
 const LIST_PREVIEW_SLIDE_DELAY_MS = 120;
 const THEME_GRADIENT_WHITE_STOP = 0.7;
 const MOBILE_MEDIA_QUERY = "(max-width: 50.5625em)";
+const workCardImageSizes = "(max-width: 50.5625em) 100vw, 25vw";
+const preloadedWorkImages = new Set<string>();
 
 type WorkJournalSectionProps = {
   filters: string[];
@@ -47,6 +50,17 @@ function luminance([r, g, b]: number[]) {
 
 function needsLightText(color: string) {
   return luminance(hexToRgb(color)) <= 0.45;
+}
+
+function preloadWorkImage(src: string) {
+  if (preloadedWorkImages.has(src)) return;
+  preloadedWorkImages.add(src);
+
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "image";
+  link.href = src;
+  document.head.appendChild(link);
 }
 
 function mixRgb(from: number[], to: number[], progress: number) {
@@ -452,6 +466,8 @@ export function WorkJournalSection({
   }
 
   function handleCardEnter(item: WorkJournalItem) {
+    preloadWorkImage(item.image);
+
     if (clearThemeTimer.current) {
       window.clearTimeout(clearThemeTimer.current);
       clearThemeTimer.current = null;
@@ -742,7 +758,15 @@ export function WorkJournalSection({
             onFocus={() => handleCardEnter(item)}
           >
             <div className={styles.media}>
-              <img className={styles.image} src={item.image} alt={item.title} loading={index < 4 ? "eager" : "lazy"} />
+              <Image
+                className={styles.image}
+                src={item.image}
+                alt={item.title}
+                fill
+                loading={index < 4 ? "eager" : "lazy"}
+                fetchPriority={index < 4 ? "high" : "auto"}
+                sizes={workCardImageSizes}
+              />
               <div
                 className={styles.overlay}
                 style={
@@ -788,6 +812,7 @@ export function WorkJournalSection({
                   src={previewItem.image}
                   alt=""
                   loading={previewIndex < 4 ? "eager" : "lazy"}
+                  fetchPriority={previewIndex < 4 ? "high" : "auto"}
                 />
               ))}
             </div>
