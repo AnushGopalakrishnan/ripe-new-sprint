@@ -1,35 +1,33 @@
+import parse from "html-react-parser";
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { NativeRouteRuntime } from "@/components/native-route-runtime";
-import { StudioBFeed } from "@/components/studio-b-feed";
-import { prepareHomeNewFeedFirstPaintDocument } from "@/lib/home-new-feed-first-paint";
+import { prepareHomeFirstPaintDocument } from "@/lib/home-first-paint";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
 import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 import { prepareStaticMirrorDocument } from "@/lib/static-mirror-document";
-import parse from "html-react-parser";
+import { HomeMotionHero } from "./_components/home-motion-hero";
 
-const sourceRoute = "/";
-const canonicalPath = "/home-new-feed";
-const title = "Home (new feed)";
-const latestUpdatesMarker = '<section data-theme-section="light" class="latest-updates">';
-const latestUpdatesEndMarkers = [
-  '</section></section><div class="bg_color-overlay"',
-  "</section></section><div data-wf-target",
-];
+const path = "/home-motion-hero";
+const title = "Home Motion Hero";
+const heroMarker = '<section data-theme-section="light" class="hero_section section u-align-center">';
+const heroEndMarker = '</section><section class="showreel_section static">';
 
 export async function generateMetadata() {
+  const document = await loadNativeMirrorDocument("/");
+
   return createExactTitleMetadata({
-    title,
-    path: canonicalPath,
+    path,
+    title: `${title} | ${document.title}`,
   });
 }
 
-export default async function HomeNewFeedPage() {
-  const document = await loadNativeMirrorDocument(sourceRoute);
+export default async function HomeMotionHeroPage() {
+  const document = await loadNativeMirrorDocument("/");
   const nextDocument = prepareStaticMirrorDocument(
-    prepareHomeNewFeedFirstPaintDocument(withRipeLoaderStyles({ ...document, title })),
+    prepareHomeFirstPaintDocument(withRipeLoaderStyles({ ...document, title })),
   );
-  const split = splitHomeFeed(nextDocument);
+  const split = splitHomeHero(nextDocument);
 
   if (!split) {
     return <NativeRouteDocument document={nextDocument} executeScripts={false} webflowRuntime={false} />;
@@ -46,20 +44,18 @@ export default async function HomeNewFeedPage() {
       />
       {parse(nextDocument.headMarkup)}
       {parse(split.before)}
-      <StudioBFeed />
+      <HomeMotionHero />
       {parse(split.after)}
     </>
   );
 }
 
-function splitHomeFeed(document: NativeMirrorDocument) {
-  const start = document.bodyMarkup.indexOf(latestUpdatesMarker);
+function splitHomeHero(document: NativeMirrorDocument) {
+  const start = document.bodyMarkup.indexOf(heroMarker);
   if (start === -1) return null;
 
-  const end = latestUpdatesEndMarkers
-    .map((marker) => document.bodyMarkup.indexOf(marker, start))
-    .find((index) => index !== -1);
-  if (end === undefined) return null;
+  const end = document.bodyMarkup.indexOf(heroEndMarker, start);
+  if (end === -1) return null;
 
   return {
     before: document.bodyMarkup.slice(0, start),

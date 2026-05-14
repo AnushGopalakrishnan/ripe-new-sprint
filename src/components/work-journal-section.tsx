@@ -10,6 +10,9 @@ import styles from "./work-journal-section.module.css";
 const VIEW_EXIT_MS = 260;
 const VIEW_ENTER_MS = 1100;
 const LIST_PREVIEW_ENTER_MS = 760;
+const LIST_PREVIEW_EXIT_MS = 560;
+const LIST_PREVIEW_LABEL_DELAY_MS = 180;
+const LIST_PREVIEW_SLIDE_DELAY_MS = 120;
 const THEME_GRADIENT_WHITE_STOP = 0.7;
 const MOBILE_MEDIA_QUERY = "(max-width: 50.5625em)";
 
@@ -75,6 +78,9 @@ export function WorkJournalSection({
   const filterExitTimer = useRef<number | null>(null);
   const filterEnterTimer = useRef<number | null>(null);
   const listPreviewEntryTimer = useRef<number | null>(null);
+  const listPreviewExitTimer = useRef<number | null>(null);
+  const listPreviewLabelTimer = useRef<number | null>(null);
+  const listPreviewSlideTimer = useRef<number | null>(null);
   const listPreviewHasAnimatedRef = useRef(false);
   const listPreviewEntrySlugRef = useRef<string | null>(null);
   const themeCleanupTimer = useRef<number | null>(null);
@@ -89,6 +95,7 @@ export function WorkJournalSection({
   const viewModeRef = useRef<WorkJournalViewMode>(initialViewMode);
   const viewTransitionPhaseRef = useRef<ViewTransitionPhase>("idle");
   const hoveredSlugRef = useRef<string | null>(null);
+  const listPreviewYRef = useRef(0.5);
   const pendingDisplayedFiltersRef = useRef<string[]>(getInitialFilters());
   const transitionTargetRef = useRef<WorkJournalViewMode | null>(null);
   const visibleItemsRef = useRef<WorkJournalItem[]>([]);
@@ -96,12 +103,23 @@ export function WorkJournalSection({
   const [isViewButtonPreviewed, setIsViewButtonPreviewed] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [listPreviewEntrySlug, setListPreviewEntrySlug] = useState<string | null>(null);
+  const [listPreviewExitSlug, setListPreviewExitSlug] = useState<string | null>(null);
+  const [listPreviewLabelSlug, setListPreviewLabelSlug] = useState<string | null>(null);
+  const [listPreviewSlideSlug, setListPreviewSlideSlug] = useState<string | null>(null);
+  const [listPreviewY, setListPreviewY] = useState(0.5);
   const [cardTextTones, setCardTextTones] = useState<Record<string, TextTone>>({});
   const visibleItems = useMemo(() => {
     if (!displayedFilters.length) return items;
     return items.filter((item) => displayedFilters.some((filter) => item.tags.includes(filter)));
   }, [displayedFilters, items]);
   const filterKey = displayedFilters.join("|") || "all";
+  const activeListPreviewSlug = hoveredSlug ?? listPreviewExitSlug;
+  const activeListPreviewSlideSlug = listPreviewSlideSlug ?? activeListPreviewSlug;
+  const activeListPreviewIndex =
+    activeListPreviewSlideSlug === null
+      ? -1
+      : visibleItems.findIndex((item) => item.slug === activeListPreviewSlideSlug);
+  const activeListPreviewItem = activeListPreviewIndex === -1 ? null : visibleItems[activeListPreviewIndex];
 
   useEffect(() => {
     visibleItemsRef.current = visibleItems;
@@ -192,6 +210,9 @@ export function WorkJournalSection({
       if (filterExitTimer.current) window.clearTimeout(filterExitTimer.current);
       if (filterEnterTimer.current) window.clearTimeout(filterEnterTimer.current);
       if (listPreviewEntryTimer.current) window.clearTimeout(listPreviewEntryTimer.current);
+      if (listPreviewExitTimer.current) window.clearTimeout(listPreviewExitTimer.current);
+      if (listPreviewLabelTimer.current) window.clearTimeout(listPreviewLabelTimer.current);
+      if (listPreviewSlideTimer.current) window.clearTimeout(listPreviewSlideTimer.current);
       if (themeCleanupTimer.current) window.clearTimeout(themeCleanupTimer.current);
       if (textToneAnimationFrame.current) window.cancelAnimationFrame(textToneAnimationFrame.current);
       if (mobileScrollAnimationFrame.current) window.cancelAnimationFrame(mobileScrollAnimationFrame.current);
@@ -235,13 +256,70 @@ export function WorkJournalSection({
     setListPreviewEntrySlug(nextSlug);
   }
 
+  function updateListPreviewY(item: WorkJournalItem) {
+    const card = cardElementsRef.current.get(item.slug);
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const nextY = rect.top + rect.height / 2;
+    listPreviewYRef.current = nextY;
+    setListPreviewY(nextY);
+  }
+
   function resetListPreviewSession() {
     if (listPreviewEntryTimer.current) {
       window.clearTimeout(listPreviewEntryTimer.current);
       listPreviewEntryTimer.current = null;
     }
+    if (listPreviewExitTimer.current) {
+      window.clearTimeout(listPreviewExitTimer.current);
+      listPreviewExitTimer.current = null;
+    }
+    if (listPreviewSlideTimer.current) {
+      window.clearTimeout(listPreviewSlideTimer.current);
+      listPreviewSlideTimer.current = null;
+    }
     listPreviewHasAnimatedRef.current = false;
     updateListPreviewEntrySlug(null);
+    setListPreviewExitSlug(null);
+    if (listPreviewLabelTimer.current) {
+      window.clearTimeout(listPreviewLabelTimer.current);
+      listPreviewLabelTimer.current = null;
+    }
+    setListPreviewLabelSlug(null);
+    setListPreviewSlideSlug(null);
+  }
+
+  function startListPreviewExit(slug: string | null) {
+    if (listPreviewEntryTimer.current) {
+      window.clearTimeout(listPreviewEntryTimer.current);
+      listPreviewEntryTimer.current = null;
+    }
+    if (listPreviewLabelTimer.current) {
+      window.clearTimeout(listPreviewLabelTimer.current);
+      listPreviewLabelTimer.current = null;
+    }
+    if (listPreviewSlideTimer.current) {
+      window.clearTimeout(listPreviewSlideTimer.current);
+      listPreviewSlideTimer.current = null;
+    }
+    if (listPreviewExitTimer.current) window.clearTimeout(listPreviewExitTimer.current);
+
+    listPreviewHasAnimatedRef.current = false;
+    updateListPreviewEntrySlug(null);
+    setListPreviewLabelSlug(null);
+    setListPreviewSlideSlug(slug);
+
+    if (!slug) {
+      setListPreviewExitSlug(null);
+      return;
+    }
+
+    setListPreviewExitSlug(slug);
+    listPreviewExitTimer.current = window.setTimeout(() => {
+      setListPreviewExitSlug(null);
+      listPreviewExitTimer.current = null;
+    }, LIST_PREVIEW_EXIT_MS);
   }
 
   function runFilterTransition() {
@@ -340,8 +418,13 @@ export function WorkJournalSection({
   function clearTheme() {
     if (clearThemeTimer.current) window.clearTimeout(clearThemeTimer.current);
     clearThemeTimer.current = window.setTimeout(() => {
+      const exitingListSlug = viewModeRef.current === "list" ? hoveredSlugRef.current : null;
       updateHoveredSlug(null);
-      resetListPreviewSession();
+      if (viewModeRef.current === "list") {
+        startListPreviewExit(exitingListSlug);
+      } else {
+        resetListPreviewSession();
+      }
       document.body.classList.remove(styles.themeActive);
       document.body.classList.add(styles.themeFading);
       clearThemeTimer.current = null;
@@ -371,6 +454,16 @@ export function WorkJournalSection({
     }
 
     if (viewModeRef.current === "list") {
+      updateListPreviewY(item);
+
+      if (listPreviewExitTimer.current) {
+        window.clearTimeout(listPreviewExitTimer.current);
+        listPreviewExitTimer.current = null;
+      }
+      setListPreviewExitSlug(null);
+      if (listPreviewLabelTimer.current) window.clearTimeout(listPreviewLabelTimer.current);
+      setListPreviewLabelSlug(null);
+
       if (!listPreviewHasAnimatedRef.current) {
         listPreviewHasAnimatedRef.current = true;
         updateListPreviewEntrySlug(item.slug);
@@ -384,6 +477,16 @@ export function WorkJournalSection({
       }
 
       updateHoveredSlug(item.slug);
+      if (listPreviewSlideTimer.current) window.clearTimeout(listPreviewSlideTimer.current);
+      listPreviewSlideTimer.current = window.setTimeout(() => {
+        if (hoveredSlugRef.current === item.slug) setListPreviewSlideSlug(item.slug);
+        listPreviewSlideTimer.current = null;
+      }, listPreviewSlideSlug ? LIST_PREVIEW_SLIDE_DELAY_MS : 0);
+
+      listPreviewLabelTimer.current = window.setTimeout(() => {
+        if (hoveredSlugRef.current === item.slug) setListPreviewLabelSlug(item.slug);
+        listPreviewLabelTimer.current = null;
+      }, LIST_PREVIEW_LABEL_DELAY_MS);
       return;
     }
 
@@ -623,6 +726,8 @@ export function WorkJournalSection({
             }}
             className={styles.card}
             data-hovered={hoveredSlug === item.slug}
+            data-list-preview-exit={listPreviewExitSlug === item.slug}
+            data-list-label-visible={listPreviewLabelSlug === item.slug}
             data-list-preview-entry={listPreviewEntrySlug === item.slug}
             data-card-text-tone={cardTextTones[item.slug] ?? "dark"}
             data-primary-tag={item.tags[0] ?? "Work"}
@@ -652,6 +757,37 @@ export function WorkJournalSection({
           </a>
         ))}
         {!visibleItems.length ? <p className={styles.empty}>No work matches the selected filters.</p> : null}
+        <div
+          className={styles.listPreview}
+          data-visible={activeListPreviewItem ? "true" : "false"}
+          data-entering={listPreviewEntrySlug ? "true" : "false"}
+          data-exiting={listPreviewExitSlug ? "true" : "false"}
+          data-label-visible={
+            activeListPreviewItem && listPreviewLabelSlug === activeListPreviewItem.slug ? "true" : "false"
+          }
+          aria-hidden="true"
+          style={
+            {
+              "--list-preview-index": Math.max(activeListPreviewIndex, 0),
+              "--list-preview-y": `${listPreviewY}px`,
+            } as CSSProperties
+          }
+        >
+          <div className={styles.listPreviewFrame}>
+            <div className={styles.listPreviewTrack}>
+              {visibleItems.map((previewItem, previewIndex) => (
+                <img
+                  key={previewItem.slug}
+                  className={styles.listPreviewImage}
+                  src={previewItem.image}
+                  alt=""
+                  loading={previewIndex < 4 ? "eager" : "lazy"}
+                />
+              ))}
+            </div>
+            <div className={styles.listPreviewTag}>{activeListPreviewItem?.industry ?? ""}</div>
+          </div>
+        </div>
       </div>
     </section>
   );

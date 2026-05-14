@@ -10,7 +10,7 @@ const transitionDuration = 0.5;
 const shutterStaggerAmount = 0.3;
 
 const transitionTestRoutes = {
-  home: "/home-copy",
+  home: "/home-new-feed",
   work: "/work-new-alternate?view=grid",
 };
 
@@ -232,7 +232,7 @@ export function PageTransitionController() {
       if (!event.shiftKey || event.key.toLowerCase() !== "h") return;
 
       event.preventDefault();
-      const nextRoute = pathname === transitionTestRoutes.home ? transitionTestRoutes.work : transitionTestRoutes.home;
+      const nextRoute = pathname.startsWith("/work-new") ? transitionTestRoutes.home : transitionTestRoutes.work;
       navigateWithTransition(nextRoute);
     }
 

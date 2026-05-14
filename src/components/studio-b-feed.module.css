@@ -8,15 +8,17 @@
 }
 
 .feed {
-  --studio-b-bg: #ffffff;
-  --studio-b-card: #ebebeb;
+  --studio-b-bg: #000000;
+  --studio-b-card: #efebe4;
+  --studio-b-blue: #dceff3;
+  --studio-b-brown: #4d210f;
   --studio-b-green: #bce41b;
   --studio-b-radius: 10px;
-  --studio-b-gap: 15px;
+  --studio-b-gap: 18px;
   width: 100%;
   padding: var(--studio-b-gap);
   background: var(--studio-b-bg);
-  color: #000;
+  color: #fff;
   font-family: "StudioBSwitzer", sans-serif;
 }
 
@@ -62,15 +64,15 @@
 }
 
 .small {
-  --card-h: 182px;
+  --card-h: 228px;
 }
 
 .medium {
-  --card-h: 339px;
+  --card-h: 420px;
 }
 
 .square {
-  --card-h: 460px;
+  --card-h: 620px;
 }
 
 .imageCard {
@@ -84,7 +86,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 26px;
   text-align: center;
 }
 
@@ -92,9 +94,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 40px;
-  background: var(--studio-b-green);
+  padding: 26px 40px;
+  background: var(--studio-b-blue);
   text-align: center;
+}
+
+.column:first-child .greenCard {
+  background: var(--studio-b-card);
+}
+
+.column:nth-child(2) .textCard:nth-child(2) {
+  background: var(--studio-b-green);
 }
 
 .media {
@@ -114,13 +124,14 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.22));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
 }
 
 .pill {
   position: absolute;
   z-index: 2;
-  top: 20px;
+  top: auto;
+  bottom: 28px;
   left: 50%;
   display: inline-flex;
   min-width: 60px;
@@ -131,7 +142,9 @@
   border: 1px solid currentColor;
   border-radius: 999px;
   color: #000;
+  font-family: "Graphik", "GraphikRegular", sans-serif;
   font-size: 13px;
+  font-weight: 400;
   line-height: 13px;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -177,6 +190,7 @@
   max-width: 86%;
   margin: 0;
   color: inherit;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(31px, 2.45vw, 38px);
   font-weight: 400;
   letter-spacing: -0.035em;
@@ -189,6 +203,14 @@
   font-size: clamp(32px, 2.55vw, 40px);
 }
 
+.imageCard .title {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(86%, 420px);
+  transform: translate(-50%, -50%);
+}
+
 .greenTitle {
   position: relative;
   z-index: 2;
@@ -196,6 +218,7 @@
   margin-top: auto;
   margin-bottom: auto;
   color: #000;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(28px, 2.1vw, 32px);
   font-weight: 400;
   letter-spacing: -0.035em;
@@ -220,6 +243,7 @@
   z-index: 2;
   max-width: 380px;
   color: #000;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(16px, 1.2vw, 18px);
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -231,6 +255,7 @@
   z-index: 2;
   max-width: 380px;
   color: #000;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(28px, 2.25vw, 34px);
   line-height: 0.96;
   letter-spacing: -0.035em;
@@ -241,6 +266,7 @@
   position: relative;
   z-index: 2;
   color: #000;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(27px, 2.15vw, 34px);
   line-height: 1;
   letter-spacing: -0.025em;
@@ -261,13 +287,22 @@
   position: relative;
   z-index: 2;
   width: 100%;
-  margin-top: 116px;
+  margin-top: 0;
   overflow: hidden;
-  color: #000;
+  color: inherit;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 27px;
+  font-size: clamp(30px, 3vw, 48px);
   line-height: 1;
   white-space: nowrap;
+}
+
+.logosCard {
+  background: var(--studio-b-brown);
+  color: #fff;
+}
+
+.logosCard .pill {
+  color: #fff;
 }
 
 .logoTrack {
@@ -293,6 +328,7 @@
   max-width: 320px;
   margin-top: 112px;
   color: #000;
+  font-family: "Times New Roman", Times, serif;
   font-size: clamp(29px, 2.2vw, 34px);
   line-height: 0.98;
   letter-spacing: -0.035em;
@@ -335,11 +371,11 @@
   }
 
   .square {
-    --card-h: 430px;
+    --card-h: 520px;
   }
 
   .medium {
-    --card-h: 320px;
+    --card-h: 360px;
   }
 }
 
@@ -353,15 +389,15 @@
   }
 
   .square {
-    --card-h: min(92vw, 460px);
+    --card-h: min(118vw, 560px);
   }
 
   .medium {
-    --card-h: min(70vw, 339px);
+    --card-h: min(88vw, 420px);
   }
 
   .small {
-    --card-h: 182px;
+    --card-h: 210px;
   }
 
   .spotify {

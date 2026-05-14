@@ -12,8 +12,15 @@ body[data-home-new-feed-ssr="true"] .hero_articles-list {
 }
 
 body[data-home-new-feed-ssr="true"] .article-card {
+  border-radius: 10px;
   opacity: 1;
+  overflow: hidden;
   transform: none;
+}
+
+body[data-home-new-feed-ssr="true"] .article-card-img-wrap {
+  border-radius: inherit;
+  overflow: hidden;
 }
 </style>`;
 

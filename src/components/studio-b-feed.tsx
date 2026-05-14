@@ -4,9 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./studio-b-feed.module.css";
 
 const images = {
+  avantis: "/feed-assets/avantis-cube.png",
   maison: "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
   cutPaste: "https://framerusercontent.com/images/TDVqw1tqR6Xs2CRjqnICnaPpH1o.jpg",
   tesla: "https://framerusercontent.com/images/1tWZIqC7cLcjzMvm9KUZIoIEH0.jpeg",
+  mira: "/feed-assets/mira-shoes.png",
+  oum: "/feed-assets/oum-ceramics.png",
   polestar: "https://framerusercontent.com/images/Tlpib4CyrbdqyderduT9vzAadsc.jpg",
   artObjects: "https://framerusercontent.com/images/9iUqmRc0mCszgnoIcbHNK758gck.jpg",
   studio: "https://framerusercontent.com/images/YJ7KrAOMijDmR3aacD3lI8YfOC4.jpg?width=1280&height=853",
@@ -15,6 +18,7 @@ const images = {
   margot: "https://framerusercontent.com/images/5w8O1Tx5e1JaHayg8lfISv2Mw.jpg",
   faune: "https://framerusercontent.com/images/hWuHSaij56zc0oBboEog12rtI.jpg",
   rick: "https://framerusercontent.com/images/nKHExlWmSBMLnqfZuSBVnUtNPPw.jpg",
+  zeta: "/feed-assets/zetachain-bag.png",
 };
 
 const videos = {
@@ -263,7 +267,7 @@ function TimeCard() {
 
 function LogosCard() {
   return (
-    <article className={`${styles.card} ${styles.textCard} ${styles.medium}`}>
+    <article className={`${styles.card} ${styles.textCard} ${styles.medium} ${styles.logosCard}`}>
       <Pill>Clients</Pill>
       <div className={styles.logos} aria-hidden="true">
         <div className={styles.logoTrack}>
@@ -370,35 +374,31 @@ export function StudioBFeed() {
     <section ref={feedRef} className={styles.feed} aria-label="Studio B inspired feed">
       <div className={styles.grid}>
         <div className={styles.column}>
-          <SimpleCard action="View" href={links.works.raf} label="Work" title="Raf Simons" />
+          <SimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simmons" />
           <NewsCard
             href={links.article}
-            label="Feature"
-            title="We built a new online presence"
-            caption="7 projects selected for the AKQA 10 Year Book"
+            label="Studio Thoughts"
+            title="We built a new online presence!"
+            caption="Rahul Kashyap"
           />
-          <VideoCard href={links.works.maison} title="Maison Margiela" src={videos.maison} poster={images.maison} />
+          <ImageCard href={links.works.raf} label="Case Study" title="Avantis" src={images.avantis} />
           <CopyCard href={links.about} large>
             We are driven by concepts, dedicated to creating, expressing, and enhancing brand identities.
           </CopyCard>
           <ImageCard href={links.works.cutPaste} title="Cut and Paste" src={images.cutPaste} />
           <TimeCard />
-          <NewsCard
-            href={links.article}
-            label="Interview"
-            title="We spoke to The Brand Identity"
-            caption="All about Studio life and how we approach projects"
-          />
+          <VideoCard href={links.works.maison} title="Maison Margiela" src={videos.maison} poster={images.maison} />
           <ImageCard href={links.works.tesla} title="Tesla Motors" src={images.tesla} />
         </div>
 
         <div className={styles.column}>
-          <VideoCard href={links.works.polestar} title="Polestar" src={videos.polestar} poster={images.polestar} />
+          <ImageCard href={links.works.polestar} title="Bar Doubble" src={images.artObjects} position="center 48%" />
           <CopyCard href={links.about}>
             For us, everything begins with the strength of a compelling concept. Our methodology stems from transforming
             stories into unique and adaptable creations designed for growth and precision.
           </CopyCard>
-          <ImageCard href={links.works.artObjects} title="Art and Objects" src={images.artObjects} />
+          <LogosCard />
+          <ImageCard href={links.works.artObjects} title="Oum Ceramics" src={images.oum} position="center center" />
           <SimpleCard action="View" href={links.works.jacquemus} label="Work" title="Jacquemus" />
           <ImageCard action="About" href={links.about} label="Studio" title="" src={images.studio} />
           <ImageCard
@@ -415,20 +415,25 @@ export function StudioBFeed() {
         <div className={styles.column}>
           <ImageCard
             href={links.works.margot}
-            title="Margot Glasses"
-            src={images.margot}
+            title="Mira"
+            src={images.mira}
             size="medium"
             position="center 54%"
           />
           <NewsCard
             href={links.article}
-            label="Talk"
+            label="Case Study"
             title="Talk at the Art Directors Club"
+            caption="Rahul Kashyap"
+          />
+          <ImageCard href={links.works.faune} label="Case Study" title="Zetachain" src={images.zeta} />
+          <ServicesCard />
+          <NewsCard
+            href={links.article}
+            label="Talk"
+            title="Brand Identity"
             caption="Our founders will speak at the festival conference in Spain"
           />
-          <LogosCard />
-          <ImageCard href={links.works.faune} title="Faune" src={images.faune} />
-          <ServicesCard />
           <ImageCard href={links.works.rick} title="Rick Owens" src={images.rick} />
           <SimpleCard action="View" href={links.works.nike} label="Work" title="Nike" />
           <SoundsCard />

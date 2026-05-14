@@ -1,0 +1,156 @@
+.hero {
+  align-items: center;
+  background: #f8f8f6;
+  color: #111;
+  display: flex;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: 7rem 5.75vw 6rem;
+  position: relative;
+}
+
+.row {
+  --hero-motion-y: 0vh;
+  align-items: center;
+  display: flex;
+  gap: clamp(2.5rem, 4.7vw, 8rem);
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: none;
+  transform: translate3d(0, var(--hero-motion-y), 0);
+  width: 100%;
+  will-change: transform;
+}
+
+.word {
+  color: #050505;
+  font-family: "Plantin MT Pro", "PlantinMTProLight", Georgia, serif;
+  font-size: clamp(4.5rem, 6.85vw, 9.5rem);
+  font-weight: 300;
+  letter-spacing: -0.1em;
+  line-height: 0.76;
+  margin: 0;
+  transform: translate(clamp(2.125rem, 2.5vw, 4rem), 0.08em);
+  white-space: nowrap;
+}
+
+.mediaWrap {
+  aspect-ratio: 1.396 / 1;
+  background: #ebe9e3;
+  flex: 0 1 min(20vw, 19rem);
+  overflow: hidden;
+  position: relative;
+  width: min(20vw, 19rem);
+}
+
+.media {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  width: 100%;
+}
+
+.playButton {
+  align-items: center;
+  background: #4b1f0d;
+  border: 0;
+  color: #fff7ed;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: "Graphik", "GraphikRegular", sans-serif;
+  font-size: clamp(0.7rem, 1vw, 1.55rem);
+  font-weight: 400;
+  gap: 0.7rem;
+  left: 50%;
+  line-height: 1;
+  padding: clamp(0.5rem, 0.775vw, 0.925rem) clamp(0.725rem, 0.975vw, 1.175rem);
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition:
+    background 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+}
+
+.playButton::after {
+  background: #4b1f0d;
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: -1;
+}
+
+.playButton:hover {
+  background: #5a2812;
+  transform: translate(-50%, calc(-50% - 0.2rem));
+}
+
+.playIcon {
+  border-bottom: 0.62em solid transparent;
+  border-left: 0.86em solid currentColor;
+  border-top: 0.62em solid transparent;
+  display: block;
+  height: 0;
+  opacity: 0.58;
+  width: 0;
+}
+
+.outcome {
+  color: #050505;
+  font-family: "Plantin MT Pro", "PlantinMTProLight", Georgia, serif;
+  font-size: clamp(2.3rem, 2.775vw, 4.1rem);
+  font-weight: 300;
+  letter-spacing: -0.055em;
+  line-height: 0.92;
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transform: none;
+  }
+}
+
+@media (max-width: 991px) {
+  .hero {
+    min-height: 92svh;
+    padding: 7rem 1.5rem 4.5rem;
+  }
+
+  .row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2.75rem;
+    justify-items: start;
+  }
+
+  .word {
+    font-size: clamp(6.75rem, 31vw, 13rem);
+  }
+
+  .mediaWrap {
+    aspect-ratio: 1.396 / 1;
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .playButton {
+    font-size: clamp(1.05rem, 4.4vw, 2.1rem);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .playButton:hover {
+    transform: translate(-50%, calc(-50% - 0.2rem));
+  }
+
+  .outcome {
+    font-size: clamp(3.8rem, 17vw, 7rem);
+    text-align: left;
+  }
+}
