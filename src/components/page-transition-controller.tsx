@@ -20,8 +20,8 @@ const transitionTestRoutes = {
 
 const homeNewFeedIntentImages = [
   "/feed-assets/avantis-cube.png",
-  "https://framerusercontent.com/images/TDVqw1tqR6Xs2CRjqnICnaPpH1o.jpg",
-  "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
+  "/feed-media/cut-paste.jpg",
+  "/feed-media/maison.jpg",
 ];
 
 const workIntentImages = workJournalItems.slice(0, 4).map((item) => item.image);

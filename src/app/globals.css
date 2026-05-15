@@ -1,6 +1,6 @@
 @import "../styles/ripe-tokens.css";
 
-/* Public mirror pages load their exported Webflow styles from each route document. */
+/* Public mirror pages load their exported styles from each route document. */
 
 [data-page-transition-container] {
   width: 100%;
