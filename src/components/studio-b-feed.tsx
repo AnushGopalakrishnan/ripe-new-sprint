@@ -27,6 +27,9 @@ const videos = {
 };
 
 const serviceWords = ["Strategy", "Identity", "Design", "Motion"];
+const initialLondonTime = "00:00:00 AM";
+const feedImageSizes = "(max-width: 767px) 100vw, 33vw";
+const responsiveImageWidths = [480, 800, 1080, 1400];
 
 const links = {
   about: "https://studio-b.framer.website/about",
@@ -62,11 +65,15 @@ function londonTime() {
 }
 
 function useLondonTime() {
-  const [time, setTime] = useState(londonTime);
+  const [time, setTime] = useState(initialLondonTime);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => setTime(londonTime()), 0);
     const interval = window.setInterval(() => setTime(londonTime()), 1000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, []);
 
   return time;
@@ -121,6 +128,25 @@ function CardLink({ href, label }: { href: string; label: string }) {
   return <a className={styles.cardLink} href={href} aria-label={label} />;
 }
 
+function responsiveImageProps(src: string) {
+  if (!src.startsWith("https://framerusercontent.com/")) {
+    return { sizes: feedImageSizes };
+  }
+
+  const url = new URL(src);
+  url.searchParams.delete("height");
+
+  return {
+    sizes: feedImageSizes,
+    srcSet: responsiveImageWidths
+      .map((width) => {
+        url.searchParams.set("width", String(width));
+        return `${url.toString()} ${width}w`;
+      })
+      .join(", "),
+  };
+}
+
 function SimpleCard({
   action,
   href,
@@ -166,7 +192,8 @@ function ImageCard({
         className={`${styles.media} ${styles.softImage}`}
         src={src}
         alt=""
-        loading="eager"
+        loading="lazy"
+        {...responsiveImageProps(src)}
         style={position ? { objectPosition: position } : undefined}
       />
       <div className={styles.overlay} />
@@ -192,17 +219,57 @@ function VideoCard({
   src: string;
   poster?: string;
 }) {
+  const articleRef = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const article = articleRef.current;
+    if (!article || shouldLoad) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: "480px" },
+    );
+
+    observer.observe(article);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    void video.play().catch(() => {
+      // Browsers may delay autoplay until the card is painted or visible.
+    });
+  }, [shouldLoad]);
+
   return (
-    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles.square}`}>
+    <article
+      ref={articleRef}
+      className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles.square}`}
+      onFocusCapture={() => setShouldLoad(true)}
+      onPointerEnter={() => setShouldLoad(true)}
+    >
       <video
+        ref={videoRef}
         className={styles.media}
-        src={src}
+        src={shouldLoad ? src : undefined}
         poster={poster}
         autoPlay
         muted
         loop
         playsInline
-        preload="auto"
+        preload={shouldLoad ? "metadata" : "none"}
         aria-hidden="true"
       />
       <div className={styles.overlay} />

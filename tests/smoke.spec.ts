@@ -303,6 +303,7 @@ for (const route of canonicalMirrorPages) {
 
 test("canonical work route server-renders the final grid footprint", async ({ page }) => {
   await gotoAppPage(page, "/work");
+  await page.waitForLoadState("networkidle");
 
   const gridState = await page.evaluate(() => {
     const grid = document.querySelector(".case-studies-list");
@@ -1059,12 +1060,12 @@ for (const redirect of legacyRedirects) {
   });
 }
 
-test("case study detail page renders zetaChain content", async ({ page }) => {
+test("case study detail page renders the local Forma reference clone", async ({ page }) => {
   await gotoAppPage(page, "/case-studies/zetachain");
 
-  await expect(page).toHaveTitle("Ripe Studios — New Style");
-  await expect(page.locator("[data-case-study-hero-title='ZetaChain']")).toBeVisible();
-  await expect(page.locator("[data-case-study-hero-summary='A South African icon.']")).toBeVisible();
+  await expect(page).toHaveTitle("Polestar - Forma");
+  await expect(page.getByRole("heading", { name: "POLESTAR" })).toBeVisible();
+  await expect(page.getByText("A bold vision cast in futuristic steel and shade.")).toBeVisible();
 });
 
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {

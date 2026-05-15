@@ -4,15 +4,32 @@ import { gsap } from "gsap";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
+import { workJournalItems } from "@/data/work-journal";
 
 const shutterAmount = 10;
 const transitionDuration = 0.5;
 const shutterStaggerAmount = 0.3;
+const routePrefetchTtlMs = 60_000;
+const nearLinkDistancePx = 64;
+const nearLinkPointerMoveIntervalMs = 120;
 
 const transitionTestRoutes = {
   home: "/home-new-feed",
   work: "/work-new-alternate?view=grid",
 };
+
+const homeNewFeedIntentImages = [
+  "/feed-assets/avantis-cube.png",
+  "https://framerusercontent.com/images/TDVqw1tqR6Xs2CRjqnICnaPpH1o.jpg",
+  "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
+];
+
+const workIntentImages = workJournalItems.slice(0, 4).map((item) => item.image);
+
+const routeIntentImages: Array<{ matches: (pathname: string) => boolean; images: string[] }> = [
+  { matches: (pathname) => pathname === "/home-new-feed" || pathname === "/", images: homeNewFeedIntentImages },
+  { matches: (pathname) => pathname.startsWith("/work-new"), images: workIntentImages },
+];
 
 function isModifiedClick(event: MouseEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
@@ -25,6 +42,36 @@ function getInternalHref(anchor: HTMLAnchorElement) {
   if (anchor.target && anchor.target !== "_self") return null;
   if (anchor.hasAttribute("download")) return null;
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function routePrefetchHref(href: string) {
+  const url = new URL(href, window.location.origin);
+  return `${url.pathname}${url.search}`;
+}
+
+function intentImagesForHref(href: string) {
+  const url = new URL(href, window.location.origin);
+  return routeIntentImages.find((route) => route.matches(url.pathname))?.images ?? [];
+}
+
+function shouldSkipIntentPrefetch() {
+  const connection = (
+    navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }
+  ).connection;
+
+  return Boolean(
+    connection?.saveData || (connection?.effectiveType && ["slow-2g", "2g"].includes(connection.effectiveType)),
+  );
+}
+
+function preloadImage(src: string) {
+  const link = document.createElement("link");
+  link.rel = "preload";
+  link.as = "image";
+  link.href = src;
+  document.head.appendChild(link);
 }
 
 function prefersReducedMotion() {
@@ -53,6 +100,10 @@ export function PageTransitionController() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const isFirstRouteRef = useRef(true);
   const isNavigatingRef = useRef(false);
+  const imagePreloadsRef = useRef<Set<string>>(new Set());
+  const lastPointerMoveCheckRef = useRef(0);
+  const pointerMoveFrameRef = useRef<number | null>(null);
+  const routePrefetchesRef = useRef<Map<string, number>>(new Map());
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
   const stopTimeline = useCallback(() => {
@@ -187,6 +238,28 @@ export function PageTransitionController() {
     [router, runLeaveAnimation],
   );
 
+  const prefetchIntent = useCallback(
+    (href: string) => {
+      if (shouldSkipIntentPrefetch()) return;
+
+      const prefetchHref = routePrefetchHref(href);
+      const now = Date.now();
+      const lastPrefetchedAt = routePrefetchesRef.current.get(prefetchHref) ?? 0;
+
+      if (now - lastPrefetchedAt > routePrefetchTtlMs) {
+        routePrefetchesRef.current.set(prefetchHref, now);
+        router.prefetch(prefetchHref as Route);
+      }
+
+      for (const image of intentImagesForHref(prefetchHref)) {
+        if (imagePreloadsRef.current.has(image)) continue;
+        imagePreloadsRef.current.add(image);
+        preloadImage(image);
+      }
+    },
+    [router],
+  );
+
   useEffect(() => {
     resetTransition();
     return stopTimeline;
@@ -222,6 +295,50 @@ export function PageTransitionController() {
       navigateWithTransition(href);
     }
 
+    function prefetchAnchor(anchor: HTMLAnchorElement | null) {
+      if (!anchor) return;
+      const href = getInternalHref(anchor);
+      if (href) prefetchIntent(href);
+    }
+
+    function handlePointerOver(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      prefetchAnchor(target.closest("a"));
+    }
+
+    function handleFocusIn(event: FocusEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      prefetchAnchor(target.closest("a"));
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      if (pointerMoveFrameRef.current !== null) return;
+
+      const now = window.performance.now();
+      if (now - lastPointerMoveCheckRef.current < nearLinkPointerMoveIntervalMs) return;
+      lastPointerMoveCheckRef.current = now;
+
+      const { clientX, clientY } = event;
+      pointerMoveFrameRef.current = window.requestAnimationFrame(() => {
+        pointerMoveFrameRef.current = null;
+
+        const anchors = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]"));
+        const nearbyAnchor = anchors.find((anchor) => {
+          const rect = anchor.getBoundingClientRect();
+          return (
+            clientX >= rect.left - nearLinkDistancePx &&
+            clientX <= rect.right + nearLinkDistancePx &&
+            clientY >= rect.top - nearLinkDistancePx &&
+            clientY <= rect.bottom + nearLinkDistancePx
+          );
+        });
+
+        prefetchAnchor(nearbyAnchor ?? null);
+      });
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target;
       const isTyping =
@@ -237,13 +354,23 @@ export function PageTransitionController() {
     }
 
     document.addEventListener("click", handleDocumentClick, true);
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("pointermove", handlePointerMove, { passive: true });
+    document.addEventListener("pointerover", handlePointerOver, { passive: true });
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("click", handleDocumentClick, true);
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerover", handlePointerOver);
       window.removeEventListener("keydown", handleKeyDown);
+      if (pointerMoveFrameRef.current !== null) {
+        window.cancelAnimationFrame(pointerMoveFrameRef.current);
+        pointerMoveFrameRef.current = null;
+      }
     };
-  }, [navigateWithTransition, pathname]);
+  }, [navigateWithTransition, pathname, prefetchIntent]);
 
   return (
     <div data-transition-wrap className="transition" aria-hidden="true">
