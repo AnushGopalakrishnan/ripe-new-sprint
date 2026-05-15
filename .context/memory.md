@@ -150,11 +150,11 @@
 - Current canonical unified public domain:
   - `https://ripe-studios.vercel.app`
 - Latest verified production deployment on 2026-05-15:
-  - `https://ripe-studios-blxoy5k9r-anushgopalakrishnans-projects.vercel.app`
-  - deployment id: `dpl_BoZVgfDtdhifxds1KMHLaC9Yf4Gq`
+  - `https://ripe-studios-2u8tmv4jq-anushgopalakrishnans-projects.vercel.app`
+  - deployment id: `dpl_DbVQVGNK3jNeKSByUnngtAFdY1ac`
   - deployed from the correct `ripe-studios-cms` Vercel project after linking this workspace with `pnpm dlx vercel link --yes --project ripe-studios-cms`
-  - `https://ripe-studios.vercel.app` was manually repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-blxoy5k9r-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
-  - verification: public `/` serves the native `HomeFeed` implementation, has no old feed class names, contains 25 feed articles, and the `[aria-label="Featured work feed"]` computed background is `rgb(255, 255, 255)`
+  - `https://ripe-studios.vercel.app` was manually repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-2u8tmv4jq-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
+  - verification: public `/` has the original mirrored `.hero_section` and `.nav_wrap`, has no native shell marker, contains 25 feed articles, and the `[aria-label="Featured work feed"]` computed background is `rgb(255, 255, 255)`
   - warning: pushing `main` also triggered a separate Vercel deployment on a protected `ripe-new-sprint` project (`https://ripe-new-sprint-gv9xen5u7-anushgopalakrishnans-projects.vercel.app`), but that is not the canonical public site.
 - Latest route-promotion PR:
   - `https://github.com/AnushGopalakrishnan/ripe-new-sprint/pull/4`
