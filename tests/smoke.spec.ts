@@ -24,15 +24,26 @@ const canonicalMirrorPages = [
   { path: "/work", title: "Case Studies" },
 ];
 
-test("home page renders the mirrored homepage", async ({ page }) => {
+test("home page renders the new feed homepage", async ({ page }) => {
   await gotoAppPage(page, "/");
+  await expect(page).toHaveTitle("The Natural Outcome | Ripe Studios");
+  await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
+  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
+});
+
+test("home old feed archive renders the previous mirrored homepage", async ({ page }) => {
+  await gotoAppPage(page, "/home-old-feed");
+  await expect(page).toHaveURL(/\/home-old-feed$/);
   await expect(page).toHaveTitle("The Natural Outcome | Ripe Studios");
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest Updates" })).toBeVisible();
 });
 
-test("home page server-renders the mirrored latest updates footprint before loader scripts", async ({
+test("home old feed server-renders the mirrored latest updates footprint before loader scripts", async ({
   browser,
 }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -45,7 +56,7 @@ test("home page server-renders the mirrored latest updates footprint before load
   });
 
   const page = await context.newPage();
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto("/home-old-feed", { waitUntil: "domcontentloaded" });
 
   const masonryState = await page.evaluate(() => {
     const list = document.querySelector(".latest-updates .masonry-list");
