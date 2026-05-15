@@ -146,6 +146,10 @@
   - deployment id: `dpl_CB2XKBouKKZbdim8YDLmQTXkzDDX`
 - Latest route-promotion PR:
   - `https://github.com/AnushGopalakrishnan/ripe-new-sprint/pull/4`
+- Shared memory tracking PR:
+  - `https://github.com/AnushGopalakrishnan/ripe-new-sprint/pull/5`
+  - `.context/memory.md` is intentionally tracked despite the broader `.context/` ignore.
+  - `AGENTS.md` tells new agents to read `.context/memory.md` before making changes or answering project-state questions.
 - On the canonical domain:
   - `/` is the promoted new feed homepage and keeps the public title `The Natural Outcome | Ripe Studios`
   - `/home-new-feed` remains available as the duplicate new feed route
