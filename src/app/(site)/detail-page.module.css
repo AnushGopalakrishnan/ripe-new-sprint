@@ -14,14 +14,14 @@
 }
 
 .formaPage {
-  background: #000000;
+  background: #ffffff;
   color: #000000;
   font-family: "Switzer", Arial, sans-serif;
   min-height: 100vh;
 }
 
 .formaPage::after {
-  background: #000000;
+  background: #ffffff;
   content: "";
   display: block;
   height: 608px;
@@ -51,7 +51,9 @@
   right: 0;
   top: 0;
   z-index: 20;
-  animation: formaChromeColor linear both;
+  animation:
+    formaChromeColor linear both,
+    formaChromeBackground linear both;
   animation-timeline: scroll(root);
 }
 
@@ -109,6 +111,23 @@
   84%,
   100% {
     color: #ffffff;
+  }
+}
+
+@keyframes formaChromeBackground {
+  0%,
+  14% {
+    background: rgba(255, 255, 255, 0);
+  }
+
+  16%,
+  76% {
+    background: #ffffff;
+  }
+
+  84%,
+  100% {
+    background: rgba(255, 255, 255, 0);
   }
 }
 
