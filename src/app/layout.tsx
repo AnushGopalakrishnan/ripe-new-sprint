@@ -12,11 +12,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+<<<<<<< HEAD
         {/* eslint-disable-next-line @next/next/no-css-tags -- Exported Webflow CSS must be render-blocking to prevent first-paint FOUC on mirrored routes. */}
         <link rel="stylesheet" href="/css/normalize.css" />
         {/* eslint-disable-next-line @next/next/no-css-tags -- Exported Webflow CSS must be render-blocking to prevent first-paint FOUC on mirrored routes. */}
         <link rel="stylesheet" href="/css/webflow.css" />
         {/* eslint-disable-next-line @next/next/no-css-tags -- Exported Webflow CSS must be render-blocking to prevent first-paint FOUC on mirrored routes. */}
+=======
+        {/* eslint-disable-next-line @next/next/no-css-tags -- Exported CSS must be render-blocking to preserve first-paint parity on mirrored routes. */}
+        <link rel="stylesheet" href="/css/normalize.css" />
+        {/* eslint-disable-next-line @next/next/no-css-tags -- Exported CSS must be render-blocking to preserve first-paint parity on mirrored routes. */}
+        <link rel="stylesheet" href="/css/webflow.css" />
+        {/* eslint-disable-next-line @next/next/no-css-tags -- Exported CSS must be render-blocking to preserve first-paint parity on mirrored routes. */}
+>>>>>>> fce2ba8 (Restore mirrored homepage shell)
         <link
           rel="stylesheet"
           href="/css/ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.css"
@@ -26,12 +34,15 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/ChivoMono-Regular.ttf" as="font" type="font/ttf" crossOrigin="" />
         <link rel="preconnect" href="https://cdn.sanity.io" crossOrigin="" />
         <link rel="dns-prefetch" href="https://cdn.sanity.io" />
+<<<<<<< HEAD
         <link rel="preconnect" href="https://cdn.prod.website-files.com" />
         <link rel="dns-prefetch" href="https://cdn.prod.website-files.com" />
         <link rel="preconnect" href="https://framerusercontent.com" crossOrigin="" />
         <link rel="dns-prefetch" href="https://framerusercontent.com" />
         <link rel="preconnect" href="https://ena-supply.b-cdn.net" />
         <link rel="dns-prefetch" href="https://ena-supply.b-cdn.net" />
+=======
+>>>>>>> fce2ba8 (Restore mirrored homepage shell)
         <style
           data-ripe-critical-hero-cards=""
           dangerouslySetInnerHTML={{
