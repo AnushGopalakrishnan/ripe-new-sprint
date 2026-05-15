@@ -23,6 +23,61 @@ export type MediaAsset = {
   eyebrow?: string;
 };
 
+export type CommentPosition = {
+  x?: number;
+  y?: number;
+};
+
+export type PlacedComment = {
+  _key?: string;
+  author?: string;
+  commenter?: {
+    name?: string;
+    avatar?: string;
+    role?: string;
+  };
+  body?: string;
+  position?: CommentPosition;
+};
+
+export type CommentableMedia = {
+  media?: MediaAsset;
+  comments?: PlacedComment[];
+};
+
+export type DetailLayoutCell = {
+  _key?: string;
+  width?: number;
+  content?: CommentableMedia;
+};
+
+export type DetailLayoutRow = {
+  _key?: string;
+  height?: number;
+  cells?: DetailLayoutCell[];
+};
+
+export type DetailLayoutBlock = {
+  _key?: string;
+  preset?: "layout1" | "layout2" | "layout3" | "layout4" | "layout5" | "layout6";
+  gap?: number;
+  rows?: DetailLayoutRow[];
+};
+
+export type CaseStudyLayoutTemplate = {
+  _id?: string;
+  title?: string;
+  preset?: "layout1" | "layout2" | "layout3" | "layout4" | "layout5" | "layout6";
+  gap?: number;
+  rows?: DetailLayoutRow[];
+};
+
+export type DetailLayoutEntry = {
+  _key?: string;
+  layout?: CaseStudyLayoutTemplate;
+  content?: CommentableMedia[];
+};
+
 export type StorySection = {
   title: string;
   paragraphs: string[];
@@ -71,6 +126,26 @@ export type CaseStudy = {
   slug: string;
   client: string;
   summary: string;
+  detailEyebrow?: string;
+  detailServices?: string[];
+  detailIndustry?: string;
+  detailInformation?: string[];
+  detailLayouts?: DetailLayoutBlock[];
+  detailLayoutEntries?: DetailLayoutEntry[];
+  detailHero?: CommentableMedia;
+  detailIntro?: CommentableMedia;
+  detailCarouselSlides?: CommentableMedia[];
+  detailCarouselPoster?: CommentableMedia;
+  detailBlackFeature?: CommentableMedia;
+  detailWideFeature?: CommentableMedia;
+  detailCta?: CommentableMedia;
+  detailMoreProjects?: Array<{
+    _key?: string;
+    title?: string;
+    year?: string;
+    slug?: string;
+    media?: MediaAsset;
+  }>;
   year?: string;
   tags: string[];
   featured: boolean;

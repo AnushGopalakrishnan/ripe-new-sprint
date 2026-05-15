@@ -43,10 +43,10 @@ export const HOME_PAGE_QUERY = defineQuery(`
     },
     heroMedia{
       kind,
-      src,
-      alt,
-      poster,
-      eyebrow
+    "src": coalesce(src, image.asset->url, video.asset->url),
+    alt,
+    "poster": coalesce(poster, posterImage.asset->url),
+    eyebrow
     },
     "featuredStudySlugs": featuredCaseStudies[]->slug.current,
     "featuredWritingSlugs": featuredWriting[]->slug.current,
@@ -64,11 +64,156 @@ export const HOME_PAGE_QUERY = defineQuery(`
   }
 `);
 
+const CASE_STUDY_MEDIA_FIELDS = `
+    "kind": coalesce(
+      kind,
+      select(defined(upload.asset->mimeType) && upload.asset->mimeType match "video/*" => "video"),
+      select(defined(video.asset->url) => "video"),
+      "image"
+    ),
+    "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
+    alt,
+    "poster": coalesce(poster, posterImage.asset->url),
+    eyebrow
+`;
+
+const CASE_STUDY_COMMENT_FIELDS = `
+      _key,
+      author,
+      commenter->{
+        name,
+        role,
+        "avatar": avatar.asset->url
+      },
+      body,
+      position{
+        x,
+        y
+      }
+`;
+
 const CASE_STUDY_FIELDS = `
   title,
   "slug": slug.current,
   client,
   summary,
+  detailEyebrow,
+  detailServices,
+  detailIndustry,
+  detailInformation,
+  detailLayouts[]{
+    _key,
+    preset,
+    gap,
+    rows[]{
+      _key,
+      height,
+      cells[]{
+        _key,
+        width,
+        content{
+          media{
+${CASE_STUDY_MEDIA_FIELDS}
+          },
+          comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+          }
+        }
+      }
+    }
+  },
+  detailLayoutEntries[]{
+    _key,
+    layout->{
+      _id,
+      title,
+      preset,
+      gap,
+      rows[]{
+        _key,
+        height,
+        cells[]{
+          _key,
+          width
+        }
+      }
+    },
+    content[]{
+      _key,
+      media{
+${CASE_STUDY_MEDIA_FIELDS}
+      },
+      comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+      }
+    }
+  },
+  detailHero{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailIntro{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailCarouselSlides[]{
+    _key,
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailCarouselPoster{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailBlackFeature{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailWideFeature{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailCta{
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    },
+    comments[]{
+${CASE_STUDY_COMMENT_FIELDS}
+    }
+  },
+  detailMoreProjects[]{
+    _key,
+    title,
+    year,
+    slug,
+    media{
+${CASE_STUDY_MEDIA_FIELDS}
+    }
+  },
   year,
   order,
   accentColor,
@@ -77,11 +222,7 @@ const CASE_STUDY_FIELDS = `
   featured,
   theme,
   coverMedia{
-    kind,
-    src,
-    alt,
-    poster,
-    eyebrow
+${CASE_STUDY_MEDIA_FIELDS}
   },
   challenge,
   outcome,
@@ -102,11 +243,7 @@ const CASE_STUDY_FIELDS = `
     company,
     insertAfterOrder,
     avatar{
-      kind,
-      src,
-      alt,
-      poster,
-      eyebrow
+${CASE_STUDY_MEDIA_FIELDS}
     }
   },
   seo{
@@ -145,9 +282,9 @@ const WRITING_FIELDS = `
   authorBio,
   authorImage{
     kind,
-    src,
+    "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    poster,
+    "poster": coalesce(poster, posterImage.asset->url),
     eyebrow
   },
   publishDate,
@@ -157,9 +294,9 @@ const WRITING_FIELDS = `
   "tags": tags[]->title,
   coverMedia{
     kind,
-    src,
+    "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    poster,
+    "poster": coalesce(poster, posterImage.asset->url),
     eyebrow
   },
   body[]{

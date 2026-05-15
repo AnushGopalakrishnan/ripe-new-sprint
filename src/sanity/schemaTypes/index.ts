@@ -9,6 +9,8 @@ import {
   testimonialType,
 } from "@/sanity/schemaTypes/objects";
 import { caseStudyType } from "@/sanity/schemaTypes/caseStudy";
+import { caseStudyLayoutType } from "@/sanity/schemaTypes/caseStudyLayout";
+import { caseStudyCommenterType } from "@/sanity/schemaTypes/caseStudyCommenter";
 import { caseStudyTagType } from "@/sanity/schemaTypes/caseStudyTag";
 import {
   commentPlacementTestType,
@@ -37,6 +39,8 @@ export const schemaTypes = [
   commentPositionType,
   commentPlacementTestType,
   homePageType,
+  caseStudyCommenterType,
+  caseStudyLayoutType,
   caseStudyTagType,
   caseStudyType,
   writingTagType,

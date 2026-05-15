@@ -68,28 +68,59 @@ export const mediaType = defineType({
   type: "object",
   fields: [
     defineField({
+      name: "upload",
+      title: "Upload (Image or Video)",
+      description:
+        "Recommended. Upload either an image or video directly. Kind is inferred automatically.",
+      type: "file",
+      options: {
+        accept: "image/*,video/*",
+      },
+    }),
+    defineField({
       name: "kind",
       title: "Kind",
+      description: "Optional legacy override. Leave empty to auto-detect from upload/source.",
       type: "string",
-      initialValue: "image",
       options: {
         list: [
           { title: "Image", value: "image" },
           { title: "Video", value: "video" },
         ],
       },
-      validation: (rule) => rule.required(),
     }),
     defineField({
       name: "src",
       title: "Source URL",
       type: "url",
-      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "image",
+      title: "Uploaded Image (Legacy)",
+      type: "image",
+      options: { hotspot: true },
+      hidden: ({ parent }) => parent?.kind === "video",
+    }),
+    defineField({
+      name: "video",
+      title: "Uploaded Video (Legacy)",
+      type: "file",
+      options: {
+        accept: "video/*",
+      },
+      hidden: ({ parent }) => parent?.kind !== "video",
     }),
     defineField({
       name: "poster",
       title: "Poster URL",
       type: "url",
+    }),
+    defineField({
+      name: "posterImage",
+      title: "Uploaded Poster Image",
+      type: "image",
+      options: { hotspot: true },
+      hidden: ({ parent }) => parent?.kind !== "video",
     }),
     defineField({
       name: "alt",
@@ -103,6 +134,27 @@ export const mediaType = defineType({
       type: "string",
     }),
   ],
+  validation: (rule) =>
+    rule.custom((value) => {
+      if (!value || typeof value !== "object") return true;
+      const media = value as {
+        kind?: "image" | "video";
+        src?: string;
+        image?: unknown;
+        video?: unknown;
+        upload?: unknown;
+      };
+
+      if (media.upload) return true;
+
+      if (media.kind === "video") {
+        if (media.src || media.video) return true;
+        return "Add Upload, Source URL, or Uploaded Video.";
+      }
+
+      if (media.src || media.image || media.video) return true;
+      return "Add Upload, Source URL, or uploaded media.";
+    }),
 });
 
 export const metricType = defineType({
