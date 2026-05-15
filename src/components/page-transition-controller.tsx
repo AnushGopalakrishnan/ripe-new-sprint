@@ -89,7 +89,7 @@ function pageMotionTargets() {
   return Array.from(container.children).filter((element): element is HTMLElement => {
     if (!(element instanceof HTMLElement)) return false;
     if (["LINK", "SCRIPT", "STYLE", "TEMPLATE"].includes(element.tagName)) return false;
-    if (element.matches("nav, [data-site-nav]")) return false;
+    if (element.matches("nav, .nav_wrap, .nav_contain")) return false;
     return true;
   });
 }

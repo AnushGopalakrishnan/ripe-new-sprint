@@ -1,27 +1,6 @@
 @import "../styles/ripe-tokens.css";
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  background: #fff;
-  color: #0a0a0a;
-  margin: 0;
-  min-height: 100%;
-}
-
-body {
-  font-family: "Graphik", Arial, sans-serif;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+/* Public mirror pages load their exported styles from each route document. */
 
 [data-page-transition-container] {
   width: 100%;
@@ -51,6 +30,20 @@ textarea {
   flex: 1 1 0;
   height: 100%;
   width: 100%;
+}
+
+.nav_wrap {
+  z-index: 1000;
+}
+
+.hero_section .article-card {
+  opacity: 1 !important;
+  transform: none !important;
+  visibility: visible !important;
+}
+
+html.w-mod-js:not(.w-mod-ix3) .hero_section .article-card {
+  visibility: visible !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

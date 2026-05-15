@@ -649,11 +649,19 @@ test("work new route renders the filtered journal grid", async ({ page }) => {
   await expect(workJournal.getByRole("link")).toHaveCount(12);
 
   const navBackgroundBeforeTheme = await page.evaluate(() => {
-    const nav = document.querySelector("[data-site-nav]");
-    return nav ? getComputedStyle(nav).backgroundColor : "";
+    const nav = document.querySelector(".nav_wrap");
+    const navContain = document.querySelector(".nav_contain.u-container");
+
+    return {
+      nav: nav ? getComputedStyle(nav).backgroundColor : "",
+      navContain: navContain ? getComputedStyle(navContain).backgroundColor : "",
+    };
   });
 
-  expect(navBackgroundBeforeTheme).toBe("rgba(0, 0, 0, 0)");
+  expect(navBackgroundBeforeTheme).toEqual({
+    nav: "rgba(0, 0, 0, 0)",
+    navContain: "rgba(0, 0, 0, 0)",
+  });
 
   await firstCard.hover();
   await page.waitForTimeout(650);
@@ -671,7 +679,7 @@ test("work new route renders the filtered journal grid", async ({ page }) => {
     const firstTag = document.querySelector('[aria-label="Work journal"] a [class*="tag"]');
     const secondTag = secondCard?.querySelector('[class*="tag"]');
     const divider = document.querySelector('[aria-label="Work journal"] [class*="filterDivider"]');
-    const nav = document.querySelector("[data-site-nav]");
+    const nav = document.querySelector(".nav_wrap");
     const firstDescriptionStyle = firstDescription ? getComputedStyle(firstDescription) : null;
     const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
     const firstMediaStyle = firstMedia ? getComputedStyle(firstMedia) : null;
