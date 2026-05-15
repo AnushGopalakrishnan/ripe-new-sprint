@@ -30,8 +30,14 @@ test("home page renders the new feed homepage", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
+<<<<<<< HEAD
   await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
   await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
+=======
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
+>>>>>>> ee32a94 (Test feed background stays white)
 });
 
 test("home old feed archive renders the previous mirrored homepage", async ({ page }) => {
@@ -89,11 +95,20 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
+<<<<<<< HEAD
   await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
   await expect(page.getByLabel("Studio B inspired feed")).toContainText("Mira");
   await expect(page.getByLabel("Studio B inspired feed")).toContainText("Avantis");
   await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
   await expect(page.getByLabel("Studio B inspired feed").locator("video")).toHaveCount(1);
+=======
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Mira");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Avantis");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
+  await expect(page.getByLabel("Featured work feed").locator("video")).toHaveCount(1);
+>>>>>>> ee32a94 (Test feed background stays white)
   await expect(
     page.getByLabel("Studio B inspired feed").locator("article", { hasText: "Services" }),
   ).toContainText(/Strategy|Identity|Design|Motion/);

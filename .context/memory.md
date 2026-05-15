@@ -138,12 +138,13 @@
   - `/studio` is served by the real Next/Sanity app
 - Current canonical unified public domain:
   - `https://ripe-studios.vercel.app`
-- Removed old aliases after the latest deploy:
-  - `https://chengdu-chi.vercel.app`
-  - `https://ripe-studios-cms-anushgopalakrishnans-projects.vercel.app`
 - Latest verified production deployment on 2026-05-15:
-  - `https://ripe-studios-ioj9s0gmf-anushgopalakrishnans-projects.vercel.app`
-  - deployment id: `dpl_CB2XKBouKKZbdim8YDLmQTXkzDDX`
+  - `https://ripe-studios-blxoy5k9r-anushgopalakrishnans-projects.vercel.app`
+  - deployment id: `dpl_BoZVgfDtdhifxds1KMHLaC9Yf4Gq`
+  - deployed from the correct `ripe-studios-cms` Vercel project after linking this workspace with `pnpm dlx vercel link --yes --project ripe-studios-cms`
+  - `https://ripe-studios.vercel.app` was manually repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-blxoy5k9r-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
+  - verification: public `/` serves the native `HomeFeed` implementation, has no old feed class names, contains 25 feed articles, and the `[aria-label="Featured work feed"]` computed background is `rgb(255, 255, 255)`
+  - warning: pushing `main` also triggered a separate Vercel deployment on a protected `ripe-new-sprint` project (`https://ripe-new-sprint-gv9xen5u7-anushgopalakrishnans-projects.vercel.app`), but that is not the canonical public site.
 - Latest route-promotion PR:
   - `https://github.com/AnushGopalakrishnan/ripe-new-sprint/pull/4`
 - On the canonical domain:
