@@ -31,6 +31,7 @@ test("home page renders the new feed homepage", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
   await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
 });
 
@@ -92,6 +93,7 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
   await expect(page.getByLabel("Featured work feed")).toContainText("Mira");
   await expect(page.getByLabel("Featured work feed")).toContainText("Avantis");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
   await expect(page.getByLabel("Featured work feed").locator("video")).toHaveCount(1);
   await expect(
