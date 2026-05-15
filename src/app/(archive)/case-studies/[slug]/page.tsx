@@ -12,8 +12,8 @@ type CaseStudyPageProps = {
 
 const validSlugs = new Set([...workJournalItems.map((item) => item.slug)]);
 
-const reference = {
-  title: "Polestar",
+const projectDetail = {
+  title: "Ripe Systems",
   eyebrow: "A bold vision cast in futuristic steel and shade.",
   services: ["Art Direction", "Campaign Design"],
   industry: "Automotive",
@@ -24,25 +24,25 @@ const reference = {
     "Our approach was to create a brand identity that communicated Green Wave's values of sustainability, innovation, and authenticity. We used a palette of earthy greens and soft blues, evoking the natural world and the company&rsquo;s eco-friendly focus. Typography was kept clean and modern to reflect innovation and trustworthiness.",
   ],
   images: {
-    hero: "https://framerusercontent.com/images/pZ6mbxzpeUTgS9ozeReZUTGVQ.jpg",
-    intro: "https://framerusercontent.com/images/wLf1Z5riCOYK0QbVrrGp8SDbNPc.jpg",
-    carouselOne: "https://framerusercontent.com/images/uM2dqs6J6Gwd56iZakmYfLS2Hb8.jpg",
-    carouselTwo: "https://framerusercontent.com/images/i7hR97gTdH78g9LobVKIfeMbuY.jpg",
-    blackFeature: "https://framerusercontent.com/assets/K8BnXtOrLdRkDftOTLbgvDj097Y.mp4#t=2",
-    wideFeature: "https://framerusercontent.com/images/cK14XDFrp1oSUJSfDqEXWxc4GI.jpg?scale-down-to=2048",
-    moreOne: "https://framerusercontent.com/images/HVz11H7bVeNApIIa7wJoFtuZmk.jpg?scale-down-to=1024",
-    moreTwo: "https://framerusercontent.com/images/FRug4oPqc3gs9kT2zzZYYCLthvM.jpg",
-    moreThree: "https://framerusercontent.com/images/uM2dqs6J6Gwd56iZakmYfLS2Hb8.jpg",
-    moreFour: "https://framerusercontent.com/images/LHkFe3b2Qm6fua2tEcdPt02A.jpg",
-    cta: "https://framerusercontent.com/images/qAHlTkKCIBH8sfnCssLBlaefQE.jpg?width=1440&height=900",
+    hero: "/case-detail-media/hero.jpg",
+    intro: "/case-detail-media/intro.jpg",
+    carouselOne: "/case-detail-media/carousel-one.jpg",
+    carouselTwo: "/case-detail-media/carousel-two.jpg",
+    blackFeature: "/case-detail-media/feature.mp4#t=2",
+    wideFeature: "/case-detail-media/wide-feature.jpg",
+    moreOne: "/case-detail-media/more-one.jpg",
+    moreTwo: "/case-detail-media/more-two.jpg",
+    moreThree: "/case-detail-media/carousel-one.jpg",
+    moreFour: "/case-detail-media/more-four.jpg",
+    cta: "/case-detail-media/cta.jpg",
   },
 };
 
 const moreProjects = [
-  { title: "Frame Signal", year: "2025", image: reference.images.moreOne },
-  { title: "Arclight", year: "2025", image: reference.images.moreTwo },
-  { title: "Core Motion", year: "2024", image: reference.images.moreThree },
-  { title: "Studio Frame", year: "2024", image: reference.images.moreFour },
+  { title: "Frame Signal", year: "2025", image: projectDetail.images.moreOne },
+  { title: "Arclight", year: "2025", image: projectDetail.images.moreTwo },
+  { title: "Core Motion", year: "2024", image: projectDetail.images.moreThree },
+  { title: "Studio Frame", year: "2024", image: projectDetail.images.moreFour },
 ];
 
 export async function generateStaticParams() {
@@ -52,8 +52,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata() {
   return createExactTitleMetadata({
-    title: "Polestar - Forma",
-    description: reference.eyebrow,
+    title: "Ripe Systems | Ripe Studios",
+    description: projectDetail.eyebrow,
     path: "/case-studies/zetachain",
   });
 }
@@ -66,82 +66,82 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   }
 
   return (
-    <main className={styles.formaPage}>
-      <FormaChrome />
+    <main className={styles.projectPage}>
+      <ProjectChrome />
 
-      <section className={styles.formaHero}>
+      <section className={styles.projectHero}>
         <img
-          className={styles.formaHeroImage}
-          src={reference.images.hero}
+          className={styles.projectHeroImage}
+          src={projectDetail.images.hero}
           alt=""
           fetchPriority="high"
           decoding="async"
         />
-        <div className={styles.formaHeroCopy}>
-          <p>{reference.eyebrow}</p>
-          <h1>{reference.title}</h1>
+        <div className={styles.projectHeroCopy}>
+          <p>{projectDetail.eyebrow}</p>
+          <h1>{projectDetail.title}</h1>
           <span>Scroll to view more</span>
         </div>
       </section>
 
-      <section className={styles.formaInfo} aria-label="Project information">
-        <div className={styles.formaFacts}>
-          <FormaFact label="Services">
-            {reference.services.join(", ")}
-          </FormaFact>
-          <FormaFact label="Industry">{reference.industry}</FormaFact>
-          <FormaFact label="Year">{reference.year}</FormaFact>
+      <section className={styles.projectInfo} aria-label="Project information">
+        <div className={styles.projectFacts}>
+          <ProjectFact label="Services">
+            {projectDetail.services.join(", ")}
+          </ProjectFact>
+          <ProjectFact label="Industry">{projectDetail.industry}</ProjectFact>
+          <ProjectFact label="Year">{projectDetail.year}</ProjectFact>
         </div>
-        <div className={styles.formaInformation}>
-          <p className={styles.formaLabel}>(Information)</p>
-          {reference.information.map((paragraph) => (
+        <div className={styles.projectInformation}>
+          <p className={styles.projectLabel}>(Information)</p>
+          {projectDetail.information.map((paragraph) => (
             <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
           ))}
         </div>
       </section>
 
-      <section className={styles.formaIntroMedia} aria-label="Polestar imagery">
-        <img src={reference.images.intro} alt="" loading="eager" decoding="async" />
+      <section className={styles.projectIntroMedia} aria-label="Project imagery">
+        <img src={projectDetail.images.intro} alt="" loading="eager" decoding="async" />
       </section>
 
-      <section className={styles.formaCarousel} aria-label="Campaign carousel">
-        <div className={styles.formaCarouselPanel}>
-          <button className={styles.formaArrow} aria-label="Previous project image">
+      <section className={styles.projectCarousel} aria-label="Campaign carousel">
+        <div className={styles.projectCarouselPanel}>
+          <button className={styles.projectArrow} aria-label="Previous project image">
             &#8592;
           </button>
-          <img src={reference.images.carouselOne} alt="" loading="lazy" decoding="async" />
-          <button className={`${styles.formaArrow} ${styles.formaArrowNext}`} aria-label="Next project image">
+          <img src={projectDetail.images.carouselOne} alt="" loading="lazy" decoding="async" />
+          <button className={`${styles.projectArrow} ${styles.projectArrowNext}`} aria-label="Next project image">
             &#8594;
           </button>
-          <div className={styles.formaDots} aria-hidden="true">
+          <div className={styles.projectDots} aria-hidden="true">
             <span />
             <span />
             <span />
           </div>
         </div>
-        <div className={styles.formaCarouselPoster}>
-          <img src={reference.images.carouselTwo} alt="" loading="lazy" decoding="async" />
+        <div className={styles.projectCarouselPoster}>
+          <img src={projectDetail.images.carouselTwo} alt="" loading="lazy" decoding="async" />
         </div>
       </section>
 
-      <section className={styles.formaBlackFeature} aria-label="Feature spread">
-        <video src={reference.images.blackFeature} autoPlay muted loop playsInline preload="auto" />
+      <section className={styles.projectBlackFeature} aria-label="Feature spread">
+        <video src={projectDetail.images.blackFeature} autoPlay muted loop playsInline preload="auto" />
       </section>
 
-      <section className={styles.formaWideFeature} aria-label="Wide feature">
-        <img src={reference.images.wideFeature} alt="" loading="lazy" decoding="async" />
+      <section className={styles.projectWideFeature} aria-label="Wide feature">
+        <img src={projectDetail.images.wideFeature} alt="" loading="lazy" decoding="async" />
       </section>
 
-      <section className={styles.formaMoreProjects} aria-label="More projects">
-        <div className={styles.formaMoreHeader}>
+      <section className={styles.projectMoreProjects} aria-label="More projects">
+        <div className={styles.projectMoreHeader}>
           <h2>More Projects</h2>
           <Link href="/case-studies">
             All projects <span aria-hidden="true">&#8599;</span>
           </Link>
         </div>
-        <div className={styles.formaProjectGrid}>
+        <div className={styles.projectProjectGrid}>
           {moreProjects.map((project) => (
-            <Link href="/case-studies/zetachain" className={styles.formaProjectCard} key={project.title}>
+            <Link href="/case-studies/zetachain" className={styles.projectProjectCard} key={project.title}>
               <img src={project.image} alt="" loading="lazy" decoding="async" />
               <span>{project.title}</span>
               <span>{project.year}</span>
@@ -150,59 +150,59 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
         </div>
       </section>
 
-      <section className={styles.formaCta} aria-label="Contact">
-        <img src={reference.images.cta} alt="" loading="lazy" decoding="async" />
-        <div className={styles.formaCtaCopy}>
+      <section className={styles.projectCta} aria-label="Contact">
+        <img src={projectDetail.images.cta} alt="" loading="lazy" decoding="async" />
+        <div className={styles.projectCtaCopy}>
           <h2>
             LET&rsquo;S CREATE
             <br />
             SOMETHING TOGETHER
           </h2>
-          <a href="mailto:hello@forma.agency">
+          <a href="mailto:hello@ripestudios.com">
             Get in touch <span aria-hidden="true">&#8599;</span>
           </a>
         </div>
       </section>
 
-      <footer className={styles.formaFooter}>
-        <Link href="/">Forma&trade;</Link>
+      <footer className={styles.projectFooter}>
+        <Link href="/">Ripe Studios</Link>
         <nav aria-label="Footer">
           <a href="/terms">Terms &amp; Conditions</a>
-          <a href="https://ena.supply">Made by ena</a>
-          <a href="https://www.arque.co">Images by Arq&eacute;</a>
+          <Link href="/team">Team</Link>
+          <Link href="/work-new">Work</Link>
         </nav>
       </footer>
 
-      <div className={styles.formaBadges} aria-hidden="true">
-        <span>Buy Template</span>
-        <span>Made in Framer</span>
+      <div className={styles.projectBadges} aria-hidden="true">
+        <span>Case Study</span>
+        <span>Ripe Studios</span>
       </div>
     </main>
   );
 }
 
-function FormaChrome() {
+function ProjectChrome() {
   return (
-    <header className={styles.formaChrome}>
-      <Link className={styles.formaBrand} href="/">
-        Forma&trade;
+    <header className={styles.projectChrome}>
+      <Link className={styles.projectBrand} href="/">
+        Ripe Studios
       </Link>
-      <nav className={styles.formaNav} aria-label="Main">
-        <a href="/works">Projects</a>
-        <a href="/about">About</a>
-        <a href="/journal">Journal</a>
-        <a href="/careers">Careers</a>
+      <nav className={styles.projectNav} aria-label="Main">
+        <Link href="/work-new">Projects</Link>
+        <Link href="/team">About</Link>
+        <Link href="/writing">Journal</Link>
+        <Link href="/careers">Careers</Link>
       </nav>
-      <a className={styles.formaContact} href="mailto:hello@forma.agency">
+      <a className={styles.projectContact} href="mailto:hello@ripestudios.com">
         <span aria-hidden="true">&#8599;</span> Get in touch
       </a>
     </header>
   );
 }
 
-function FormaFact({ label, children }: { label: string; children: ReactNode }) {
+function ProjectFact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className={styles.formaFact}>
+    <div className={styles.projectFact}>
       <p>({label})</p>
       <strong>{children}</strong>
     </div>

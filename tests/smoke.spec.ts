@@ -30,8 +30,8 @@ test("home page renders the new feed homepage", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
-  await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
 });
 
 test("home old feed archive renders the previous mirrored homepage", async ({ page }) => {
@@ -89,26 +89,23 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Mira");
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Avantis");
-  await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
-  await expect(page.getByLabel("Studio B inspired feed").locator("video")).toHaveCount(1);
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Mira");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Avantis");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
+  await expect(page.getByLabel("Featured work feed").locator("video")).toHaveCount(1);
   await expect(
-    page.getByLabel("Studio B inspired feed").locator("article", { hasText: "Services" }),
+    page.getByLabel("Featured work feed").locator("article", { hasText: "Services" }),
   ).toContainText(/Strategy|Identity|Design|Motion/);
   await expect(page.getByLabel("View Raf Simons")).toHaveAttribute(
     "href",
-    "https://studio-b.framer.website/works/raf-simons",
+    "/case-studies/case-study-20",
   );
   await expect(page.getByLabel("Read We built a new online presence")).toHaveAttribute(
     "href",
-    "https://studio-b.framer.website/article-single",
+    "/writing",
   );
-  await expect(page.locator('iframe[title="Studio B Spotify playlist"]')).toHaveAttribute(
-    "src",
-    "https://open.spotify.com/embed/playlist/22KovfchogcaO7CcFsIzHl?theme=1",
-  );
+  await expect(page.getByLabel("Studio playlist")).toContainText("Ambient Systems");
 });
 
 test("home new feed keeps the hero and custom feed stable after hydration", async ({ page }) => {
@@ -133,7 +130,7 @@ test("home new feed keeps the hero and custom feed stable after hydration", asyn
   const readGeometry = () =>
     page.evaluate(() => {
       const heroTitle = document.querySelector(".h1-wrap");
-      const customFeed = document.querySelector('[aria-label="Studio B inspired feed"]');
+      const customFeed = document.querySelector('[aria-label="Featured work feed"]');
       const heroTitleRect = heroTitle?.getBoundingClientRect();
       const customFeedRect = customFeed?.getBoundingClientRect();
 
@@ -336,7 +333,7 @@ test("canonical work route server-renders the final grid footprint", async ({ pa
   });
 });
 
-test("work new route renders the Swissfolio-style filtered journal grid", async ({ page }) => {
+test("work new route renders the filtered journal grid", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await gotoAppPage(page, "/work-new");
 
@@ -650,19 +647,11 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
   await expect(workJournal.getByRole("link")).toHaveCount(12);
 
   const navBackgroundBeforeTheme = await page.evaluate(() => {
-    const nav = document.querySelector(".nav_wrap");
-    const navContain = document.querySelector(".nav_contain.u-container");
-
-    return {
-      nav: nav ? getComputedStyle(nav).backgroundColor : "",
-      navContain: navContain ? getComputedStyle(navContain).backgroundColor : "",
-    };
+    const nav = document.querySelector("[data-site-nav]");
+    return nav ? getComputedStyle(nav).backgroundColor : "";
   });
 
-  expect(navBackgroundBeforeTheme).toEqual({
-    nav: "rgba(0, 0, 0, 0)",
-    navContain: "rgba(0, 0, 0, 0)",
-  });
+  expect(navBackgroundBeforeTheme).toBe("rgba(0, 0, 0, 0)");
 
   await firstCard.hover();
   await page.waitForTimeout(650);
@@ -680,7 +669,7 @@ test("work new route renders the Swissfolio-style filtered journal grid", async 
     const firstTag = document.querySelector('[aria-label="Work journal"] a [class*="tag"]');
     const secondTag = secondCard?.querySelector('[class*="tag"]');
     const divider = document.querySelector('[aria-label="Work journal"] [class*="filterDivider"]');
-    const nav = document.querySelector(".nav_wrap");
+    const nav = document.querySelector("[data-site-nav]");
     const firstDescriptionStyle = firstDescription ? getComputedStyle(firstDescription) : null;
     const firstImageStyle = firstImage ? getComputedStyle(firstImage) : null;
     const firstMediaStyle = firstMedia ? getComputedStyle(firstMedia) : null;
@@ -1071,11 +1060,11 @@ for (const redirect of legacyRedirects) {
   });
 }
 
-test("case study detail page renders the local Forma reference clone", async ({ page }) => {
+test("case study detail page renders the native project detail", async ({ page }) => {
   await gotoAppPage(page, "/case-studies/zetachain");
 
-  await expect(page).toHaveTitle("Polestar - Forma");
-  await expect(page.getByRole("heading", { name: "POLESTAR" })).toBeVisible();
+  await expect(page).toHaveTitle("Ripe Systems | Ripe Studios");
+  await expect(page.getByRole("heading", { name: "Ripe Systems" })).toBeVisible();
   await expect(page.getByText("A bold vision cast in futuristic steel and shade.")).toBeVisible();
 });
 

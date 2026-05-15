@@ -20,8 +20,8 @@ const transitionTestRoutes = {
 
 const homeNewFeedIntentImages = [
   "/feed-assets/avantis-cube.png",
-  "https://framerusercontent.com/images/TDVqw1tqR6Xs2CRjqnICnaPpH1o.jpg",
-  "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
+  "/feed-media/cut-paste.jpg",
+  "/feed-media/maison.jpg",
 ];
 
 const workIntentImages = workJournalItems.slice(0, 4).map((item) => item.image);
@@ -89,7 +89,7 @@ function pageMotionTargets() {
   return Array.from(container.children).filter((element): element is HTMLElement => {
     if (!(element instanceof HTMLElement)) return false;
     if (["LINK", "SCRIPT", "STYLE", "TEMPLATE"].includes(element.tagName)) return false;
-    if (element.matches("nav, .nav_wrap, .nav_contain")) return false;
+    if (element.matches("nav, [data-site-nav]")) return false;
     return true;
   });
 }

@@ -1,20 +1,14 @@
 import styles from "./home-copy-feed.module.css";
 
 const images = {
-  raf: "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
-  barDoubble:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69f0af619f6562c28e13226b_69934c1a5f86d6aad049147c_Div%2520%255Bintrinsic-image%255D-4.png",
-  mira:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69934c1a5f86d6aad049145b_image%202-4.png",
-  avantis:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69934c1a5f86d6aad0491475_image%2043352-2.png",
-  zetachain:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69972ef28c6957359c359dc4_zetachain.png",
-  oum:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69934c1a5f86d6aad049145d_image%202-2.png",
-  volvo:
-    "https://cdn.prod.website-files.com/69934c1a5f86d6aad04912f4/69934c1a5f86d6aad0491469_image%202-1.png",
-  rick: "https://framerusercontent.com/images/nKHExlWmSBMLnqfZuSBVnUtNPPw.jpg",
+  raf: "/feed-media/maison.jpg",
+  barDoubble: "/work-media/sticky-notes.png",
+  mira: "/work-media/mira.png",
+  avantis: "/work-media/avantis.png",
+  zetachain: "/work-media/zetachain.png",
+  oum: "/work-media/oum-ceramics.png",
+  volvo: "/work-media/volvo.png",
+  rick: "/feed-media/rick.jpg",
 };
 
 type ImageCardProps = {
