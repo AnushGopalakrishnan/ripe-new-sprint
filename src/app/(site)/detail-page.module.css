@@ -1,45 +1,40 @@
 @font-face {
-  font-family: "ProjectSans";
+  font-family: "Switzer";
   font-style: normal;
   font-weight: 400;
-  src: url("/fonts/home-feed-sans.woff2") format("woff2");
+  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/BLNB4FAQFNK56DWWNF7PMGTCOTZHOEII/ST3WKSSDMBK2MIQQO3MAVYWLF4FTOLFV/6IN5WOLRCYP4G4MOCOHOMXNON6Q7MDAR.woff2");
 }
 
 @font-face {
-  font-family: "ProjectSans";
+  font-family: "Switzer";
   font-display: swap;
   font-style: normal;
   font-weight: 500;
-  src: url("/fonts/detail-sans-medium.woff2") format("woff2");
+  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/OYB4CXKJQXKTNSLJMTDQOIVUL2V5EL7S/WYO2P7DQVV5RNXGMCUO2HL4RJP4VFUAS/6XPIMU23OJVRY676OG5YVJMWEHWICATX.woff2");
 }
 
-.projectPage {
+.formaPage {
   background: #ffffff;
   color: #000000;
-  font-family: "ProjectSans", Arial, sans-serif;
+  font-family: "Switzer", Arial, sans-serif;
   min-height: 100vh;
   overflow-x: clip;
 }
 
 .formaPage::after {
   content: none;
-.projectPage::after {
-  background: #ffffff;
-  content: "";
-  display: block;
-  height: 608px;
 }
 
-.projectPage * {
+.formaPage * {
   box-sizing: border-box;
 }
 
-.projectPage a {
+.formaPage a {
   color: inherit;
   text-decoration: none;
 }
 
-.projectChrome {
+.formaChrome {
   align-items: center;
   color: #ffffff;
   display: grid;
@@ -55,26 +50,26 @@
   top: 0;
   z-index: 20;
   animation:
-    projectChromeColor linear both,
-    projectChromeBackground linear both;
+    formaChromeColor linear both,
+    formaChromeBackground linear both;
   animation-timeline: scroll(root);
 }
 
-.projectBrand {
+.formaBrand {
   font-size: 22px;
   font-weight: 500;
   justify-self: start;
   letter-spacing: 0;
 }
 
-.projectNav {
+.formaNav {
   align-items: center;
   display: flex;
   gap: 26px;
   justify-self: center;
 }
 
-.projectContact {
+.formaContact {
   align-items: center;
   border: 1px solid currentColor;
   display: inline-flex;
@@ -85,14 +80,14 @@
   min-width: 153px;
 }
 
-.projectContact span,
-.projectMoreHeader span,
-.projectCtaCopy span {
+.formaContact span,
+.formaMoreHeader span,
+.formaCtaCopy span {
   font-size: 16px;
   line-height: 1;
 }
 
-.projectHero {
+.formaHero {
   color: #ffffff;
   height: 100vh;
   height: 100dvh;
@@ -101,7 +96,7 @@
   position: relative;
 }
 
-@keyframes projectChromeColor {
+@keyframes formaChromeColor {
   0%,
   14% {
     color: #ffffff;
@@ -118,7 +113,7 @@
   }
 }
 
-@keyframes projectChromeBackground {
+@keyframes formaChromeBackground {
   0%,
   14% {
     background: rgba(255, 255, 255, 0);
@@ -146,20 +141,13 @@
 .formaWideFeature img,
 .formaProjectCard img,
 .formaCta img {
-.projectHeroImage,
-.projectIntroMedia img,
-.projectCarousel img,
-.projectBlackFeature video,
-.projectWideFeature img,
-.projectProjectCard img,
-.projectCta img {
   display: block;
   height: 100%;
   object-fit: cover;
   width: 100%;
 }
 
-.projectHeroImage {
+.formaHeroImage {
   inset: 0;
   position: absolute;
 }
@@ -170,7 +158,6 @@
 }
 
 .formaHeroCopy {
-.projectHeroCopy {
   color: #ffffff;
   inset: 0;
   left: 20px;
@@ -179,8 +166,8 @@
   z-index: 2;
 }
 
-.projectHeroCopy p,
-.projectHeroCopy span {
+.formaHeroCopy p,
+.formaHeroCopy span {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.18;
@@ -189,7 +176,7 @@
   position: absolute;
 }
 
-.projectHeroCopy h1 {
+.formaHeroCopy h1 {
   color: #ffffff;
   font-family: "Switzer", Arial, sans-serif;
   font-size: 74px;
@@ -204,13 +191,13 @@
   transform: translate(-50%, -50%);
 }
 
-.projectHeroCopy p {
+.formaHeroCopy p {
   color: rgba(255, 255, 255, 0.28);
   left: 0;
   top: calc(50% + 5px);
 }
 
-.projectHeroCopy span {
+.formaHeroCopy span {
   bottom: 21px;
   left: 0;
   justify-self: end;
@@ -218,28 +205,72 @@
   white-space: normal;
 }
 
-.projectInfo {
+.formaInfo {
   display: grid;
   grid-template-columns: 450px 450px;
   gap: 72px;
-  height: 429px;
+  height: auto;
   padding: 40px 20px 0;
 }
 
-.projectFacts {
+.formaHeroStage {
+  --hero-progress: 0;
+  position: relative;
+}
+
+.formaHeroStageSticky {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.formaInfoStage {
+  position: relative;
+  z-index: 2;
+}
+
+.formaHeroStageContent {
+  background: #ffffff;
+  position: relative;
+  z-index: 2;
+}
+
+.formaInfoStage .formaInfo {
+  background: #ffffff;
+}
+
+.formaHeroStage .formaHeroMedia {
+  transform: translate3d(0, calc(var(--hero-progress) * 28px), 0)
+    scale(calc(1 + (var(--hero-progress) * 0.05)));
+  transform-origin: center center;
+  transition: transform 80ms linear;
+  will-change: transform;
+}
+
+.formaHeroStage .formaHeroCopy {
+  opacity: calc(1 - (var(--hero-progress) * 0.24));
+  transform: translate3d(0, calc(var(--hero-progress) * -18px), 0);
+  transition:
+    opacity 80ms linear,
+    transform 80ms linear;
+  will-change: opacity, transform;
+}
+
+.formaFacts {
   display: grid;
   gap: 25px;
   align-content: start;
 }
 
-.projectFact {
+.formaFact {
   display: grid;
   gap: 12px;
 }
 
 .formaFact p {
-.projectFact p,
-.projectLabel {
   color: rgba(0, 0, 0, 0.42);
   font-size: 13px;
   font-weight: 500;
@@ -258,33 +289,30 @@
 }
 
 .formaFact strong {
-.projectFact strong {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.38;
 }
 
-.projectInformation {
+.formaInformation {
   display: grid;
   gap: 14px;
 }
 
 .formaInformation p {
   color: #000000;
-.projectInformation p {
-  color: rgba(0, 0, 0, 0.42);
   font-size: 15px;
   font-weight: 500;
   line-height: 1.34;
   margin: 0;
 }
 
-.projectIntroMedia {
+.formaIntroMedia {
   height: min(54.642857vw, 787px);
   margin: 0 20px;
 }
 
-.projectCarousel {
+.formaCarousel {
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -292,7 +320,7 @@
   margin: 20px 20px 0;
 }
 
-.projectCarouselPanel {
+.formaCarouselPanel {
   align-items: center;
   background: #3b3b3b;
   display: flex;
@@ -301,7 +329,7 @@
   position: relative;
 }
 
-.projectCarouselPanel img {
+.formaCarouselPanel img {
   height: 656px;
   object-fit: cover;
   width: 524px;
@@ -314,12 +342,11 @@
 }
 
 .formaCarouselPoster {
-.projectCarouselPoster {
   background: #f1eee8;
   overflow: hidden;
 }
 
-.projectArrow {
+.formaArrow {
   align-items: center;
   background: rgba(255, 255, 255, 0.9);
   border: 0;
@@ -337,12 +364,12 @@
   width: 30px;
 }
 
-.projectArrowNext {
+.formaArrowNext {
   left: auto;
   right: 18px;
 }
 
-.projectDots {
+.formaDots {
   bottom: 24px;
   display: flex;
   gap: 8px;
@@ -351,14 +378,14 @@
   transform: translateX(-50%);
 }
 
-.projectDots span {
+.formaDots span {
   background: rgba(255, 255, 255, 0.55);
   border-radius: 999px;
   height: 5px;
   width: 5px;
 }
 
-.projectDots span:first-child {
+.formaDots span:first-child {
   background: #ffffff;
 }
 
@@ -367,7 +394,6 @@
 }
 
 .formaBlackFeature {
-.projectBlackFeature {
   align-items: center;
   background: #000000;
   display: flex;
@@ -377,7 +403,7 @@
   overflow: hidden;
 }
 
-.projectBlackFeature video {
+.formaBlackFeature video {
   height: 637px;
   object-fit: contain;
   transform: scale(1.45);
@@ -392,7 +418,6 @@
 }
 
 .formaWideFeature {
-.projectWideFeature {
   height: min(54.642857vw, 787px);
   margin: 20px 20px 0;
 }
@@ -400,7 +425,7 @@
 .formaFlexibleLayouts {
   display: grid;
   gap: 20px;
-  margin: 20px;
+  margin: 0 20px 20px;
 }
 
 .formaLayoutBlock {
@@ -427,25 +452,24 @@
 }
 
 .formaMoreProjects {
-.projectMoreProjects {
   padding: 174px 15px 175px;
 }
 
-.projectMoreHeader {
+.formaMoreHeader {
   align-items: center;
   display: flex;
   justify-content: space-between;
   padding: 0 5px 22px;
 }
 
-.projectMoreHeader h2 {
+.formaMoreHeader h2 {
   font-size: 32px;
   font-weight: 500;
   line-height: 1;
   margin: 0;
 }
 
-.projectMoreHeader a {
+.formaMoreHeader a {
   align-items: center;
   border: 1px solid currentColor;
   display: inline-flex;
@@ -457,43 +481,43 @@
   min-width: 119px;
 }
 
-.projectProjectGrid {
+.formaProjectGrid {
   display: grid;
   gap: 5px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.projectProjectCard {
+.formaProjectCard {
   display: grid;
   gap: 9px;
   grid-template-columns: 1fr auto;
 }
 
-.projectProjectCard img {
+.formaProjectCard img {
   aspect-ratio: 349 / 436;
   grid-column: 1 / -1;
   height: auto;
 }
 
-.projectProjectCard span {
+.formaProjectCard span {
   font-size: 14px;
   font-weight: 500;
   line-height: 1;
   padding: 0 5px;
 }
 
-.projectProjectCard span:last-child {
+.formaProjectCard span:last-child {
   justify-self: end;
 }
 
-.projectCta {
+.formaCta {
   color: #ffffff;
   height: 965px;
   overflow: hidden;
   position: relative;
 }
 
-.projectCta::after {
+.formaCta::after {
   background: rgba(0, 0, 0, 0.08);
   content: "";
   inset: 0;
@@ -501,7 +525,7 @@
   position: absolute;
 }
 
-.projectCtaCopy {
+.formaCtaCopy {
   align-items: center;
   display: grid;
   inset: 0;
@@ -512,7 +536,7 @@
   z-index: 1;
 }
 
-.projectCtaCopy h2 {
+.formaCtaCopy h2 {
   font-size: clamp(78px, 9.6vw, 138px);
   font-weight: 500;
   letter-spacing: 0;
@@ -520,7 +544,7 @@
   margin: 0;
 }
 
-.projectCtaCopy a {
+.formaCtaCopy a {
   align-items: center;
   border: 1px solid currentColor;
   display: inline-flex;
@@ -533,7 +557,7 @@
   min-width: 119px;
 }
 
-.projectFooter {
+.formaFooter {
   align-items: center;
   background: #ffffff;
   color: #000000;
@@ -545,17 +569,17 @@
   padding: 0 20px;
 }
 
-.projectFooter > a {
+.formaFooter > a {
   font-size: 22px;
 }
 
-.projectFooter nav {
+.formaFooter nav {
   display: flex;
   gap: 92px;
   justify-content: center;
 }
 
-.projectBadges {
+.formaBadges {
   bottom: 16px;
   display: grid;
   gap: 8px;
@@ -565,7 +589,7 @@
   z-index: 50;
 }
 
-.projectBadges span {
+.formaBadges span {
   align-items: center;
   background: #ffffff;
   border-radius: 8px;
@@ -579,56 +603,65 @@
 }
 
 @media (max-width: 900px) {
-  .projectChrome {
+  .formaChrome {
     grid-template-columns: 1fr auto;
     height: 64px;
     padding: 0 16px;
   }
 
-  .projectNav {
+  .formaNav {
     display: none;
   }
 
-  .projectBrand {
+  .formaBrand {
     font-size: 20px;
   }
 
-  .projectHero {
+  .formaHero {
     min-height: 720px;
   }
 
-  .projectHeroCopy {
+  .formaHeroCopy {
     inset: 0;
     left: 16px;
     right: 16px;
   }
 
-  .projectHeroCopy h1 {
+  .formaHeroCopy h1 {
     font-size: clamp(58px, 18vw, 96px);
     left: 0;
     transform: translateY(-50%);
   }
 
-  .projectHeroCopy span {
+  .formaHeroCopy span {
     bottom: 18px;
   }
 
-  .projectInfo {
+  .formaInfo {
     grid-template-columns: 1fr;
     gap: 42px;
     height: auto;
     padding: 50px 16px 72px;
   }
 
-  .projectIntroMedia,
-  .projectWideFeature {
+  .formaHeroStage .formaHeroMedia {
+    transform: translate3d(0, calc(var(--hero-progress) * 16px), 0)
+      scale(calc(1 + (var(--hero-progress) * 0.03)));
+  }
+
+  .formaHeroStage .formaHeroCopy {
+    transform: translate3d(0, calc(var(--hero-progress) * -10px), 0);
+  }
+
+  .formaIntroMedia,
+  .formaWideFeature {
     height: auto;
     margin-left: 16px;
     margin-right: 16px;
   }
 
-  .projectIntroMedia img,
-  .projectWideFeature img {
+  .formaIntroMedia img,
+  .formaWideFeature img {
     aspect-ratio: 16 / 9;
     height: auto;
   }
@@ -639,7 +672,6 @@
   }
 
   .formaCarousel {
-  .projectCarousel {
     grid-template-columns: 1fr;
     height: auto;
     margin-left: 16px;
@@ -663,12 +695,10 @@
 
   .formaCarouselPanel,
   .formaCarouselPoster {
-  .projectCarouselPanel,
-  .projectCarouselPoster {
     aspect-ratio: 4 / 5;
   }
 
-  .projectCarouselPanel img {
+  .formaCarouselPanel img {
     height: 76%;
     width: 76%;
   }
@@ -679,12 +709,11 @@
   }
 
   .formaBlackFeature {
-  .projectBlackFeature {
     height: 520px;
     margin-top: 96px;
   }
 
-  .projectBlackFeature img {
+  .formaBlackFeature img {
     height: 100%;
     width: 100%;
   }
@@ -696,34 +725,33 @@
   }
 
   .formaMoreProjects {
-  .projectMoreProjects {
     padding: 96px 16px 110px;
   }
 
-  .projectProjectGrid {
+  .formaProjectGrid {
     grid-template-columns: 1fr 1fr;
   }
 
-  .projectCta {
+  .formaCta {
     height: 760px;
   }
 
-  .projectCtaCopy h2 {
+  .formaCtaCopy h2 {
     font-size: clamp(50px, 14vw, 84px);
   }
 
-  .projectCtaCopy a {
+  .formaCtaCopy a {
     margin-top: -220px;
   }
 
-  .projectFooter {
+  .formaFooter {
     grid-template-columns: 1fr;
     gap: 24px;
     height: auto;
     padding: 34px 16px;
   }
 
-  .projectFooter nav {
+  .formaFooter nav {
     flex-wrap: wrap;
     gap: 16px 32px;
     justify-content: start;
@@ -731,28 +759,37 @@
 }
 
 @media (max-width: 560px) {
-  .projectContact {
+  .formaContact {
     gap: 10px;
     min-width: 130px;
   }
 
-  .projectHero {
+  .formaHero {
     min-height: 680px;
   }
 
-  .projectProjectGrid {
+  .formaProjectGrid {
     grid-template-columns: 1fr;
   }
 
-  .projectMoreHeader {
+  .formaMoreHeader {
     align-items: flex-start;
     gap: 20px;
     padding-left: 0;
     padding-right: 0;
   }
 
-  .projectCta {
+  .formaCta {
     height: 640px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formaHeroStage .formaHeroMedia,
+  .formaHeroStage .formaHeroCopy {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 
