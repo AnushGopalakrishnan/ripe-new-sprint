@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import styles from "@/app/(site)/detail-page.module.css";
 
@@ -239,44 +239,102 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   const [carouselIndex, setCarouselIndex] = useState(0);
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
+  const heroStageRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const stage = heroStageRef.current;
+    if (!stage) return;
+
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let frameId: number | null = null;
+
+    const applyProgress = () => {
+      frameId = null;
+      const current = heroStageRef.current;
+      if (!current) return;
+
+      if (reducedMotionQuery.matches) {
+        current.style.setProperty("--hero-progress", "0");
+        return;
+      }
+
+      const rect = current.getBoundingClientRect();
+      const totalScrollableDistance = Math.max(window.innerHeight, 1);
+      const rawProgress = -rect.top / totalScrollableDistance;
+      const progress = Math.max(0, Math.min(1, rawProgress));
+      current.style.setProperty("--hero-progress", progress.toFixed(4));
+    };
+
+    const queueProgressUpdate = () => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(applyProgress);
+    };
+
+    queueProgressUpdate();
+    window.addEventListener("scroll", queueProgressUpdate, { passive: true });
+    window.addEventListener("resize", queueProgressUpdate);
+
+    const handleMediaChange = () => queueProgressUpdate();
+    if (typeof reducedMotionQuery.addEventListener === "function") {
+      reducedMotionQuery.addEventListener("change", handleMediaChange);
+    } else {
+      reducedMotionQuery.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", queueProgressUpdate);
+      window.removeEventListener("resize", queueProgressUpdate);
+      if (typeof reducedMotionQuery.removeEventListener === "function") {
+        reducedMotionQuery.removeEventListener("change", handleMediaChange);
+      } else {
+        reducedMotionQuery.removeListener(handleMediaChange);
+      }
+    };
+  }, []);
 
   return (
     <main className={styles.formaPage}>
-      <section className={styles.formaHero}>
-        <CommentableMedia
-          sectionId="hero"
-          media={reference.media.hero}
-          mediaClassName={styles.formaHeroMedia}
-          load="eager"
-          priority
-        />
-        <div className={styles.formaHeroCopy}>
-          <p>{reference.brand}</p>
-          <h1>{reference.title}</h1>
-          <span>{reference.heroNote}</span>
+      <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
+        <div className={styles.formaHeroStageSticky}>
+          <section className={styles.formaHero} data-case-hero>
+            <CommentableMedia
+              sectionId="hero"
+              media={reference.media.hero}
+              mediaClassName={styles.formaHeroMedia}
+              load="eager"
+              priority
+            />
+            <div className={styles.formaHeroCopy}>
+              <p>{reference.brand}</p>
+              <h1>{reference.title}</h1>
+              <span>{reference.heroNote}</span>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <section className={styles.formaInfo} aria-label="Project information">
-        <div className={styles.formaFacts}>
-          <FormaFact label="Brand">{reference.brand}</FormaFact>
-          <FormaFact label="Services">{reference.services.join(", ")}</FormaFact>
-          <FormaFact label="Industry">{reference.industry}</FormaFact>
-          <FormaFact label="Year">{reference.year}</FormaFact>
-        </div>
-        {reference.information.length > 0 ? (
-          <div className={styles.formaInformation}>
-            <p className={styles.formaLabel}>(Information)</p>
-            {reference.information.map((paragraph) => (
-              <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
-            ))}
-          </div>
-        ) : (
-          <div />
-        )}
-      </section>
-
-      {hasFlexibleLayouts ? (
+        <section className={styles.formaInfoStage}>
+          <section className={styles.formaInfo} aria-label="Project information" data-case-info>
+            <div className={styles.formaFacts}>
+              <FormaFact label="Brand">{reference.brand}</FormaFact>
+              <FormaFact label="Services">{reference.services.join(", ")}</FormaFact>
+              <FormaFact label="Industry">{reference.industry}</FormaFact>
+              <FormaFact label="Year">{reference.year}</FormaFact>
+            </div>
+            {reference.information.length > 0 ? (
+              <div className={styles.formaInformation}>
+                <p className={styles.formaLabel}>(Information)</p>
+                {reference.information.map((paragraph) => (
+                  <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
+                ))}
+              </div>
+            ) : (
+              <div />
+            )}
+          </section>
+        </section>
+        <div className={styles.formaHeroStageContent}>
+          {hasFlexibleLayouts ? (
         <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
           {reference.layouts.map((layout) => (
             <section
@@ -310,118 +368,120 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             </section>
           ))}
         </section>
-      ) : (
-        <>
-          <section className={styles.formaIntroMedia} aria-label="Polestar imagery">
-            <CommentableMedia
-              sectionId="intro"
-              media={reference.media.intro}
-              mediaClassName={styles.formaSectionMedia}
-              load="eager"
-            />
+          ) : (
+            <>
+              <section className={styles.formaIntroMedia} aria-label="Polestar imagery">
+                <CommentableMedia
+                  sectionId="intro"
+                  media={reference.media.intro}
+                  mediaClassName={styles.formaSectionMedia}
+                  load="eager"
+                />
+              </section>
+
+              <section className={styles.formaCarousel} aria-label="Campaign carousel">
+                <div className={styles.formaCarouselPanel}>
+                  <button
+                    className={styles.formaArrow}
+                    aria-label="Previous project image"
+                    onClick={() => setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length)}
+                    type="button"
+                  >
+                    &#8592;
+                  </button>
+                  <CommentableMedia
+                    key={slides[carouselIndex]?.src ?? "carousel-slide"}
+                    sectionId="carousel-left"
+                    media={slides[carouselIndex]}
+                    mediaClassName={styles.formaCarouselPanelMedia}
+                  />
+                  <button
+                    className={`${styles.formaArrow} ${styles.formaArrowNext}`}
+                    aria-label="Next project image"
+                    onClick={() => setCarouselIndex((prev) => (prev + 1) % slides.length)}
+                    type="button"
+                  >
+                    &#8594;
+                  </button>
+                  <div className={styles.formaDots} aria-hidden="true">
+                    {slides.map((slide, index) => (
+                      <span
+                        className={index === carouselIndex ? styles.formaDotActive : undefined}
+                        key={slide.src}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.formaCarouselPoster}>
+                  <CommentableMedia
+                    sectionId="carousel-poster"
+                    media={reference.media.carouselPoster}
+                    mediaClassName={styles.formaSectionMedia}
+                  />
+                </div>
+              </section>
+
+              <section className={styles.formaBlackFeature} aria-label="Feature spread">
+                <CommentableMedia
+                  sectionId="black-feature"
+                  media={reference.media.blackFeature}
+                  mediaClassName={styles.formaBlackFeatureMedia}
+                />
+              </section>
+
+              <section className={styles.formaWideFeature} aria-label="Wide feature">
+                <CommentableMedia
+                  sectionId="wide-feature"
+                  media={reference.media.wideFeature}
+                  mediaClassName={styles.formaSectionMedia}
+                />
+              </section>
+            </>
+          )}
+
+          <section className={styles.formaMoreProjects} aria-label="Other case studies">
+            <div className={styles.formaMoreHeader}>
+              <h2>Other Case Studies</h2>
+              <Link href="/case-studies">
+                All case studies <span aria-hidden="true">&#8599;</span>
+              </Link>
+            </div>
+            <div className={styles.formaProjectGrid}>
+              {moreProjects.map((project) => (
+                <Link
+                  href={toCaseStudyHref(project.slug) as Route}
+                  className={styles.formaProjectCard}
+                  key={`${project.title}-${project.year}`}
+                >
+                  <img src={project.image} alt="" loading="lazy" decoding="async" />
+                  <span>{project.title}</span>
+                  <span>{project.year}</span>
+                </Link>
+              ))}
+            </div>
           </section>
 
-          <section className={styles.formaCarousel} aria-label="Campaign carousel">
-            <div className={styles.formaCarouselPanel}>
-              <button
-                className={styles.formaArrow}
-                aria-label="Previous project image"
-                onClick={() => setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length)}
-                type="button"
-              >
-                &#8592;
-              </button>
+          {!hasFlexibleLayouts ? (
+            <section className={styles.formaCta} aria-label="Contact">
               <CommentableMedia
-                key={slides[carouselIndex]?.src ?? "carousel-slide"}
-                sectionId="carousel-left"
-                media={slides[carouselIndex]}
-                mediaClassName={styles.formaCarouselPanelMedia}
-              />
-              <button
-                className={`${styles.formaArrow} ${styles.formaArrowNext}`}
-                aria-label="Next project image"
-                onClick={() => setCarouselIndex((prev) => (prev + 1) % slides.length)}
-                type="button"
-              >
-                &#8594;
-              </button>
-              <div className={styles.formaDots} aria-hidden="true">
-                {slides.map((slide, index) => (
-                  <span
-                    className={index === carouselIndex ? styles.formaDotActive : undefined}
-                    key={slide.src}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className={styles.formaCarouselPoster}>
-              <CommentableMedia
-                sectionId="carousel-poster"
-                media={reference.media.carouselPoster}
+                sectionId="cta"
+                media={reference.media.cta}
                 mediaClassName={styles.formaSectionMedia}
               />
-            </div>
-          </section>
-
-          <section className={styles.formaBlackFeature} aria-label="Feature spread">
-            <CommentableMedia
-              sectionId="black-feature"
-              media={reference.media.blackFeature}
-              mediaClassName={styles.formaBlackFeatureMedia}
-            />
-          </section>
-
-          <section className={styles.formaWideFeature} aria-label="Wide feature">
-            <CommentableMedia
-              sectionId="wide-feature"
-              media={reference.media.wideFeature}
-              mediaClassName={styles.formaSectionMedia}
-            />
-          </section>
-        </>
-      )}
-
-      <section className={styles.formaMoreProjects} aria-label="Other case studies">
-        <div className={styles.formaMoreHeader}>
-          <h2>Other Case Studies</h2>
-          <Link href="/case-studies">
-            All case studies <span aria-hidden="true">&#8599;</span>
-          </Link>
-        </div>
-        <div className={styles.formaProjectGrid}>
-          {moreProjects.map((project) => (
-            <Link
-              href={toCaseStudyHref(project.slug) as Route}
-              className={styles.formaProjectCard}
-              key={`${project.title}-${project.year}`}
-            >
-              <img src={project.image} alt="" loading="lazy" decoding="async" />
-              <span>{project.title}</span>
-              <span>{project.year}</span>
-            </Link>
-          ))}
+              <div className={styles.formaCtaCopy}>
+                <h2>
+                  LET&rsquo;S CREATE
+                  <br />
+                  SOMETHING TOGETHER
+                </h2>
+                <a href="mailto:hello@forma.agency">
+                  Get in touch <span aria-hidden="true">&#8599;</span>
+                </a>
+              </div>
+            </section>
+          ) : null}
         </div>
       </section>
-
-      {!hasFlexibleLayouts ? (
-        <section className={styles.formaCta} aria-label="Contact">
-          <CommentableMedia
-            sectionId="cta"
-            media={reference.media.cta}
-            mediaClassName={styles.formaSectionMedia}
-          />
-          <div className={styles.formaCtaCopy}>
-            <h2>
-              LET&rsquo;S CREATE
-              <br />
-              SOMETHING TOGETHER
-            </h2>
-            <a href="mailto:hello@forma.agency">
-              Get in touch <span aria-hidden="true">&#8599;</span>
-            </a>
-          </div>
-        </section>
-      ) : null}
     </main>
   );
 }
