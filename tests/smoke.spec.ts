@@ -1077,7 +1077,7 @@ test("case study detail page renders the native project detail", async ({ page }
 
   await expect(page).toHaveTitle("ZetaChain - Case Study");
   await expect(page.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
-  await expect(page.getByText("A South African icon.")).toBeVisible();
+  await expect(page.getByLabel("Project information").getByText("A South African icon.")).toBeVisible();
 });
 
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {
