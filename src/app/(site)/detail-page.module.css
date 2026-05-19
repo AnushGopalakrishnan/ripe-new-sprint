@@ -463,7 +463,7 @@
 .formaLayoutMedia {
   display: block;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   width: 100%;
 }
 
@@ -641,16 +641,24 @@
     inset: 0;
     left: 16px;
     right: 16px;
+    --mobile-hero-copy-top: clamp(9.5rem, 29vh, 14.5rem);
   }
 
   .formaHeroCopy h1 {
     font-size: clamp(58px, 18vw, 96px);
     left: 0;
-    transform: translateY(-50%);
+    top: var(--mobile-hero-copy-top);
+    transform: none;
   }
 
   .formaHeroCopy span {
     bottom: 18px;
+  }
+
+  .formaHeroCopy p {
+    left: 0;
+    max-width: min(18rem, calc(100vw - 32px));
+    top: calc(var(--mobile-hero-copy-top) + clamp(4.4rem, 12vw, 5.6rem));
   }
 
   .formaInfo {
@@ -698,16 +706,17 @@
   }
 
   .formaLayoutRow {
+    aspect-ratio: auto !important;
     height: auto !important;
     grid-template-columns: 1fr !important;
   }
 
   .formaLayoutCell {
-    aspect-ratio: var(--layout-cell-ratio, 16 / 9);
+    aspect-ratio: auto !important;
   }
 
   .formaLayoutMedia {
-    height: 100%;
+    height: auto;
   }
 
   .formaCarouselPanel,
