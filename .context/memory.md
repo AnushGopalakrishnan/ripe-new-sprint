@@ -10,6 +10,7 @@
 - Do not use Computer Use unless the user explicitly wants it. It previously caused confusion and is not needed for the current workflow.
 - For small UI-only changes such as color, font, spacing, corner radius, or similarly scoped styling tweaks, do not run deep/full test suites by default. Use the lightest reasonable verification, such as type/lint only if relevant or a quick local visual/DOM check. Reserve Playwright smoke suites, full builds, and broader regression checks for larger feature work, interaction changes, routing changes, data/CMS changes, or risky refactors.
 - Do not deploy after every change. Wait for the user to explicitly ask for deployment before running Vercel deploy or alias commands.
+- When the user asks for "the link" or any user-facing site URL, give the canonical production URL (`https://ripe-studios.vercel.app`) by default, not the immutable Vercel deployment URL. Include deployment URLs only when specifically discussing deployment receipts, debugging, rollback, or exact-build verification.
 - Do not expose external inspiration/reference/source names in client-facing code, filenames, CSS module class names, aria labels, comments, or DOM-visible strings. If a design starts from a reference, neutralize the implementation before handoff; use Ripe-owned names and local assets where practical.
 
 ## Project Goals
