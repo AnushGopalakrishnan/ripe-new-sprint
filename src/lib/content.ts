@@ -9,6 +9,7 @@ import { client } from "@/sanity/lib/client";
 import type {
   CaseStudy,
   HomePage,
+  MediaAsset,
   SiteSettings,
   WritingPost,
 } from "@/types/content";
@@ -23,6 +24,36 @@ import {
   WRITING_POST_SLUGS_QUERY,
   WRITING_POSTS_QUERY,
 } from "@/sanity/lib/queries";
+
+const fallbackCaseStudyMedia: MediaAsset = {
+  kind: "image",
+  src: "/case-detail-media/hero.jpg",
+  alt: "Case study media",
+};
+
+function normalizeCaseStudy(study: CaseStudy): CaseStudy {
+  if (study.coverMedia?.src) {
+    return {
+      ...study,
+      coverMedia: {
+        ...study.coverMedia,
+        kind: study.coverMedia.kind ?? "image",
+        alt: study.coverMedia.alt || study.title,
+      },
+    };
+  }
+
+  const fallbackStudy = fallbackCaseStudies.find((entry) => entry.slug === study.slug);
+  const fallbackMedia = fallbackStudy?.coverMedia?.src ? fallbackStudy.coverMedia : fallbackCaseStudyMedia;
+
+  return {
+    ...study,
+    coverMedia: {
+      ...fallbackMedia,
+      alt: fallbackMedia.alt || study.title,
+    },
+  };
+}
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!hasSanityConfig) {
@@ -60,7 +91,7 @@ export async function getCaseStudies(): Promise<CaseStudy[]> {
     tags: ["caseStudy"],
   });
 
-  return data?.length ? data : fallbackCaseStudies;
+  return data?.length ? data.map(normalizeCaseStudy) : fallbackCaseStudies;
 }
 
 export async function getCaseStudyBySlug(
@@ -186,7 +217,9 @@ export async function getCaseStudyBySlug(
     }
   }
 
-  return resolvedData || fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
+  if (resolvedData) return normalizeCaseStudy(resolvedData);
+
+  return fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
 }
 
 export async function getCaseStudySlugs(): Promise<string[]> {
