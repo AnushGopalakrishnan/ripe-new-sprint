@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { MessageCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import styles from "@/app/(site)/detail-page.module.css";
@@ -77,7 +76,28 @@ type CaseStudyClientProps = {
   moreProjects: MoreProject[];
 };
 
-const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
+type DragPosition = {
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  didDrag: boolean;
+  id: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+};
+
+const videoExtensions = new Set([
+  "mp4",
+  "webm",
+  "mov",
+  "m4v",
+  "ogv",
+  "ogg",
+  "m3u8",
+]);
 
 function parsePathname(src: string) {
   try {
@@ -96,11 +116,8 @@ function getMediaKind(src: string, kind: MediaKind = "auto") {
   return videoExtensions.has(extension) ? "video" : "image";
 }
 
-function initials(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "?";
-  if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
-  return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
 }
 
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
@@ -111,8 +128,11 @@ function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
   if (/^https?:\/\//i.test(raw)) {
     try {
       const parsed = new URL(raw);
-      const path = parsed.pathname.startsWith("/") ? parsed.pathname : `/${parsed.pathname}`;
-      if (path.startsWith("/case-studies/")) return path as `/case-studies${string}`;
+      const path = parsed.pathname.startsWith("/")
+        ? parsed.pathname
+        : `/${parsed.pathname}`;
+      if (path.startsWith("/case-studies/"))
+        return path as `/case-studies${string}`;
       return `/case-studies${path}` as `/case-studies${string}`;
     } catch {
       return "/case-studies";
@@ -138,7 +158,52 @@ function CommentableMedia({
 }) {
   const comments = media.comments ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragPositions, setDragPositions] = useState<
+    Record<string, DragPosition>
+  >({});
   const kind = getMediaKind(media.src, media.kind);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const lastPointerTypeRef = useRef<string | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
+  const suppressNextClickRef = useRef(false);
+  const suppressNextTouchRef = useRef(false);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current === null) return;
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+  };
+
+  const openComment = (id: string) => {
+    clearCloseTimer();
+    setActiveId(id);
+  };
+
+  const closeComment = (id: string) => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setActiveId((prev) => (prev === id ? null : prev));
+      closeTimerRef.current = null;
+    }, 90);
+  };
+
+  const moveCommentToPointer = (
+    id: string,
+    clientX: number,
+    clientY: number
+  ) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+
+    setDragPositions((prev) => ({
+      ...prev,
+      [id]: {
+        x: clampPercent(((clientX - rect.left) / rect.width) * 100),
+        y: clampPercent(((clientY - rect.top) / rect.height) * 100),
+      },
+    }));
+  };
 
   useEffect(() => {
     if (!activeId) return;
@@ -148,6 +213,13 @@ function CommentableMedia({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeId]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null)
+        window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const mediaElement =
     kind === "video" ? (
@@ -160,7 +232,14 @@ function CommentableMedia({
         preload={priority ? "auto" : "metadata"}
         poster={media.poster}
       >
-        <source src={media.src} type={media.src.includes("m3u8") ? "application/vnd.apple.mpegurl" : undefined} />
+        <source
+          src={media.src}
+          type={
+            media.src.includes("m3u8")
+              ? "application/vnd.apple.mpegurl"
+              : undefined
+          }
+        />
       </video>
     ) : (
       <img
@@ -175,6 +254,7 @@ function CommentableMedia({
 
   return (
     <div
+      ref={containerRef}
       className={styles.detailCommentable}
       data-section-id={sectionId}
       onClick={() => setActiveId(null)}
@@ -182,29 +262,123 @@ function CommentableMedia({
     >
       {mediaElement}
       {comments.map((comment, index) => {
+        const position = dragPositions[comment.id] ?? comment;
         const isActive = activeId === comment.id;
+        const threadClasses = [
+          styles.detailCommentThread,
+          isActive ? styles.detailCommentThreadOpen : "",
+          position.x > 50 ? styles.detailCommentThreadExpandLeft : "",
+          position.y <= 50 ? styles.detailCommentThreadExpandDown : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         const style = {
-          "--comment-x": `${comment.x}%`,
-          "--comment-y": `${comment.y}%`,
+          "--comment-x": `${position.x}%`,
+          "--comment-y": `${position.y}%`,
         } as CSSProperties;
 
         return (
-          <div
-            key={comment.id}
-            className={`${styles.detailCommentThread} ${isActive ? styles.detailCommentThreadOpen : ""}`}
-            style={style}
-          >
+          <div key={comment.id} className={threadClasses} style={style}>
             <button
               aria-expanded={isActive}
-              aria-label={`${isActive ? "Close" : "Open"} comment ${index + 1}`}
+              aria-label={`Open and drag note ${index + 1}`}
               className={styles.detailCommentSurface}
+              onBlur={() => {
+                setActiveId((prev) => (prev === comment.id ? null : prev));
+              }}
               onClick={(event) => {
                 event.stopPropagation();
-                setActiveId((prev) => (prev === comment.id ? null : comment.id));
+                if (suppressNextClickRef.current) {
+                  suppressNextClickRef.current = false;
+                  return;
+                }
+                if (lastPointerTypeRef.current === "touch") {
+                  setActiveId((prev) =>
+                    prev === comment.id ? null : comment.id
+                  );
+                  return;
+                }
+                setActiveId(comment.id);
+              }}
+              onFocus={() => openComment(comment.id)}
+              onPointerDown={(event) => {
+                lastPointerTypeRef.current = event.pointerType;
+                if (!event.isPrimary || event.button !== 0) return;
+                clearCloseTimer();
+                dragStateRef.current = {
+                  didDrag: false,
+                  id: comment.id,
+                  pointerId: event.pointerId,
+                  startX: event.clientX,
+                  startY: event.clientY,
+                };
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerEnter={(event) => {
+                if (event.pointerType !== "touch") openComment(comment.id);
+              }}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== "touch") closeComment(comment.id);
+              }}
+              onPointerMove={(event) => {
+                const dragState = dragStateRef.current;
+                if (!dragState || dragState.id !== comment.id) return;
+
+                const distance = Math.hypot(
+                  event.clientX - dragState.startX,
+                  event.clientY - dragState.startY
+                );
+                if (!dragState.didDrag && distance < 3) return;
+
+                dragState.didDrag = true;
+                suppressNextClickRef.current = true;
+                suppressNextTouchRef.current = true;
+                clearCloseTimer();
+                setActiveId(comment.id);
+                moveCommentToPointer(comment.id, event.clientX, event.clientY);
+              }}
+              onPointerUp={(event) => {
+                const dragState = dragStateRef.current;
+                if (!dragState || dragState.id !== comment.id) return;
+
+                if (dragState.didDrag) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  moveCommentToPointer(
+                    comment.id,
+                    event.clientX,
+                    event.clientY
+                  );
+                }
+
+                if (
+                  event.currentTarget.hasPointerCapture(dragState.pointerId)
+                ) {
+                  event.currentTarget.releasePointerCapture(
+                    dragState.pointerId
+                  );
+                }
+                dragStateRef.current = null;
+              }}
+              onTouchEnd={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (suppressNextTouchRef.current) {
+                  suppressNextTouchRef.current = false;
+                  return;
+                }
+                lastPointerTypeRef.current = "touch";
+                setActiveId((prev) =>
+                  prev === comment.id ? null : comment.id
+                );
               }}
               type="button"
             >
-              <span className={styles.detailCommentAvatarWrap}>
+              <span
+                className={`${styles.detailCommentAvatarWrap} ${
+                  comment.avatar ? styles.detailCommentAvatarWrapWithImage : ""
+                }`}
+              >
                 {comment.avatar ? (
                   <img
                     className={styles.detailCommentAvatar}
@@ -214,14 +388,16 @@ function CommentableMedia({
                     decoding="async"
                   />
                 ) : (
-                  <span className={styles.detailCommentAvatarFallback}>{initials(comment.author)}</span>
+                  <span
+                    className={styles.detailCommentAvatarFallback}
+                    aria-hidden="true"
+                  />
                 )}
               </span>
-              <span className={styles.detailCommentIcon} aria-hidden="true">
-                <MessageCircle size={13} strokeWidth={2.15} />
-              </span>
-              <span className={styles.detailCommentContent}>
-                <span className={styles.detailCommentAuthor}>{comment.author}</span>
+              <span className={styles.detailCommentCard}>
+                <span className={styles.detailCommentAuthor}>
+                  {comment.author}
+                </span>
                 <span className={styles.detailCommentBody}>{comment.body}</span>
               </span>
             </button>
@@ -241,7 +417,10 @@ function DetailFact({ label, children }: { label: string; children: string }) {
   );
 }
 
-export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProps) {
+export function CaseStudyClient({
+  reference,
+  moreProjects,
+}: CaseStudyClientProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
@@ -251,7 +430,9 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
     const stage = heroStageRef.current;
     if (!stage) return;
 
-    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const reducedMotionQuery = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    );
     let frameId: number | null = null;
 
     const applyProgress = () => {
@@ -301,7 +482,11 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
 
   return (
     <main className={styles.detailPage}>
-      <section className={styles.detailHeroStage} ref={heroStageRef} data-case-hero-stage>
+      <section
+        className={styles.detailHeroStage}
+        ref={heroStageRef}
+        data-case-hero-stage
+      >
         <div className={styles.detailHeroStageSticky}>
           <section className={styles.detailHero} data-case-hero>
             <CommentableMedia
@@ -320,10 +505,16 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
         </div>
 
         <section className={styles.detailInfoStage}>
-          <section className={styles.detailInfo} aria-label="Project information" data-case-info>
+          <section
+            className={styles.detailInfo}
+            aria-label="Project information"
+            data-case-info
+          >
             <div className={styles.detailFacts}>
               <DetailFact label="Brand">{reference.brand}</DetailFact>
-              <DetailFact label="Services">{reference.services.join(", ")}</DetailFact>
+              <DetailFact label="Services">
+                {reference.services.join(", ")}
+              </DetailFact>
               <DetailFact label="Industry">{reference.industry}</DetailFact>
               <DetailFact label="Year">{reference.year}</DetailFact>
             </div>
@@ -331,7 +522,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               <div className={styles.detailInformation}>
                 <p className={styles.detailLabel}>(Information)</p>
                 {reference.information.map((paragraph) => (
-                  <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
+                  <p
+                    key={paragraph}
+                    dangerouslySetInnerHTML={{ __html: paragraph }}
+                  />
                 ))}
               </div>
             ) : (
@@ -341,42 +535,53 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
         </section>
         <div className={styles.detailHeroStageContent}>
           {hasFlexibleLayouts ? (
-        <section className={styles.detailFlexibleLayouts} aria-label="Case study layouts">
-          {reference.layouts.map((layout) => (
             <section
-              key={layout.id}
-              className={styles.detailLayoutBlock}
-              data-layout-preset={layout.preset}
-              style={{ "--layout-gap": `${layout.gap ?? 20}px` } as CSSProperties}
+              className={styles.detailFlexibleLayouts}
+              aria-label="Case study layouts"
             >
-              {layout.rows.map((row, rowIndex) => (
-                <div
-                  key={`${layout.id}-row-${rowIndex}`}
-                  className={styles.detailLayoutRow}
-                  style={{
-                    gridTemplateColumns: row.cells
-                      .map((cell) => `${Math.max(cell.width || 1, 1)}fr`)
-                      .join(" "),
-                    height: row.height ? `${row.height}px` : undefined,
-                  }}
+              {reference.layouts.map((layout) => (
+                <section
+                  key={layout.id}
+                  className={styles.detailLayoutBlock}
+                  data-layout-preset={layout.preset}
+                  style={
+                    { "--layout-gap": `${layout.gap ?? 20}px` } as CSSProperties
+                  }
                 >
-                  {row.cells.map((cell, cellIndex) => (
-                    <div key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`} className={styles.detailLayoutCell}>
-                      <CommentableMedia
-                        sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
-                        media={cell.media}
-                        mediaClassName={styles.detailLayoutMedia}
-                      />
+                  {layout.rows.map((row, rowIndex) => (
+                    <div
+                      key={`${layout.id}-row-${rowIndex}`}
+                      className={styles.detailLayoutRow}
+                      style={{
+                        gridTemplateColumns: row.cells
+                          .map((cell) => `${Math.max(cell.width || 1, 1)}fr`)
+                          .join(" "),
+                        height: row.height ? `${row.height}px` : undefined,
+                      }}
+                    >
+                      {row.cells.map((cell, cellIndex) => (
+                        <div
+                          key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
+                          className={styles.detailLayoutCell}
+                        >
+                          <CommentableMedia
+                            sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
+                            media={cell.media}
+                            mediaClassName={styles.detailLayoutMedia}
+                          />
+                        </div>
+                      ))}
                     </div>
                   ))}
-                </div>
+                </section>
               ))}
             </section>
-          ))}
-        </section>
           ) : (
             <>
-              <section className={styles.detailIntroMedia} aria-label="Intro imagery">
+              <section
+                className={styles.detailIntroMedia}
+                aria-label="Intro imagery"
+              >
                 <CommentableMedia
                   sectionId="intro"
                   media={reference.media.intro}
@@ -385,12 +590,19 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                 />
               </section>
 
-              <section className={styles.detailCarousel} aria-label="Campaign carousel">
+              <section
+                className={styles.detailCarousel}
+                aria-label="Campaign carousel"
+              >
                 <div className={styles.detailCarouselPanel}>
                   <button
                     className={styles.detailArrow}
                     aria-label="Previous project image"
-                    onClick={() => setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length)}
+                    onClick={() =>
+                      setCarouselIndex(
+                        (prev) => (prev - 1 + slides.length) % slides.length
+                      )
+                    }
                     type="button"
                   >
                     &#8592;
@@ -404,7 +616,9 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   <button
                     className={`${styles.detailArrow} ${styles.detailArrowNext}`}
                     aria-label="Next project image"
-                    onClick={() => setCarouselIndex((prev) => (prev + 1) % slides.length)}
+                    onClick={() =>
+                      setCarouselIndex((prev) => (prev + 1) % slides.length)
+                    }
                     type="button"
                   >
                     &#8594;
@@ -412,7 +626,11 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   <div className={styles.detailDots} aria-hidden="true">
                     {slides.map((slide, index) => (
                       <span
-                        className={index === carouselIndex ? styles.detailDotActive : undefined}
+                        className={
+                          index === carouselIndex
+                            ? styles.detailDotActive
+                            : undefined
+                        }
                         key={slide.src}
                       />
                     ))}
@@ -427,7 +645,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                 </div>
               </section>
 
-              <section className={styles.detailBlackFeature} aria-label="Feature spread">
+              <section
+                className={styles.detailBlackFeature}
+                aria-label="Feature spread"
+              >
                 <CommentableMedia
                   sectionId="black-feature"
                   media={reference.media.blackFeature}
@@ -435,7 +656,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                 />
               </section>
 
-              <section className={styles.detailWideFeature} aria-label="Wide feature">
+              <section
+                className={styles.detailWideFeature}
+                aria-label="Wide feature"
+              >
                 <CommentableMedia
                   sectionId="wide-feature"
                   media={reference.media.wideFeature}
@@ -445,7 +669,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             </>
           )}
 
-          <section className={styles.detailMoreProjects} aria-label="Other case studies">
+          <section
+            className={styles.detailMoreProjects}
+            aria-label="Other case studies"
+          >
             <div className={styles.detailMoreHeader}>
               <h2>Other Case Studies</h2>
               <Link href="/case-studies">
@@ -459,7 +686,12 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   className={styles.detailProjectCard}
                   key={`${project.title}-${project.year}`}
                 >
-                  <img src={project.image} alt="" loading="lazy" decoding="async" />
+                  <img
+                    src={project.image}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
                   <span>{project.title}</span>
                   <span>{project.year}</span>
                 </Link>
