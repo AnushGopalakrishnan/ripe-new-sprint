@@ -223,6 +223,7 @@ export const caseStudyType = defineType({
           to: [{ type: "caseStudyTag" }],
         }),
       ],
+      validation: (rule) => rule.required().min(1),
     }),
     defineField({
       name: "detailIndustry",
@@ -387,7 +388,12 @@ export const caseStudyType = defineType({
         }),
       ],
     }),
-    defineField({ name: "year", title: "Year", type: "string" }),
+    defineField({
+      name: "year",
+      title: "Year",
+      type: "string",
+      validation: (rule) => rule.required(),
+    }),
     defineField({
       name: "tags",
       title: "Tags",

@@ -84,6 +84,10 @@ function toClientMedia(entry: CommentableMedia | undefined, fallback: MediaAsset
 }
 
 function toClientReference(study: CaseStudy) {
+  const detailServices = (study.detailServices ?? [])
+    .map((service) => service?.trim())
+    .filter((service): service is string => Boolean(service));
+  const detailYear = study.year?.trim() || "";
   const baseMedia = study.coverMedia?.src ? study.coverMedia : fallbackMedia;
   const carouselSlides =
     study.detailCarouselSlides?.map((slide, index) =>
@@ -142,9 +146,9 @@ function toClientReference(study: CaseStudy) {
     title: study.title,
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
-    services: study.detailServices?.length ? study.detailServices : study.tags,
+    services: detailServices,
     industry: study.detailIndustry || study.client,
-    year: study.year || "",
+    year: detailYear,
     information: study.detailInformation?.length ? study.detailInformation : [],
     media: {
       hero: toClientMedia(study.detailHero, baseMedia),
