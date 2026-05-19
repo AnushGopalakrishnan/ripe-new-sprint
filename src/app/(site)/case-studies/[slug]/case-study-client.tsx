@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import styles from "@/app/(site)/detail-page.module.css";
 
@@ -112,10 +113,6 @@ function initials(name: string) {
   return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
 }
 
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, value));
-}
-
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
   if (!slugOrPath) return "/case-studies";
   const raw = slugOrPath.trim();
@@ -161,7 +158,7 @@ function CommentableMedia({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const kind = getMediaKind(media.src, media.kind);
 
-  const updateFrame = () => {
+  const updateFrame = useCallback(() => {
     if (fitMode !== "contain") {
       setFrame(null);
       return;
@@ -214,7 +211,7 @@ function CommentableMedia({
       width: renderedWidth,
       height: renderedHeight,
     });
-  };
+  }, [fitMode, kind]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -236,7 +233,7 @@ function CommentableMedia({
     updateFrame();
 
     return () => observer.disconnect();
-  }, [fitMode, kind]);
+  }, [updateFrame]);
 
   const mediaElement =
     kind === "video" ? (
@@ -269,7 +266,7 @@ function CommentableMedia({
   return (
     <div
       ref={wrapperRef}
-      className={styles.formaCommentable}
+      className={styles.detailCommentable}
       data-section-id={sectionId}
       onClick={() => setActiveId(null)}
       role="presentation"
@@ -287,34 +284,39 @@ function CommentableMedia({
         return (
           <div
             key={comment.id}
-            className={`${styles.formaCommentThread} ${isActive ? styles.formaCommentThreadOpen : ""}`}
+            className={`${styles.detailCommentThread} ${isActive ? styles.detailCommentThreadOpen : ""}`}
             style={style}
           >
             <button
               aria-expanded={isActive}
-              aria-label={`Open comment ${index + 1}`}
-              className={styles.formaCommentSurface}
+              aria-label={`${isActive ? "Close" : "Open"} comment ${index + 1}`}
+              className={styles.detailCommentSurface}
               onClick={(event) => {
                 event.stopPropagation();
                 setActiveId((prev) => (prev === comment.id ? null : comment.id));
               }}
               type="button"
             >
-              <span className={styles.formaCommentAvatarWrap}>
+              <span className={styles.detailCommentAvatarWrap}>
                 {comment.avatar ? (
                   <img
-                    className={styles.formaCommentAvatar}
+                    className={styles.detailCommentAvatar}
                     src={comment.avatar}
                     alt={comment.author}
                     loading="lazy"
                     decoding="async"
                   />
                 ) : (
-                  <span className={styles.formaCommentAvatarFallback}>{initials(comment.author)}</span>
+                  <span className={styles.detailCommentAvatarFallback}>{initials(comment.author)}</span>
                 )}
               </span>
-              <span className={styles.formaCommentAuthor}>{comment.author}</span>
-              <span className={styles.formaCommentBody}>{comment.body}</span>
+              <span className={styles.detailCommentIcon} aria-hidden="true">
+                <MessageCircle size={13} strokeWidth={2.15} />
+              </span>
+              <span className={styles.detailCommentContent}>
+                <span className={styles.detailCommentAuthor}>{comment.author}</span>
+                <span className={styles.detailCommentBody}>{comment.body}</span>
+              </span>
             </button>
           </div>
         );
