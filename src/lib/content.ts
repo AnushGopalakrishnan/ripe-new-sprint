@@ -4,7 +4,8 @@ import {
   siteSettings as fallbackSiteSettings,
   writingPosts as fallbackWritingPosts,
 } from "@/data/site-content";
-import { hasSanityConfig } from "@/lib/env";
+import { hasSanityConfig, sanityEnv } from "@/lib/env";
+import { client } from "@/sanity/lib/client";
 import type {
   CaseStudy,
   HomePage,
@@ -72,10 +73,77 @@ export async function getCaseStudyBySlug(
   const { data } = await sanityFetch<CaseStudy | null>({
     query: CASE_STUDY_QUERY,
     params: { slug },
-    tags: [`caseStudy:${slug}`, "caseStudy"],
+    revalidate: 0,
+    tags: [],
   });
 
-  return data || fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
+  const hasDetailServices = Array.isArray(data?.detailServices) && data.detailServices.length > 0;
+
+  let resolvedData = data;
+
+  if (!hasDetailServices && sanityEnv.readToken) {
+    const draftData = await client
+      .withConfig({
+        useCdn: false,
+        stega: false,
+      })
+      .fetch<CaseStudy | null>(
+        CASE_STUDY_QUERY,
+        { slug },
+        {
+          perspective: "drafts",
+          token: sanityEnv.readToken,
+          next: { revalidate: 0, tags: [] },
+        }
+      );
+
+    if (draftData) resolvedData = draftData;
+  }
+
+  if (resolvedData) {
+    const existingTitles = Array.isArray(resolvedData.detailServiceTitles)
+      ? resolvedData.detailServiceTitles.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+
+    if (existingTitles.length === 0 && Array.isArray(resolvedData.detailServices) && resolvedData.detailServices.length > 0) {
+      const rawRefs = resolvedData.detailServices
+        .map((entry) => (entry && typeof entry === "object" && "_ref" in entry ? String(entry._ref || "") : ""))
+        .filter((ref) => ref.length > 0);
+
+      const normalizedRefs = Array.from(
+        new Set(rawRefs.map((ref) => (ref.startsWith("drafts.") ? ref.slice("drafts.".length) : ref))),
+      );
+
+      if (normalizedRefs.length > 0) {
+        const tagDocs = await client
+          .withConfig({
+            useCdn: false,
+            stega: false,
+          })
+          .fetch<Array<{ title?: string }>>(
+            `*[_type == "caseStudyTag" && _id in $ids]{title}`,
+            { ids: normalizedRefs },
+            {
+              perspective: "published",
+              next: { revalidate: 0, tags: [] },
+            },
+          );
+
+        const tagTitles = tagDocs
+          .map((tag) => tag.title?.trim() || "")
+          .filter((title) => title.length > 0);
+
+        if (tagTitles.length > 0) {
+          resolvedData = {
+            ...resolvedData,
+            detailServiceTitles: tagTitles,
+          };
+        }
+      }
+    }
+  }
+
+  return resolvedData || fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
 }
 
 export async function getCaseStudySlugs(): Promise<string[]> {

@@ -83,10 +83,36 @@ function toClientMedia(entry: CommentableMedia | undefined, fallback: MediaAsset
   };
 }
 
+function normalizeServiceLabel(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (value && typeof value === "object") {
+    const maybeRecord = value as { title?: unknown; name?: unknown; label?: unknown };
+    const candidates = [maybeRecord.title, maybeRecord.name, maybeRecord.label];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string") {
+        const trimmed = candidate.trim();
+        if (trimmed.length > 0) return trimmed;
+      }
+    }
+  }
+
+  return null;
+}
+
 function toClientReference(study: CaseStudy) {
-  const detailServices = (study.detailServices ?? [])
-    .map((service) => service?.trim())
+  const detailServiceTitles = (study.detailServiceTitles ?? [])
+    .map((service) => normalizeServiceLabel(service))
     .filter((service): service is string => Boolean(service));
+  const detailServices = (study.detailServices ?? [])
+    .map((service) => normalizeServiceLabel(service))
+    .filter((service): service is string => Boolean(service));
+  const uniqueDetailServices = Array.from(
+    new Set(detailServiceTitles.length > 0 ? detailServiceTitles : detailServices),
+  );
   const detailYear = study.year?.trim() || "";
   const baseMedia = study.coverMedia?.src ? study.coverMedia : fallbackMedia;
   const carouselSlides =
@@ -146,7 +172,7 @@ function toClientReference(study: CaseStudy) {
     title: study.title,
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
-    services: detailServices,
+    services: uniqueDetailServices,
     industry: study.detailIndustry || study.client,
     year: detailYear,
     information: study.detailInformation?.length ? study.detailInformation : [],

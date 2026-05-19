@@ -333,6 +333,16 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   const heroStageRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    console.log("[CaseStudy Services Debug]", {
+      title: reference.title,
+      services: reference.services,
+      servicesJoined: reference.services.join(", "),
+      industry: reference.industry,
+      year: reference.year,
+    });
+  }, [reference.industry, reference.services, reference.title, reference.year]);
+
+  useEffect(() => {
     const stage = heroStageRef.current;
     if (!stage) return;
 

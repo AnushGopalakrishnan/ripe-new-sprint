@@ -260,10 +260,10 @@
 }
 
 .formaHeroStage .formaHeroMedia {
-  transform: translate3d(0, calc(var(--hero-progress) * 28px), 0);
+  transform: none;
   transform-origin: center center;
-  transition: transform 80ms linear;
-  will-change: transform;
+  transition: none;
+  will-change: auto;
 }
 
 .formaHeroStage .formaHeroCopy {
@@ -661,7 +661,7 @@
   }
 
   .formaHeroStage .formaHeroMedia {
-    transform: translate3d(0, calc(var(--hero-progress) * 16px), 0);
+    transform: none;
   }
 
   .formaHeroStage .formaHeroCopy {
