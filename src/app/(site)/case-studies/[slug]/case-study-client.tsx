@@ -528,7 +528,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
     }
 
     return () => {
-      if (frameId !== null) window.cancelAnimationFrame(frameId);
+        if (frameId !== null) window.cancelAnimationFrame(frameId);
       window.removeEventListener("scroll", queueProgressUpdate);
       window.removeEventListener("resize", queueProgressUpdate);
       if (typeof reducedMotionQuery.removeEventListener === "function") {
@@ -625,7 +625,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                                   sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
                                   media={cell.media}
                                   mediaClassName={styles.formaLayoutMedia}
-                                  fitMode="contain"
+                                  fitMode="cover"
                                 />
                               </div>
                             );
