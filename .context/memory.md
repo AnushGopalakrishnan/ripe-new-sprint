@@ -10,6 +10,7 @@
 - Do not use Computer Use unless the user explicitly wants it. It previously caused confusion and is not needed for the current workflow.
 - For small UI-only changes such as color, font, spacing, corner radius, or similarly scoped styling tweaks, do not run deep/full test suites by default. Use the lightest reasonable verification, such as type/lint only if relevant or a quick local visual/DOM check. Reserve Playwright smoke suites, full builds, and broader regression checks for larger feature work, interaction changes, routing changes, data/CMS changes, or risky refactors.
 - Do not deploy after every change. Wait for the user to explicitly ask for deployment before running Vercel deploy or alias commands.
+- When the user asks for "the link" or any user-facing site URL, give the canonical production URL (`https://ripe-studios.vercel.app`) by default, not the immutable Vercel deployment URL. Include deployment URLs only when specifically discussing deployment receipts, debugging, rollback, or exact-build verification.
 - Do not expose external inspiration/reference/source names in client-facing code, filenames, CSS module class names, aria labels, comments, or DOM-visible strings. If a design starts from a reference, neutralize the implementation before handoff; use Ripe-owned names and local assets where practical.
 
 ## Project Goals
@@ -59,6 +60,8 @@
 - Resolved on 2026-05-15: removed external inspiration/reference naming from the native feed and related app-owned source. The feed component now uses neutral `HomeFeed` naming, the feed aria label is `Featured work feed`, feed/work/detail media were localized under `public/feed-media`, `public/work-media`, `public/case-detail-media`, and local font files live under `public/fonts`.
 - Corrected on 2026-05-15: active routes `/`, `/home-new-feed`, `/work-new`, and `/work-new-alternate` must keep the original mirrored page shell for visual parity. A native shell/hero replacement changed the design and was reverted. The homepage now uses the original mirrored hero/nav/footer shell with only the feed section swapped to the neutral `HomeFeed` component.
 - Corrected on 2026-05-19 after PR #6 merge: remove stray root `memory.md` and `package-lock.json`; keep pnpm as the only package manager lockfile; neutralize external Framer/Forma traces introduced into the app-owned native case-study detail files by using local project assets, local fonts, neutral CSS-module naming, and the Ripe contact email.
+- Changed on 2026-05-19: native case-study placed comments were intentionally redesigned in the shared `CommentableMedia` UI as compact avatar/comment markers that open into matte annotation cards. This applies to CMS-provided comments such as the Polestar/`case-study-19` detail comment, not a hardcoded page-specific overlay.
+- Fixed locally on 2026-05-19: `/studio` appeared broken because globally loaded exported Webflow CSS set `body { display:flex; align-items:center; }`, causing Sanity's direct `#sanity` body child to shrink to intrinsic width and center with large white side gutters. `src/app/globals.css` now resets body layout when `#sanity` is present and forces `#sanity` to fill the viewport.
 - Pages and route handlers that are not currently being worked on were moved into `src/app/(archive)` so they are preserved but visually out of the main working area.
 - The archive move uses a Next.js route group, so the archived routes are still available if needed. This was an organization change, not a deletion.
 - `src/app/(archive)/README.md` documents the current active/archived split.
@@ -143,6 +146,12 @@
   - `/studio` is served by the real Next/Sanity app
 - Current canonical unified public domain:
   - `https://ripe-studios.vercel.app`
+- Latest verified production deployment on 2026-05-19:
+  - `https://ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app`
+  - deployment id: `dpl_VU1hrghaF8SvFQ2cQYZwd5cQFntw`
+  - deployed from the correct `ripe-studios-cms` Vercel project after relinking this workspace with `pnpm dlx vercel link --yes --project ripe-studios-cms`
+  - `https://ripe-studios.vercel.app` was explicitly repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
+  - verification: production `/studio` has `#sanity` at `x=0` and fills a 1600x1000 viewport; production `/` has title `The Natural Outcome | Ripe Studios`, the original mirrored `.hero_section`, and the white `Featured work feed`.
 - Latest verified production deployment on 2026-05-15:
   - `https://ripe-studios-2u8tmv4jq-anushgopalakrishnans-projects.vercel.app`
   - deployment id: `dpl_DbVQVGNK3jNeKSByUnngtAFdY1ac`

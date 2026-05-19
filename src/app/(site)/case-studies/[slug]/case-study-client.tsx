@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
+import { MessageCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import styles from "@/app/(site)/detail-page.module.css";
@@ -195,7 +196,7 @@ function CommentableMedia({
           >
             <button
               aria-expanded={isActive}
-              aria-label={`Open comment ${index + 1}`}
+              aria-label={`${isActive ? "Close" : "Open"} comment ${index + 1}`}
               className={styles.detailCommentSurface}
               onClick={(event) => {
                 event.stopPropagation();
@@ -216,8 +217,13 @@ function CommentableMedia({
                   <span className={styles.detailCommentAvatarFallback}>{initials(comment.author)}</span>
                 )}
               </span>
-              <span className={styles.detailCommentAuthor}>{comment.author}</span>
-              <span className={styles.detailCommentBody}>{comment.body}</span>
+              <span className={styles.detailCommentIcon} aria-hidden="true">
+                <MessageCircle size={13} strokeWidth={2.15} />
+              </span>
+              <span className={styles.detailCommentContent}>
+                <span className={styles.detailCommentAuthor}>{comment.author}</span>
+                <span className={styles.detailCommentBody}>{comment.body}</span>
+              </span>
             </button>
           </div>
         );

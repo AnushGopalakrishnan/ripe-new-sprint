@@ -33,7 +33,7 @@ This writes:
 Set these before importing into a real dataset:
 
 ```bash
-NEXT_PUBLIC_SANITY_PROJECT_ID=...
+NEXT_PUBLIC_SANITY_PROJECT_ID=w4cpj4jh
 NEXT_PUBLIC_SANITY_DATASET=production
 NEXT_PUBLIC_SANITY_API_VERSION=2026-03-01
 SANITY_API_WRITE_TOKEN=...
@@ -66,4 +66,4 @@ http://localhost:3000/studio
 
 ## Current limitation
 
-The machine used for this migration is not logged into Sanity yet, so the repo-side migration is ready, but the actual remote project creation and dataset import still need valid Sanity auth.
+The Sanity project exists at project id `w4cpj4jh`, dataset `production`, and the initial import has been run. The remaining product work is connecting Sanity content directly into the production clone routes, rather than treating Studio as a separate scaffold.
