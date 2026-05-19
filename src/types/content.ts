@@ -68,6 +68,7 @@ export type CaseStudyLayoutTemplate = {
   _id?: string;
   title?: string;
   preset?: "layout1" | "layout2" | "layout3" | "layout4" | "layout5" | "layout6";
+  designWidth?: number;
   gap?: number;
   rows?: DetailLayoutRow[];
 };

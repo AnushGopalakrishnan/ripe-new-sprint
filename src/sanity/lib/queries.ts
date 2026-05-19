@@ -98,7 +98,7 @@ const CASE_STUDY_FIELDS = `
   client,
   summary,
   detailEyebrow,
-  detailServices,
+  "detailServices": detailServices[]->title,
   detailIndustry,
   detailInformation,
   detailLayouts[]{
@@ -128,6 +128,7 @@ ${CASE_STUDY_COMMENT_FIELDS}
       _id,
       title,
       preset,
+      designWidth,
       gap,
       rows[]{
         _key,

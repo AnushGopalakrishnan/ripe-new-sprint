@@ -1,5 +1,20 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
 
+const CELL_WIDTH_TOTAL_TOLERANCE = 0.5;
+
+type LayoutCellValue = { width?: number };
+
+function validateCellWidthTotal(value: unknown) {
+  const cells = value as LayoutCellValue[] | undefined;
+  if (!Array.isArray(cells) || cells.length === 0) {
+    return "Add at least one cell.";
+  }
+
+  const total = cells.reduce((sum, cell) => sum + (typeof cell.width === "number" ? cell.width : 0), 0);
+  if (Math.abs(total - 100) <= CELL_WIDTH_TOTAL_TOLERANCE) return true;
+  return `Cell widths must total 100%. Current total is ${total.toFixed(2)}%.`;
+}
+
 const placedCommentFields = [
   defineField({
     name: "commenter",
@@ -108,7 +123,8 @@ const layoutRowField = defineField({
         defineField({
           name: "cells",
           title: "Cells",
-          description: "Define media count by adding/removing cells in this row.",
+          description:
+            "Define media count by adding/removing cells in this row. Cell widths should sum to 100%.",
           type: "array",
           of: [
             defineArrayMember({
@@ -127,7 +143,7 @@ const layoutRowField = defineField({
               ],
             }),
           ],
-          validation: (rule) => rule.min(1).required(),
+          validation: (rule) => rule.min(1).required().custom(validateCellWidthTotal),
         }),
       ],
     }),
@@ -199,8 +215,14 @@ export const caseStudyType = defineType({
     defineField({
       name: "detailServices",
       title: "Detail Services",
+      description: "Select from Case Study Tags. These are displayed as services on the detail page.",
       type: "array",
-      of: [defineArrayMember({ type: "string" })],
+      of: [
+        defineArrayMember({
+          type: "reference",
+          to: [{ type: "caseStudyTag" }],
+        }),
+      ],
     }),
     defineField({
       name: "detailIndustry",

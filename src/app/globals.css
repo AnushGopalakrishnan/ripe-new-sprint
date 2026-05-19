@@ -1,10 +1,6 @@
 @import "../styles/ripe-tokens.css";
 
-<<<<<<< HEAD
-/* Public mirror pages load their exported Webflow styles from each route document. */
-=======
 /* Public mirror pages load their exported styles from each route document. */
->>>>>>> fce2ba8 (Restore mirrored homepage shell)
 
 [data-page-transition-container] {
   width: 100%;

@@ -101,6 +101,7 @@ function toClientReference(study: CaseStudy) {
       return {
         id: entry._key || `${study.slug}-layout-entry-${entryIndex}`,
         preset: layout?.preset || "layout1",
+        designWidth: layout?.designWidth ?? 1440,
         gap: layout?.gap,
         rows:
           layout?.rows?.map((row) => ({
@@ -122,6 +123,7 @@ function toClientReference(study: CaseStudy) {
     study.detailLayouts?.map((block, blockIndex) => ({
       id: block._key || `${study.slug}-layout-${blockIndex}`,
       preset: block.preset || "layout1",
+      designWidth: 1440,
       gap: block.gap,
       rows:
         block.rows?.map((row) => ({

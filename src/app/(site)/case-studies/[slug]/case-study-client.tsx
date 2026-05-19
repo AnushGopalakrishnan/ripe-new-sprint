@@ -29,6 +29,7 @@ type CaseStudyLayoutRow = {
 type CaseStudyLayoutBlock = {
   id: string;
   preset: "layout1" | "layout2" | "layout3" | "layout4" | "layout5" | "layout6";
+  designWidth?: number;
   gap?: number;
   rows: CaseStudyLayoutRow[];
 };
@@ -76,6 +77,9 @@ type CaseStudyClientProps = {
   moreProjects: MoreProject[];
 };
 
+const DESIGN_SIDE_PADDING_PX = 20;
+const DESIGN_CELL_GAP_PX = 20;
+const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
 
 function parsePathname(src: string) {
@@ -128,16 +132,79 @@ function CommentableMedia({
   mediaClassName,
   load = "lazy",
   priority = false,
+  fitMode = "cover",
 }: {
   sectionId: string;
   media: CaseStudyMedia;
   mediaClassName: string;
   load?: "lazy" | "eager";
   priority?: boolean;
+  fitMode?: "cover" | "contain";
 }) {
   const comments = media.comments ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [frame, setFrame] = useState<{ offsetX: number; offsetY: number; width: number; height: number } | null>(
+    null,
+  );
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const kind = getMediaKind(media.src, media.kind);
+
+  const updateFrame = () => {
+    if (fitMode !== "contain") {
+      setFrame(null);
+      return;
+    }
+    const wrapper = wrapperRef.current;
+    const mediaElement = kind === "video" ? videoRef.current : imageRef.current;
+    if (!wrapper || !mediaElement) {
+      setFrame(null);
+      return;
+    }
+
+    const containerWidth = wrapper.clientWidth;
+    const containerHeight = wrapper.clientHeight;
+    if (containerWidth <= 0 || containerHeight <= 0) {
+      setFrame(null);
+      return;
+    }
+
+    const intrinsicWidth =
+      kind === "video" ? (mediaElement as HTMLVideoElement).videoWidth : (mediaElement as HTMLImageElement).naturalWidth;
+    const intrinsicHeight =
+      kind === "video"
+        ? (mediaElement as HTMLVideoElement).videoHeight
+        : (mediaElement as HTMLImageElement).naturalHeight;
+
+    if (!intrinsicWidth || !intrinsicHeight) {
+      setFrame(null);
+      return;
+    }
+
+    const containerAspect = containerWidth / containerHeight;
+    const mediaAspect = intrinsicWidth / intrinsicHeight;
+
+    let renderedWidth = containerWidth;
+    let renderedHeight = containerHeight;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (containerAspect > mediaAspect) {
+      renderedWidth = containerHeight * mediaAspect;
+      offsetX = (containerWidth - renderedWidth) / 2;
+    } else if (containerAspect < mediaAspect) {
+      renderedHeight = containerWidth / mediaAspect;
+      offsetY = (containerHeight - renderedHeight) / 2;
+    }
+
+    setFrame({
+      offsetX,
+      offsetY,
+      width: renderedWidth,
+      height: renderedHeight,
+    });
+  };
 
   useEffect(() => {
     if (!activeId) return;
@@ -148,9 +215,23 @@ function CommentableMedia({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeId]);
 
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const observer = new ResizeObserver(() => {
+      updateFrame();
+    });
+    observer.observe(wrapper);
+    updateFrame();
+
+    return () => observer.disconnect();
+  }, [fitMode, kind]);
+
   const mediaElement =
     kind === "video" ? (
       <video
+        ref={videoRef}
         className={mediaClassName}
         autoPlay
         loop
@@ -158,22 +239,26 @@ function CommentableMedia({
         playsInline
         preload={priority ? "auto" : "metadata"}
         poster={media.poster}
+        onLoadedMetadata={updateFrame}
       >
         <source src={media.src} type={media.src.includes("m3u8") ? "application/vnd.apple.mpegurl" : undefined} />
       </video>
     ) : (
       <img
+        ref={imageRef}
         className={mediaClassName}
         src={media.src}
         alt={media.alt}
         loading={load}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
+        onLoad={updateFrame}
       />
     );
 
   return (
     <div
+      ref={wrapperRef}
       className={styles.formaCommentable}
       data-section-id={sectionId}
       onClick={() => setActiveId(null)}
@@ -182,9 +267,11 @@ function CommentableMedia({
       {mediaElement}
       {comments.map((comment, index) => {
         const isActive = activeId === comment.id;
+        const x = frame ? frame.offsetX + (frame.width * comment.x) / 100 : `${comment.x}%`;
+        const y = frame ? frame.offsetY + (frame.height * comment.y) / 100 : `${comment.y}%`;
         const style = {
-          "--comment-x": `${comment.x}%`,
-          "--comment-y": `${comment.y}%`,
+          "--comment-x": typeof x === "number" ? `${x}px` : x,
+          "--comment-y": typeof y === "number" ? `${y}px` : y,
         } as CSSProperties;
 
         return (
@@ -306,7 +393,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               priority
             />
             <div className={styles.formaHeroCopy}>
-              <p>{reference.brand}</p>
+              <p>{reference.eyebrow}</p>
               <h1>{reference.title}</h1>
               <span>{reference.heroNote}</span>
             </div>
@@ -335,39 +422,62 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
         </section>
         <div className={styles.formaHeroStageContent}>
           {hasFlexibleLayouts ? (
-        <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
-          {reference.layouts.map((layout) => (
-            <section
-              key={layout.id}
-              className={styles.formaLayoutBlock}
-              data-layout-preset={layout.preset}
-              style={{ "--layout-gap": `${layout.gap ?? 20}px` } as CSSProperties}
-            >
-              {layout.rows.map((row, rowIndex) => (
-                <div
-                  key={`${layout.id}-row-${rowIndex}`}
-                  className={styles.formaLayoutRow}
-                  style={{
-                    gridTemplateColumns: row.cells
-                      .map((cell) => `${Math.max(cell.width || 1, 1)}fr`)
-                      .join(" "),
-                    height: row.height ? `${row.height}px` : undefined,
-                  }}
-                >
-                  {row.cells.map((cell, cellIndex) => (
-                    <div key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`} className={styles.formaLayoutCell}>
-                      <CommentableMedia
-                        sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
-                        media={cell.media}
-                        mediaClassName={styles.formaLayoutMedia}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
+            <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
+              {reference.layouts.map((layout) => {
+                const rowGap = layout.gap ?? DESIGN_CELL_GAP_PX;
+                const designWidth = DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
+                const designInnerWidth = Math.max(designWidth - DESIGN_SIDE_PADDING_PX * 2, 1);
+
+                return (
+                  <section
+                    key={layout.id}
+                    className={styles.formaLayoutBlock}
+                    data-layout-preset={layout.preset}
+                    style={{ "--layout-gap": `${rowGap}px` } as CSSProperties}
+                  >
+                    {layout.rows.map((row, rowIndex) => {
+                      const cellCount = Math.max(row.cells.length, 1);
+                      const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
+                      const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
+                      const rowHeight = row.height ?? 0;
+                      const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
+
+                      return (
+                        <div
+                          key={`${layout.id}-row-${rowIndex}`}
+                          className={styles.formaLayoutRow}
+                          style={{
+                            gridTemplateColumns: row.cells.map((cell) => `${Math.max(cell.width || 1, 1)}fr`).join(" "),
+                            aspectRatio: rowHeight > 0 ? `${designInnerWidth} / ${rowHeight}` : undefined,
+                          }}
+                        >
+                          {row.cells.map((cell, cellIndex) => {
+                            const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
+                            const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
+                            const cellAspectRatio = rowHeight > 0 ? cellTargetWidthPx / rowHeight : 16 / 9;
+
+                            return (
+                              <div
+                                key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
+                                className={styles.formaLayoutCell}
+                                style={{ "--layout-cell-ratio": `${cellAspectRatio}` } as CSSProperties}
+                              >
+                                <CommentableMedia
+                                  sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
+                                  media={cell.media}
+                                  mediaClassName={styles.formaLayoutMedia}
+                                  fitMode="contain"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </section>
+                );
+              })}
             </section>
-          ))}
-        </section>
           ) : (
             <>
               <section className={styles.formaIntroMedia} aria-label="Polestar imagery">

@@ -1,10 +1,6 @@
 import { NativeRouteDocument } from "@/components/native-route-document";
 import { NativeRouteRuntime } from "@/components/native-route-runtime";
-<<<<<<< HEAD
 import { StudioBFeed } from "@/components/studio-b-feed";
-=======
-import { HomeFeed } from "@/components/home-feed";
->>>>>>> fce2ba8 (Restore mirrored homepage shell)
 import { prepareHomeNewFeedFirstPaintDocument } from "@/lib/home-new-feed-first-paint";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
@@ -50,11 +46,7 @@ export default async function HomePage() {
       />
       {parse(nextDocument.headMarkup)}
       {parse(split.before)}
-<<<<<<< HEAD
       <StudioBFeed />
-=======
-      <HomeFeed />
->>>>>>> fce2ba8 (Restore mirrored homepage shell)
       {parse(split.after)}
     </>
   );

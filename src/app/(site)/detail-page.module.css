@@ -96,6 +96,15 @@
   position: relative;
 }
 
+.formaHero::after {
+  background-color: rgba(0, 0, 0, 0.15);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
 @keyframes formaChromeColor {
   0%,
   14% {
@@ -192,7 +201,7 @@
 }
 
 .formaHeroCopy p {
-  color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
   left: 0;
   top: calc(50% + 5px);
 }
@@ -210,7 +219,7 @@
   grid-template-columns: 450px 450px;
   gap: 72px;
   height: auto;
-  padding: 40px 20px 0;
+  padding: 40px 20px 40px;
 }
 
 
@@ -244,20 +253,16 @@
 }
 
 .formaHeroStage .formaHeroMedia {
-  transform: translate3d(0, calc(var(--hero-progress) * 28px), 0)
-    scale(calc(1 + (var(--hero-progress) * 0.05)));
-  transform-origin: center center;
-  transition: transform 80ms linear;
-  will-change: transform;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
 .formaHeroStage .formaHeroCopy {
-  opacity: calc(1 - (var(--hero-progress) * 0.24));
-  transform: translate3d(0, calc(var(--hero-progress) * -18px), 0);
-  transition:
-    opacity 80ms linear,
-    transform 80ms linear;
-  will-change: opacity, transform;
+  opacity: 1;
+  transform: none;
+  transition: none;
+  will-change: auto;
 }
 
 
@@ -449,7 +454,7 @@
 .formaLayoutMedia {
   display: block;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   width: 100%;
 }
 
@@ -647,16 +652,6 @@
   }
 
 
-  .formaHeroStage .formaHeroMedia {
-    transform: translate3d(0, calc(var(--hero-progress) * 16px), 0)
-      scale(calc(1 + (var(--hero-progress) * 0.03)));
-  }
-
-  .formaHeroStage .formaHeroCopy {
-    transform: translate3d(0, calc(var(--hero-progress) * -10px), 0);
-  }
-
-
   .formaIntroMedia,
   .formaWideFeature {
     height: auto;
@@ -692,9 +687,12 @@
     grid-template-columns: 1fr !important;
   }
 
+  .formaLayoutCell {
+    aspect-ratio: var(--layout-cell-ratio, 16 / 9);
+  }
+
   .formaLayoutMedia {
-    aspect-ratio: 16 / 9;
-    height: auto;
+    height: 100%;
   }
 
   .formaCarouselPanel,

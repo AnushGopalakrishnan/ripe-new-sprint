@@ -53,16 +53,23 @@
 - `/` now renders the same custom Studio B-inspired feed experience that was previously only on `/home-new-feed`.
 - The previous Webflow mirrored homepage feed was archived at `/home-old-feed`.
 - `/home-copy` and `/home-motion-hero` remain available as archived homepage variants.
-<<<<<<< HEAD
-- Known follow-up: `StudioBFeed` currently sets the feed wrapper background to black in `src/components/studio-b-feed.module.css` via `--studio-b-bg: #000000`. The user noticed this on the promoted homepage; changing the homepage feed to white should happen in that component stylesheet.
-=======
 - Resolved on 2026-05-15: `HomeFeed` now sets the feed wrapper background to white in `src/components/home-feed.module.css` via `--home-feed-bg: #ffffff`, with default wrapper text color set to black.
 - Resolved on 2026-05-15: `HomeFeed` hover pills now center and pad the absolutely positioned action label, fixing clipped/misaligned revealed "View" text on case-study/feed blocks.
 - Resolved on 2026-05-15: removed external inspiration/reference naming from the native feed and related app-owned source. The feed component now uses neutral `HomeFeed` naming, the feed aria label is `Featured work feed`, feed/work/detail media were localized under `public/feed-media`, `public/work-media`, `public/case-detail-media`, and local font files live under `public/fonts`.
 - Corrected on 2026-05-15: active routes `/`, `/home-new-feed`, `/work-new`, and `/work-new-alternate` must keep the original mirrored page shell for visual parity. A native shell/hero replacement changed the design and was reverted. The homepage now uses the original mirrored hero/nav/footer shell with only the feed section swapped to the neutral `HomeFeed` component.
->>>>>>> fce2ba8 (Restore mirrored homepage shell)
+- Correction on 2026-05-19: the current checked-in component is still `StudioBFeed` (`src/components/studio-b-feed.tsx`), and `src/components/home-feed.tsx` is not present in git history. Homepage routes currently import `StudioBFeed`.
 - Pages and route handlers that are not currently being worked on were moved into `src/app/(archive)` so they are preserved but visually out of the main working area.
 - The archive move uses a Next.js route group, so the archived routes are still available if needed. This was an organization change, not a deletion.
+- Update on 2026-05-19: `src/app/(archive)/case-studies/[slug]/page.tsx` was renamed to `page.archived.tsx` to prevent duplicate App Router path resolution with the active `src/app/(site)/case-studies/[slug]/page.tsx`.
+- Update on 2026-05-19: case-study flexible layout rendering now uses a 1440-canvas ratio model with 20px side padding assumptions and per-row responsive height scaling (capped at authored desktop size). Layout media now defaults to no-crop (`object-fit: contain`) and pinned comments are offset-aware so markers stay aligned when contain letterboxing is present.
+- Update on 2026-05-19: Sanity `caseStudyLayout` now includes `designWidth` (default 1440), row cell-width sum validation (must total 100%), and row preview helper text with computed target row/cell pixel dimensions for the 1440/20/20 system. Case-study queries/types now project `designWidth`, with runtime fallback to 1440 for older documents.
+- Fix on 2026-05-19: Studio width constraint was caused by mirrored Webflow CSS links being loaded globally from `src/app/layout.tsx`. Those links plus the hero critical style were moved to `src/app/(site)/head.tsx` so they only apply to public site routes and not `/studio`.
+- Follow-up on 2026-05-19: flexible case-study layout blocks now also cap rendered row width to the design inner width (`designWidth - 40`), not just row height, so ultrawide viewports cannot produce oversized media widths (for example ~1444px) that break the 1440-canvas math.
+- Follow-up on 2026-05-19: removed responsive row-height scaling math (`min(authored, scaled)`) for flexible layouts. Desktop/tablet rows now use literal CMS-authored heights in px; mobile still stacks rows and uses computed per-cell aspect ratio.
+- Update on 2026-05-19: reverted the max-width cap and fixed-height behavior for flexible case-study layouts. Rows now scale height from current rendered row width using authored row ratio so layout width remains page-responsive while maintaining aspect ratio.
+- Update on 2026-05-19: flexible row sizing no longer uses inline `height: calc(...)`; rows now use CSS `aspect-ratio` derived from design inner width and authored row height.
+- Update on 2026-05-19: case-study hero overlay left copy now uses `detailEyebrow` (short description) to match the Forma reference behavior.
+- Update on 2026-05-19: `caseStudy.detailServices` in Sanity now uses references to `caseStudyTag` (instead of free text), and queries project these as tag titles via `detailServices[]->title`.
 - `src/app/(archive)/README.md` documents the current active/archived split.
 - Site pages use `lenis` for lightweight smooth scrolling via `src/components/smooth-scroll-provider.tsx`, mounted in `src/app/(site)/layout.tsx`. Settings are intentionally conservative (`lerp: 0.075`, `wheelMultiplier: 0.82`) to avoid strong scroll-jacking.
 - Page transitions are handled by `src/components/page-transition-controller.tsx`. The current temporary transition is an Osmo-style shutter transition adapted for Next without Barba but using `gsap`: ten stacked `data-transition-shutter` panels cover the page before navigation, then reveal the next page. The controller intercepts same-origin link clicks and the temporary `Shift + H` shortcut, which toggles between `/home-copy` and `/work-new-alternate?view=grid` for transition testing. `src/app/(site)/template.tsx` wraps pages in `data-page-transition-container` so the current page can animate upward before route change and the next page can enter from below.
@@ -80,11 +87,7 @@
 - List view columns are Industry, Project Name, Services, and Year. Description is intentionally hidden in list view.
 - The hover theme should only activate when hovering inside an actual card/list row, not empty grid space.
 - The card hover image effect is zoom-only; blur and card border radius were intentionally removed.
-<<<<<<< HEAD
-- The work journal pages add a scoped body class while mounted and force the Webflow navbar shell (`.nav_wrap`, `.nav_contain.u-container`) to transparent for the entire page lifetime. This prevents a white navbar background flash when the hover theme activates.
-=======
 - The work journal pages add a scoped body class while mounted and force the mirrored navbar shell (`.nav_wrap`, `.nav_contain.u-container`) to transparent for the entire page lifetime. This prevents a white navbar background flash when the hover theme activates.
->>>>>>> fce2ba8 (Restore mirrored homepage shell)
 - Work journal hover themes should use the original Webflow-exported vertical contrast logic from `site/vendor/ripe/scripts/case-studies/hover-theme.js`: blend the active theme color toward white over the first 70% of the viewport, evaluate each themed element/card text independently by its viewport `rect.top`, and only switch that element to light text when the computed background luminance is `<= 0.45`. Card title/list text uses white or `#0a0a0a`; secondary card copy uses `rgba(255,255,255,0.6)` or `rgba(10,10,10,0.6)`.
 - In list view, the floating project image preview should animate only for the first hovered row in a hover session. While the pointer stays within the list and moves across other rows, the visible preview image should swap immediately without replaying the opacity/scale reveal. Leaving the list resets the session, so the next fresh hover can animate in again.
 
