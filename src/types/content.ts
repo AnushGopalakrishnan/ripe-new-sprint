@@ -68,6 +68,7 @@ export type CaseStudyLayoutTemplate = {
   _id?: string;
   title?: string;
   preset?: "layout1" | "layout2" | "layout3" | "layout4" | "layout5" | "layout6";
+  designWidth?: number;
   gap?: number;
   rows?: DetailLayoutRow[];
 };
@@ -127,7 +128,10 @@ export type CaseStudy = {
   client: string;
   summary: string;
   detailEyebrow?: string;
-  detailServices?: string[];
+  detailServices?: Array<string | { _ref?: string; _type?: string; title?: string }>;
+  detailServiceTitles?: string[];
+  detailServiceRefs?: string[];
+  detailServiceItems?: Array<{ _type?: string; _ref?: string; title?: string }>;
   detailIndustry?: string;
   detailInformation?: string[];
   detailLayouts?: DetailLayoutBlock[];

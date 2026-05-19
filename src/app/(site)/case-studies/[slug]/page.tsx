@@ -83,7 +83,37 @@ function toClientMedia(entry: CommentableMedia | undefined, fallback: MediaAsset
   };
 }
 
+function normalizeServiceLabel(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (value && typeof value === "object") {
+    const maybeRecord = value as { title?: unknown; name?: unknown; label?: unknown };
+    const candidates = [maybeRecord.title, maybeRecord.name, maybeRecord.label];
+    for (const candidate of candidates) {
+      if (typeof candidate === "string") {
+        const trimmed = candidate.trim();
+        if (trimmed.length > 0) return trimmed;
+      }
+    }
+  }
+
+  return null;
+}
+
 function toClientReference(study: CaseStudy) {
+  const detailServiceTitles = (study.detailServiceTitles ?? [])
+    .map((service) => normalizeServiceLabel(service))
+    .filter((service): service is string => Boolean(service));
+  const detailServices = (study.detailServices ?? [])
+    .map((service) => normalizeServiceLabel(service))
+    .filter((service): service is string => Boolean(service));
+  const uniqueDetailServices = Array.from(
+    new Set(detailServiceTitles.length > 0 ? detailServiceTitles : detailServices),
+  );
+  const detailYear = study.year?.trim() || "";
   const baseMedia = study.coverMedia?.src ? study.coverMedia : fallbackMedia;
   const carouselSlides =
     study.detailCarouselSlides?.map((slide, index) =>
@@ -101,6 +131,7 @@ function toClientReference(study: CaseStudy) {
       return {
         id: entry._key || `${study.slug}-layout-entry-${entryIndex}`,
         preset: layout?.preset || "layout1",
+        designWidth: layout?.designWidth ?? 1440,
         gap: layout?.gap,
         rows:
           layout?.rows?.map((row) => ({
@@ -122,6 +153,7 @@ function toClientReference(study: CaseStudy) {
     study.detailLayouts?.map((block, blockIndex) => ({
       id: block._key || `${study.slug}-layout-${blockIndex}`,
       preset: block.preset || "layout1",
+      designWidth: 1440,
       gap: block.gap,
       rows:
         block.rows?.map((row) => ({
@@ -140,9 +172,15 @@ function toClientReference(study: CaseStudy) {
     title: study.title,
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
-    services: study.detailServices?.length ? study.detailServices : study.tags,
+    services: uniqueDetailServices,
+    serviceDebug: {
+      detailServices: study.detailServices,
+      detailServiceTitles: study.detailServiceTitles,
+      detailServiceRefs: study.detailServiceRefs,
+      detailServiceItems: study.detailServiceItems,
+    },
     industry: study.detailIndustry || study.client,
-    year: study.year || "",
+    year: detailYear,
     information: study.detailInformation?.length ? study.detailInformation : [],
     media: {
       hero: toClientMedia(study.detailHero, baseMedia),
