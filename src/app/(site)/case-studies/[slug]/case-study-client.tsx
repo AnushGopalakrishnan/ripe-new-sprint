@@ -174,7 +174,7 @@ function CommentableMedia({
 
   return (
     <div
-      className={styles.formaCommentable}
+      className={styles.detailCommentable}
       data-section-id={sectionId}
       onClick={() => setActiveId(null)}
       role="presentation"
@@ -190,34 +190,34 @@ function CommentableMedia({
         return (
           <div
             key={comment.id}
-            className={`${styles.formaCommentThread} ${isActive ? styles.formaCommentThreadOpen : ""}`}
+            className={`${styles.detailCommentThread} ${isActive ? styles.detailCommentThreadOpen : ""}`}
             style={style}
           >
             <button
               aria-expanded={isActive}
               aria-label={`Open comment ${index + 1}`}
-              className={styles.formaCommentSurface}
+              className={styles.detailCommentSurface}
               onClick={(event) => {
                 event.stopPropagation();
                 setActiveId((prev) => (prev === comment.id ? null : comment.id));
               }}
               type="button"
             >
-              <span className={styles.formaCommentAvatarWrap}>
+              <span className={styles.detailCommentAvatarWrap}>
                 {comment.avatar ? (
                   <img
-                    className={styles.formaCommentAvatar}
+                    className={styles.detailCommentAvatar}
                     src={comment.avatar}
                     alt={comment.author}
                     loading="lazy"
                     decoding="async"
                   />
                 ) : (
-                  <span className={styles.formaCommentAvatarFallback}>{initials(comment.author)}</span>
+                  <span className={styles.detailCommentAvatarFallback}>{initials(comment.author)}</span>
                 )}
               </span>
-              <span className={styles.formaCommentAuthor}>{comment.author}</span>
-              <span className={styles.formaCommentBody}>{comment.body}</span>
+              <span className={styles.detailCommentAuthor}>{comment.author}</span>
+              <span className={styles.detailCommentBody}>{comment.body}</span>
             </button>
           </div>
         );
@@ -226,9 +226,9 @@ function CommentableMedia({
   );
 }
 
-function FormaFact({ label, children }: { label: string; children: string }) {
+function DetailFact({ label, children }: { label: string; children: string }) {
   return (
-    <div className={styles.formaFact}>
+    <div className={styles.detailFact}>
       <p>({label})</p>
       <strong>{children}</strong>
     </div>
@@ -294,18 +294,18 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   }, []);
 
   return (
-    <main className={styles.formaPage}>
-      <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
-        <div className={styles.formaHeroStageSticky}>
-          <section className={styles.formaHero} data-case-hero>
+    <main className={styles.detailPage}>
+      <section className={styles.detailHeroStage} ref={heroStageRef} data-case-hero-stage>
+        <div className={styles.detailHeroStageSticky}>
+          <section className={styles.detailHero} data-case-hero>
             <CommentableMedia
               sectionId="hero"
               media={reference.media.hero}
-              mediaClassName={styles.formaHeroMedia}
+              mediaClassName={styles.detailHeroMedia}
               load="eager"
               priority
             />
-            <div className={styles.formaHeroCopy}>
+            <div className={styles.detailHeroCopy}>
               <p>{reference.brand}</p>
               <h1>{reference.title}</h1>
               <span>{reference.heroNote}</span>
@@ -313,17 +313,17 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           </section>
         </div>
 
-        <section className={styles.formaInfoStage}>
-          <section className={styles.formaInfo} aria-label="Project information" data-case-info>
-            <div className={styles.formaFacts}>
-              <FormaFact label="Brand">{reference.brand}</FormaFact>
-              <FormaFact label="Services">{reference.services.join(", ")}</FormaFact>
-              <FormaFact label="Industry">{reference.industry}</FormaFact>
-              <FormaFact label="Year">{reference.year}</FormaFact>
+        <section className={styles.detailInfoStage}>
+          <section className={styles.detailInfo} aria-label="Project information" data-case-info>
+            <div className={styles.detailFacts}>
+              <DetailFact label="Brand">{reference.brand}</DetailFact>
+              <DetailFact label="Services">{reference.services.join(", ")}</DetailFact>
+              <DetailFact label="Industry">{reference.industry}</DetailFact>
+              <DetailFact label="Year">{reference.year}</DetailFact>
             </div>
             {reference.information.length > 0 ? (
-              <div className={styles.formaInformation}>
-                <p className={styles.formaLabel}>(Information)</p>
+              <div className={styles.detailInformation}>
+                <p className={styles.detailLabel}>(Information)</p>
                 {reference.information.map((paragraph) => (
                   <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
                 ))}
@@ -333,20 +333,20 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             )}
           </section>
         </section>
-        <div className={styles.formaHeroStageContent}>
+        <div className={styles.detailHeroStageContent}>
           {hasFlexibleLayouts ? (
-        <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
+        <section className={styles.detailFlexibleLayouts} aria-label="Case study layouts">
           {reference.layouts.map((layout) => (
             <section
               key={layout.id}
-              className={styles.formaLayoutBlock}
+              className={styles.detailLayoutBlock}
               data-layout-preset={layout.preset}
               style={{ "--layout-gap": `${layout.gap ?? 20}px` } as CSSProperties}
             >
               {layout.rows.map((row, rowIndex) => (
                 <div
                   key={`${layout.id}-row-${rowIndex}`}
-                  className={styles.formaLayoutRow}
+                  className={styles.detailLayoutRow}
                   style={{
                     gridTemplateColumns: row.cells
                       .map((cell) => `${Math.max(cell.width || 1, 1)}fr`)
@@ -355,11 +355,11 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   }}
                 >
                   {row.cells.map((cell, cellIndex) => (
-                    <div key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`} className={styles.formaLayoutCell}>
+                    <div key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`} className={styles.detailLayoutCell}>
                       <CommentableMedia
                         sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
                         media={cell.media}
-                        mediaClassName={styles.formaLayoutMedia}
+                        mediaClassName={styles.detailLayoutMedia}
                       />
                     </div>
                   ))}
@@ -370,19 +370,19 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
         </section>
           ) : (
             <>
-              <section className={styles.formaIntroMedia} aria-label="Polestar imagery">
+              <section className={styles.detailIntroMedia} aria-label="Intro imagery">
                 <CommentableMedia
                   sectionId="intro"
                   media={reference.media.intro}
-                  mediaClassName={styles.formaSectionMedia}
+                  mediaClassName={styles.detailSectionMedia}
                   load="eager"
                 />
               </section>
 
-              <section className={styles.formaCarousel} aria-label="Campaign carousel">
-                <div className={styles.formaCarouselPanel}>
+              <section className={styles.detailCarousel} aria-label="Campaign carousel">
+                <div className={styles.detailCarouselPanel}>
                   <button
-                    className={styles.formaArrow}
+                    className={styles.detailArrow}
                     aria-label="Previous project image"
                     onClick={() => setCarouselIndex((prev) => (prev - 1 + slides.length) % slides.length)}
                     type="button"
@@ -393,64 +393,64 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                     key={slides[carouselIndex]?.src ?? "carousel-slide"}
                     sectionId="carousel-left"
                     media={slides[carouselIndex]}
-                    mediaClassName={styles.formaCarouselPanelMedia}
+                    mediaClassName={styles.detailCarouselPanelMedia}
                   />
                   <button
-                    className={`${styles.formaArrow} ${styles.formaArrowNext}`}
+                    className={`${styles.detailArrow} ${styles.detailArrowNext}`}
                     aria-label="Next project image"
                     onClick={() => setCarouselIndex((prev) => (prev + 1) % slides.length)}
                     type="button"
                   >
                     &#8594;
                   </button>
-                  <div className={styles.formaDots} aria-hidden="true">
+                  <div className={styles.detailDots} aria-hidden="true">
                     {slides.map((slide, index) => (
                       <span
-                        className={index === carouselIndex ? styles.formaDotActive : undefined}
+                        className={index === carouselIndex ? styles.detailDotActive : undefined}
                         key={slide.src}
                       />
                     ))}
                   </div>
                 </div>
-                <div className={styles.formaCarouselPoster}>
+                <div className={styles.detailCarouselPoster}>
                   <CommentableMedia
                     sectionId="carousel-poster"
                     media={reference.media.carouselPoster}
-                    mediaClassName={styles.formaSectionMedia}
+                    mediaClassName={styles.detailSectionMedia}
                   />
                 </div>
               </section>
 
-              <section className={styles.formaBlackFeature} aria-label="Feature spread">
+              <section className={styles.detailBlackFeature} aria-label="Feature spread">
                 <CommentableMedia
                   sectionId="black-feature"
                   media={reference.media.blackFeature}
-                  mediaClassName={styles.formaBlackFeatureMedia}
+                  mediaClassName={styles.detailBlackFeatureMedia}
                 />
               </section>
 
-              <section className={styles.formaWideFeature} aria-label="Wide feature">
+              <section className={styles.detailWideFeature} aria-label="Wide feature">
                 <CommentableMedia
                   sectionId="wide-feature"
                   media={reference.media.wideFeature}
-                  mediaClassName={styles.formaSectionMedia}
+                  mediaClassName={styles.detailSectionMedia}
                 />
               </section>
             </>
           )}
 
-          <section className={styles.formaMoreProjects} aria-label="Other case studies">
-            <div className={styles.formaMoreHeader}>
+          <section className={styles.detailMoreProjects} aria-label="Other case studies">
+            <div className={styles.detailMoreHeader}>
               <h2>Other Case Studies</h2>
               <Link href="/case-studies">
                 All case studies <span aria-hidden="true">&#8599;</span>
               </Link>
             </div>
-            <div className={styles.formaProjectGrid}>
+            <div className={styles.detailProjectGrid}>
               {moreProjects.map((project) => (
                 <Link
                   href={toCaseStudyHref(project.slug) as Route}
-                  className={styles.formaProjectCard}
+                  className={styles.detailProjectCard}
                   key={`${project.title}-${project.year}`}
                 >
                   <img src={project.image} alt="" loading="lazy" decoding="async" />
@@ -462,19 +462,19 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           </section>
 
           {!hasFlexibleLayouts ? (
-            <section className={styles.formaCta} aria-label="Contact">
+            <section className={styles.detailCta} aria-label="Contact">
               <CommentableMedia
                 sectionId="cta"
                 media={reference.media.cta}
-                mediaClassName={styles.formaSectionMedia}
+                mediaClassName={styles.detailSectionMedia}
               />
-              <div className={styles.formaCtaCopy}>
+              <div className={styles.detailCtaCopy}>
                 <h2>
                   LET&rsquo;S CREATE
                   <br />
                   SOMETHING TOGETHER
                 </h2>
-                <a href="mailto:hello@forma.agency">
+                <a href="mailto:hello@ripe.studio">
                   Get in touch <span aria-hidden="true">&#8599;</span>
                 </a>
               </div>
