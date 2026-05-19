@@ -1,37 +1,36 @@
 @font-face {
-  font-family: "StudioBSwitzer";
-  src: url("https://framerusercontent.com/third-party-assets/fontshare/wf/BLNB4FAQFNK56DWWNF7PMGTCOTZHOEII/ST3WKSSDMBK2MIQQO3MAVYWLF4FTOLFV/6IN5WOLRCYP4G4MOCOHOMXNON6Q7MDAR.woff2")
-    format("woff2");
+  font-family: "HomeFeedSans";
+  src: url("/fonts/home-feed-sans.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 .feed {
-  --studio-b-bg: #000000;
-  --studio-b-card: #efebe4;
-  --studio-b-blue: #dceff3;
-  --studio-b-brown: #4d210f;
-  --studio-b-green: #bce41b;
-  --studio-b-radius: 10px;
-  --studio-b-gap: 18px;
+  --home-feed-bg: #ffffff;
+  --home-feed-card: #efebe4;
+  --home-feed-blue: #dceff3;
+  --home-feed-brown: #4d210f;
+  --home-feed-green: #bce41b;
+  --home-feed-radius: 10px;
+  --home-feed-gap: 18px;
   width: 100%;
-  padding: var(--studio-b-gap);
-  background: var(--studio-b-bg);
-  color: #fff;
-  font-family: "StudioBSwitzer", sans-serif;
+  padding: var(--home-feed-gap);
+  background: var(--home-feed-bg);
+  color: #000;
+  font-family: "HomeFeedSans", sans-serif;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--studio-b-gap);
+  gap: var(--home-feed-gap);
   align-items: start;
 }
 
 .column {
   display: grid;
-  gap: var(--studio-b-gap);
+  gap: var(--home-feed-gap);
 }
 
 .card {
@@ -39,8 +38,8 @@
   display: flex;
   min-height: var(--card-h);
   overflow: hidden;
-  border-radius: var(--studio-b-radius);
-  background: var(--studio-b-card);
+  border-radius: var(--home-feed-radius);
+  background: var(--home-feed-card);
   color: #000;
   isolation: isolate;
 }
@@ -95,16 +94,16 @@
   align-items: center;
   justify-content: space-between;
   padding: 26px 40px;
-  background: var(--studio-b-blue);
+  background: var(--home-feed-blue);
   text-align: center;
 }
 
 .column:first-child .greenCard {
-  background: var(--studio-b-card);
+  background: var(--home-feed-card);
 }
 
 .column:nth-child(2) .textCard:nth-child(2) {
-  background: var(--studio-b-green);
+  background: var(--home-feed-green);
 }
 
 .media {
@@ -149,6 +148,7 @@
   transform: translateX(-50%);
   white-space: nowrap;
   overflow: hidden;
+  text-align: center;
 }
 
 .imageCard .pill {
@@ -167,6 +167,12 @@
 }
 
 .pillAction {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 14px;
   position: absolute;
   top: 50%;
   right: 0;
@@ -297,7 +303,7 @@
 }
 
 .logosCard {
-  background: var(--studio-b-brown);
+  background: var(--home-feed-brown);
   color: #fff;
 }
 
@@ -339,7 +345,7 @@
   justify-content: flex-start;
 }
 
-.spotify {
+.playlistPanel {
   position: absolute;
   right: 20px;
   bottom: 20px;
@@ -347,8 +353,24 @@
   z-index: 4;
   width: calc(100% - 40px);
   height: 153px;
-  border: 0;
   border-radius: 12px;
+  background: #191919;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  font-family: "Graphik", "GraphikRegular", sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.playlistPanel span:first-child {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 11px;
+  text-transform: uppercase;
 }
 
 .spacerImage {
@@ -381,7 +403,7 @@
 
 @media (max-width: 640px) {
   .feed {
-    --studio-b-gap: 10px;
+    --home-feed-gap: 10px;
   }
 
   .grid {
@@ -400,7 +422,7 @@
     --card-h: 210px;
   }
 
-  .spotify {
+  .playlistPanel {
     right: 12px;
     left: 12px;
     width: calc(100% - 24px);

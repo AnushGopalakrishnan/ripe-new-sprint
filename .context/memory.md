@@ -10,6 +10,8 @@
 - Do not use Computer Use unless the user explicitly wants it. It previously caused confusion and is not needed for the current workflow.
 - For small UI-only changes such as color, font, spacing, corner radius, or similarly scoped styling tweaks, do not run deep/full test suites by default. Use the lightest reasonable verification, such as type/lint only if relevant or a quick local visual/DOM check. Reserve Playwright smoke suites, full builds, and broader regression checks for larger feature work, interaction changes, routing changes, data/CMS changes, or risky refactors.
 - Do not deploy after every change. Wait for the user to explicitly ask for deployment before running Vercel deploy or alias commands.
+- When the user asks for "the link" or any user-facing site URL, give the canonical production URL (`https://ripe-studios.vercel.app`) by default, not the immutable Vercel deployment URL. Include deployment URLs only when specifically discussing deployment receipts, debugging, rollback, or exact-build verification.
+- Do not expose external inspiration/reference/source names in client-facing code, filenames, CSS module class names, aria labels, comments, or DOM-visible strings. If a design starts from a reference, neutralize the implementation before handoff; use Ripe-owned names and local assets where practical.
 
 ## Project Goals
 
@@ -50,7 +52,7 @@
   - `/work-new`
   - `/work-new-alternate`
 - Active focus route files remain in `src/app/(site)`.
-- `/` now renders the same custom Studio B-inspired feed experience that was previously only on `/home-new-feed`.
+- `/` now renders the same custom native feed experience that was previously only on `/home-new-feed`.
 - The previous Webflow mirrored homepage feed was archived at `/home-old-feed`.
 - `/home-copy` and `/home-motion-hero` remain available as archived homepage variants.
 - Resolved on 2026-05-15: `HomeFeed` now sets the feed wrapper background to white in `src/components/home-feed.module.css` via `--home-feed-bg: #ffffff`, with default wrapper text color set to black.
@@ -70,6 +72,14 @@
 - Update on 2026-05-19: flexible row sizing no longer uses inline `height: calc(...)`; rows now use CSS `aspect-ratio` derived from design inner width and authored row height.
 - Update on 2026-05-19: case-study hero overlay left copy now uses `detailEyebrow` (short description) to match the Forma reference behavior.
 - Update on 2026-05-19: `caseStudy.detailServices` in Sanity now uses references to `caseStudyTag` (instead of free text), and queries project these as tag titles via `detailServices[]->title`.
+- Resolved on 2026-05-19: native case-study detail positioned faux comments were redesigned as clean Figma-style notes in `src/app/(site)/case-studies/[slug]/case-study-client.tsx` and `src/app/(site)/detail-page.module.css`. They are visual notes, not real comments; closed state is a white 40x40 smart-comment shell with a 32x32 avatar, open state uses 413px as a max width and shrinks width/height to content, and the sharp corner is edge-aware by quadrant so the panel expands into the side of the media with the most space while that sharp origin stays pinned. Author text uses Times-style serif, note body uses Graphik/sans, avatar stays left of top-aligned text, desktop opens on hover/focus with a short hover-off delay, and touch opens by tap.
+- Temporary on 2026-05-19: case-study detail notes are draggable in local React state for edge-awareness testing. Dragging updates only the in-memory percentage position for the current page session; refresh resets it and Sanity/CMS data is untouched. Remove this temporary drag affordance before final shipping if not wanted.
+- Corrected on 2026-05-15: active routes `/`, `/home-new-feed`, `/work-new`, and `/work-new-alternate` must keep the original mirrored page shell for visual parity. A native shell/hero replacement changed the design and was reverted. The homepage now uses the original mirrored hero/nav/footer shell with only the feed section swapped to the neutral `HomeFeed` component.
+- Corrected on 2026-05-19 after PR #6 merge: remove stray root `memory.md` and `package-lock.json`; keep pnpm as the only package manager lockfile; neutralize external Framer/Forma traces introduced into the app-owned native case-study detail files by using local project assets, local fonts, neutral CSS-module naming, and the Ripe contact email.
+- Changed on 2026-05-19: native case-study placed comments were intentionally redesigned in the shared `CommentableMedia` UI as compact avatar/comment markers that open into matte annotation cards. This applies to CMS-provided comments such as the Polestar/`case-study-19` detail comment, not a hardcoded page-specific overlay.
+- Fixed locally on 2026-05-19: `/studio` appeared broken because globally loaded exported Webflow CSS set `body { display:flex; align-items:center; }`, causing Sanity's direct `#sanity` body child to shrink to intrinsic width and center with large white side gutters. `src/app/globals.css` now resets body layout when `#sanity` is present and forces `#sanity` to fill the viewport.
+- Pages and route handlers that are not currently being worked on were moved into `src/app/(archive)` so they are preserved but visually out of the main working area.
+- The archive move uses a Next.js route group, so the archived routes are still available if needed. This was an organization change, not a deletion.
 - `src/app/(archive)/README.md` documents the current active/archived split.
 - Site pages use `lenis` for lightweight smooth scrolling via `src/components/smooth-scroll-provider.tsx`, mounted in `src/app/(site)/layout.tsx`. Settings are intentionally conservative (`lerp: 0.075`, `wheelMultiplier: 0.82`) to avoid strong scroll-jacking.
 - Page transitions are handled by `src/components/page-transition-controller.tsx`. The current temporary transition is an Osmo-style shutter transition adapted for Next without Barba but using `gsap`: ten stacked `data-transition-shutter` panels cover the page before navigation, then reveal the next page. The controller intercepts same-origin link clicks and the temporary `Shift + H` shortcut, which toggles between `/home-copy` and `/work-new-alternate?view=grid` for transition testing. `src/app/(site)/template.tsx` wraps pages in `data-page-transition-container` so the current page can animate upward before route change and the next page can enter from below.
@@ -82,7 +92,7 @@
   - `/work-new-alternate`
 - Both support `view=grid` and `view=list` query params and preserve filter state with `filters=...`.
 - The project view control is a single toggle. The button text/icon shows the current mode by default; hovering the button previews only the alternate button text/icon. Hover must not change the actual grid/list layout or the URL. Clicking is the only action that switches the page view and persists it into the URL.
-- The regular `/work-new` grid uses equal-height cards. `/work-new-alternate` uses the mixed small/big card layout inspired by the Swissfolio reference.
+- The regular `/work-new` grid uses equal-height cards. `/work-new-alternate` uses the mixed small/big card layout.
 - Filters use immediate UI/URL state updates and delayed card reflow animation. Rapid multi-filter clicks should work: selected filter buttons and the URL update immediately, then the card set animates to the latest pending filter set.
 - List view columns are Industry, Project Name, Services, and Year. Description is intentionally hidden in list view.
 - The hover theme should only activate when hovering inside an actual card/list row, not empty grid space.
@@ -152,6 +162,12 @@
   - `/studio` is served by the real Next/Sanity app
 - Current canonical unified public domain:
   - `https://ripe-studios.vercel.app`
+- Latest verified production deployment on 2026-05-19:
+  - `https://ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app`
+  - deployment id: `dpl_VU1hrghaF8SvFQ2cQYZwd5cQFntw`
+  - deployed from the correct `ripe-studios-cms` Vercel project after relinking this workspace with `pnpm dlx vercel link --yes --project ripe-studios-cms`
+  - `https://ripe-studios.vercel.app` was explicitly repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
+  - verification: production `/studio` has `#sanity` at `x=0` and fills a 1600x1000 viewport; production `/` has title `The Natural Outcome | Ripe Studios`, the original mirrored `.hero_section`, and the white `Featured work feed`.
 - Latest verified production deployment on 2026-05-15:
   - `https://ripe-studios-2u8tmv4jq-anushgopalakrishnans-projects.vercel.app`
   - deployment id: `dpl_DbVQVGNK3jNeKSByUnngtAFdY1ac`
@@ -310,7 +326,7 @@
 
 - `/work-new` is the active work-page experiment that uses `src/components/work-journal-section.tsx` and `src/components/work-journal-section.module.css`.
 - `/work-new-alternate` is the alternate card-size work-page experiment using the same component with `layout="alternating"`.
-- The work journal has a single grid/list toggle centered above the filters. It should show only the next available view, not both options at once: `List View` while the grid is active and `Grid View` while the list is active. The grid mode is the Ripe/Swissfolio-inspired image card grid. The list mode now follows the Swissfolio projects reference (`https://swissfolio.framer.website/projects`): a compact four-column editorial list with Graphik 12px headers, Times/Plantin-scale 42.4px row text, 44px rows, equal-width columns, and a hidden centered image preview that appears on row hover.
+- The work journal has a single grid/list toggle centered above the filters. It should show only the next available view, not both options at once: `List View` while the grid is active and `Grid View` while the list is active. The grid mode is a Ripe image-card grid. The list mode is a compact four-column editorial list with Graphik 12px headers, Times/Plantin-scale 42.4px row text, 44px rows, equal-width columns, and a hidden centered image preview that appears on row hover.
 - Current list view columns are: `Industry`, `Project Name`, `Services`, `Year`. Project descriptions are intentionally hidden in list view and remain visible in grid cards. `src/data/work-journal.ts` now includes temporary `industry` and `year` fields; years are placeholder values from 2026 through 2022 in descending order and should be replaced when real CMS data exists.
 - The list-mode `Year` column and its `Year` header label are right-aligned to the right edge of the fourth column/page in both `/work-new` and `/work-new-alternate`.
 - In list view, the hovered card gets a higher stacking context and its preview image has higher z-index so the hover image appears above row text, not underneath it.
@@ -388,33 +404,33 @@
 - Latest deployment after adding the `Home (new feed)` duplicate:
   - `https://ripe-studios-qkj610511-anushgopalakrishnans-projects.vercel.app`
   - aliases `ripe-studios-cms.vercel.app` and `ripe-studios-clone.vercel.app` were repointed to it
-- `/home-new-feed` now replaces the old home feed section with a native Next/React recreation of the Studio B Framer feed from `https://studio-b.framer.website/`.
-  - Implementation files: `src/components/studio-b-feed.tsx`, `src/components/studio-b-feed.module.css`, and `src/app/(site)/home-new-feed/page.tsx`.
-  - It is not an iframe or imported Framer app. It is app-owned JSX/CSS using Framer as the visual/layout reference.
+- `/home-new-feed` now replaces the old home feed section with a native Next/React feed.
+  - Implementation files: `src/components/home-feed.tsx`, `src/components/home-feed.module.css`, and `src/app/(site)/home-new-feed/page.tsx`.
+  - It is app-owned JSX/CSS with no visible reference-site naming in the implementation.
   - Production verification on 2026-05-07: 24 feed cards, first desktop card rect `x:15 y:2337 w:460 h:182`, editor iframe src `/home-new-feed?__editor=1`, no console errors.
-- Latest deployment after fixing the Studio B feed videos and services typewriter:
+- Latest deployment after fixing the home feed videos and services typewriter:
   - deployment url: `https://ripe-studios-ob1wuj80t-anushgopalakrishnans-projects.vercel.app`
   - aliases `https://ripe-studios-cms.vercel.app` and `https://ripe-studios-clone.vercel.app` were repointed to it on 2026-05-07.
-  - `/home-new-feed` now uses native `<video>` cards for Maison Margiela and Polestar with the Bunny CDN MP4 sources from the Studio B reference.
+  - `/home-new-feed` now uses native `<video>` cards for Maison Margiela and Polestar.
   - The feed now has a native services typewriter card cycling `Strategy`, `Identity`, `Design`, and `Motion`.
   - Added an IntersectionObserver/load-event autoplay recovery hook so below-the-fold muted looping videos actually start when the feed enters view.
   - Production Playwright verification against `https://ripe-studios-cms.vercel.app/home-new-feed`: 24 cards, 2 feed videos, both videos `readyState` 4, `paused: false`, `muted: true`, `loop: true`, current times above 5 seconds, and services text changed from `Mot|` to `Strategy|`.
   - Full local smoke suite passes after the test update: `25 passed`.
-- Latest deployment after matching Studio B feed interactions:
+- Latest deployment after matching home feed interactions:
   - deployment url: `https://ripe-studios-lv428zihr-anushgopalakrishnans-projects.vercel.app`
   - aliases `https://ripe-studios-cms.vercel.app` and `https://ripe-studios-clone.vercel.app` were repointed to it on 2026-05-07.
-  - `/home-new-feed` now includes the reference-style stacked pill hover/focus interactions: `Work` -> `View`, `Feature/Talk/Interview` -> `Read`, `Studio` -> `About` or `Sounds`.
-  - Feed cards now have native full-card anchors matching the Studio B reference destinations.
+  - `/home-new-feed` now includes stacked pill hover/focus interactions: `Work` -> `View`, `Feature/Talk/Interview` -> `Read`, `Studio` -> `About` or `Sounds`.
+  - Feed cards now have native full-card anchors pointing to internal Ripe routes.
   - The Clients card now has a native animated logo marquee that pauses on hover.
-  - The Sounds card now embeds the Studio B Spotify playlist iframe.
+  - The Sounds card embeds a local static studio playlist panel.
   - Fixed the media layer stack by moving feed images/videos above the card background and below overlays/text/links.
-  - Production Playwright verification against `https://ripe-studios-cms.vercel.app/home-new-feed`: 24 cards, 19 links, 2 videos playing, first images loaded with natural widths, Spotify iframe src present, Raf Simons and article links present, hover pill transform active, logo marquee transform changes over time, and no console errors.
+  - Production Playwright verification against `https://ripe-studios-cms.vercel.app/home-new-feed`: 24 cards, 19 links, 2 videos playing, first images loaded with natural widths, Raf Simons and article links present, hover pill transform active, logo marquee transform changes over time, and no console errors.
   - Full local smoke suite passes after the test update: `25 passed`.
 - Branch `ui-kit-style-guide` adds an internal Ripe UI kit/style guide route:
   - route: `/style-guide`
   - implementation: `src/app/(internal)/style-guide/page.tsx` and `src/app/(internal)/style-guide/style-guide.module.css`
   - shared tokens: `src/styles/ripe-tokens.css`, imported from `src/app/globals.css`
-  - purpose: design future UI against the current Ripe visual language, not the imported Studio B feed language.
+  - purpose: design future UI against the current Ripe visual language, not the custom home feed language.
   - token source: exported Webflow/Ripe style vocabulary, including Plantin MT Pro, Graphik, Chivo Mono, ink `#191919`, beige `#f1ebe2`, paper, orange accent `#ff4c24`, spacing, sharp radius tokens, and motion variables.
   - typography rule: Ripe serif typography uses `Plantin MT Pro Light` everywhere at font weight `300`. The shared tokens define `--ripe-font-serif: "Plantin MT Pro Light", "Plantin MT Pro", "Times New Roman", serif` and `--ripe-font-serif-weight: 300`; future serif components should use those tokens rather than defaulting to browser `400`.
   - user style preference for Ripe design-system work: no generic boxed/card-heavy UI and no rounded corners. Keep layouts editorial, ruled, sharp-cornered, and aligned with the existing Ripe/Webflow language.
@@ -480,9 +496,9 @@
   - Vercel preview deployed on 2026-05-08: `https://ripe-studios-n8ww61cei-anushgopalakrishnans-projects.vercel.app`.
   - Deployed verification for `/home-new-feed`: title `Home (new feed)`, 24 feed articles, 2 videos, early/final hero y `263`, feed y `1922`, scroll height `6288`, CLS `0.0003401837`, and `/__editor?path=/home-new-feed` returns `200`.
 - Work page duplicate experiment:
-  - `/work-new` is a copy/variant of the Work page that keeps the existing Ripe nav/footer shell but replaces the work grid with a native React Swissfolio-inspired journal section based on `https://swissfolio.framer.website/journal`.
+  - `/work-new` is a copy/variant of the Work page that keeps the existing Ripe nav/footer shell but replaces the work grid with a native React journal section.
   - Implementation files: `src/app/(site)/work-new/page.tsx`, `src/components/work-journal-section.tsx`, `src/components/work-journal-section.module.css`, and `src/data/work-journal.ts`.
-  - The section maps the 12 exported Ripe case studies into a four-column image journal grid with Swissfolio-style 17px gutters/gaps, large Times-style titles, mono category labels over images, and responsive 4/2/1 column behavior.
+  - The section maps the 12 exported Ripe case studies into a four-column image journal grid with 17px gutters/gaps, large Times-style titles, mono category labels over images, and responsive 4/2/1 column behavior.
   - The top filters are preserved as native controls above the grid: Strategy, Identity, Motion, Web Design, Brand Extensions. Filtering is client-side OR filtering; clicking an active filter toggles it off.
   - Follow-up filter/media refinement on 2026-05-11: filters now match the original Ripe/Webflow style more closely with Plantin 2.25rem light labels, comma separators, and a period after the final filter. Active filters drop to 50% opacity.
   - The journal media blocks now let image natural aspect ratio define card image height instead of enforcing a fixed ratio. Verified first image natural `648x872` renders at `338.75x455.84375`.
@@ -493,7 +509,7 @@
   - `/work-new` hover smoothing update on 2026-05-11: clearing the page theme now happens from the grid/focus boundary instead of every card `pointerleave`, so moving between cards does not enter the fading/reset path. The previous hover rule that toggled card animations off/on was removed to prevent the card entrance animation replaying after leaving the grid.
   - `/work-new` project subtitles now use Graphik regular at `0.875rem` font size, `1.4286` line-height, and `0.0107em` letter spacing, matching 14px / 20px / 0.15px at a 16px root. The work journal component stylesheet has been converted away from fixed `px` values for typography/spacing/media queries.
   - `/work-new` motion was slowed slightly on 2026-05-11: theme/media fades are `420ms`, page/text color transitions are `560ms`, and card entrance animation is `720ms` with a `58ms` stagger. Keep these timings unless the user explicitly asks to speed it back up.
-  - `/work-new` mirrors the Swissfolio reference hover structure: the hovered project image scales to `1.04` while remaining in full color. The image tag is hidden by default and animates in with opacity/translate only on the hovered/focused card; non-hovered tags stay hidden.
+  - `/work-new` hover structure: the hovered project image scales to `1.04` while remaining in full color. The image tag is hidden by default and animates in with opacity/translate only on the hovered/focused card; non-hovered tags stay hidden.
   - `/work-new` tablet layout trial on 2026-05-11: removed the 2-column tablet breakpoint so the journal grid remains 4 columns until the mobile breakpoint at `50.5625em`, where it becomes 1 column. This is an intentional trial requested by the user and may be reverted if it feels too cramped.
   - `/work-new` theme transition fix on 2026-05-11: the page theme overlay now uses an animatable `background-color: var(--work-journal-theme)` layer with a separate `::after` white gradient falloff. Do not put the theme color back inside the gradient stop, because that snaps between card hover colors instead of transitioning.
   - `/work-new` latest layout/style tweaks after commit `f9f5b4a`: filter block spacing is `8rem` above and below; a `2px` divider sits below the filters and spans the section width inside the page gutter; the grid starts `2rem` below the divider. Cards are sharp-cornered with no media border radius. Hovered card images zoom to `1.04` but no longer blur. In-card category/tag text now matches the subtitle style: Graphik regular, `0.875rem`, `1.4286` line-height, `0.0107em` letter spacing. Active filter buttons nudge upward (`translateY(-0.06em)`) instead of downward. The divider changes color with the active hover theme.
@@ -507,12 +523,12 @@
 - `/work-new-alternate` experiment:
   - Added a duplicate of `/work-new` at `/work-new-alternate`, titled `Work (alternate journal)`, with the same data, filters, hover theme behavior, divider, and editor support.
   - `WorkJournalSection` now accepts `layout="standard" | "alternating"`. The alternate route passes `layout="alternating"`.
-  - The first implementation used mixed card widths; the user corrected this. The intended Swissfolio-like alternate layout keeps equal 4-column card widths and creates the small/big rhythm through alternating image aspect ratios/crops. Mobile still collapses to 1 column with natural image height.
+  - The first implementation used mixed card widths; the user corrected this. The intended alternate layout keeps equal 4-column card widths and creates the small/big rhythm through alternating image aspect ratios/crops. Mobile still collapses to 1 column with natural image height.
   - Editor path `/__editor?path=/work-new-alternate` is routed to `/work-new-alternate?__editor=1` and appears in the editor route list as `Work (alternate journal)`.
   - Smoke coverage now includes `work new alternate route renders mixed small and big project cards`; it checks equal card widths and varied media heights. Latest run after this correction: `33 passed`.
   - `/__editor?path=/work-new` is routed to `/work-new?__editor=1` in the in-page editor shell.
   - Local production verification on 2026-05-11: `/work-new` renders 12 cards, first card x `17`, width `338.75`, first image `338.75 x 455.84375`, footer is present, Motion filter returns 4 cards (`ZetaChain`, `Volvo`, `Tabletop`, `Redbull`), no console errors, and editor route returns `200`.
-  - Smoke suite includes `work new route renders the Swissfolio-style filtered journal grid`; the regression asserts the no-overlay hover contract above, the no card-to-card fading reset, no card animation replay after leaving the grid, and the Graphik subtitle typography. Latest local run after hover smoothing/subtitle updates: `32 passed`.
+  - Smoke suite includes `work new route renders the filtered journal grid`; the regression asserts the no-overlay hover contract above, the no card-to-card fading reset, no card animation replay after leaving the grid, and the Graphik subtitle typography. Latest local run after hover smoothing/subtitle updates: `32 passed`.
   - Mobile-only work journal controls were updated on 2026-05-11 using the top control pattern from `https://www.kinfolk.com/stories`: desktop filters remain unchanged, but under the `50.5625em` breakpoint the page shows an `All Work` title, a left `Categories` trigger with a stacked-line icon, a right grid/list view toggle, and a `2px` underline. The filter buttons move into a fullscreen mobile dialog opened by `Categories`; the dialog locks body scroll, hides/disables the mirrored Webflow nav while open, keeps multi-select filter behavior, and still persists filters/view in query params. Regression coverage: `work new route uses mobile categories modal controls`; latest focused local production run: `pnpm exec playwright test tests/smoke.spec.ts -g "work new" --reporter=line` passed `4 passed`. Deployed production URL: `https://ripe-studios-d1r74z9o4-anushgopalakrishnans-projects.vercel.app`; stable aliases repointed to this deployment: `https://ripe-studios-cms.vercel.app` and `https://ripe-studios-clone.vercel.app`. Live Playwright check verified `/work-new?view=grid` has `All Work`, visible `Categories`, hidden desktop filters, fullscreen modal with all 5 filters, nav opacity `0` while modal is open, and `filters=Motion` persists after selecting Motion.
   - Mobile hover replacement on 2026-05-11: under the same mobile breakpoint, the work journal now activates the project nearest a viewport trigger line during scroll instead of depending on hover. This reuses the existing `handleCardEnter`/theme path, so the scroll-active card gets the same page theme, full-color image, zoom, tag reveal, and per-card text contrast behavior as desktop hover; inactive visible cards dim/greyscale. Desktop pointer hover remains unchanged. The scroll observer is `requestAnimationFrame`-throttled and clears the theme only when the grid is mostly outside the viewport. Regression coverage was added to `work new route uses mobile categories modal controls`; it checks Sticky Notes is initially active on mobile, scrolling to `900` activates ZetaChain and changes the theme to `#0d7c5f`, with the active image unfiltered and inactive image greyscaled. Deployed production URL: `https://ripe-studios-4c8l3kkei-anushgopalakrishnans-projects.vercel.app`; stable aliases `https://ripe-studios-cms.vercel.app` and `https://ripe-studios-clone.vercel.app` were repointed. Live mobile Playwright check on `ripe-studios-cms` verified initial active `Sticky Notes`/`#4e3aaa`, scroll active `ZetaChain`/`#0d7c5f`, active image `none`, inactive image `grayscale(1)`.
   - Mobile filter modal refinement on 2026-05-11: the Categories modal now slides down from the top using `transform: translateY(-100%) -> 0`, uses background `#F1EBE2`, and centers smaller Graphik uppercase filter options in the middle of the viewport. The modal filter text has a higher-specificity black override so active hover themes cannot force it white. Regression now asserts modal background, open transform, black text color, centered text, and Graphik font.

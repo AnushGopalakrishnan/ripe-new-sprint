@@ -5,8 +5,8 @@ async function gotoAppPage(page: Page, path: string) {
 }
 
 const legacyRedirects = [
-  { from: "/case-studies-new", to: /\/case-studies$/ },
-  { from: "/case-studies-new-copy", to: /\/case-studies$/ },
+  { from: "/case-studies-new", to: /\/case-studies(?:\?.*)?$/ },
+  { from: "/case-studies-new-copy", to: /\/case-studies(?:\?.*)?$/ },
   { from: "/archive/writing", to: /\/writing$/ },
   { from: "/archive/writing-new-copy", to: /\/writing$/ },
   { from: "/archive/team", to: /\/team$/ },
@@ -14,7 +14,7 @@ const legacyRedirects = [
   { from: "/archive/services", to: /\/services$/ },
   { from: "/archive/careers", to: /\/careers$/ },
   { from: "/archive/work", to: /\/work$/ },
-  { from: "/case-studies-tags/strategy", to: /\/case-studies\/tags\/strategy$/ },
+  { from: "/case-studies-tags/strategy", to: /\/case-studies\/tags\/strategy(?:\?.*)?$/ },
 ];
 
 const canonicalMirrorPages = [
@@ -30,8 +30,9 @@ test("home page renders the new feed homepage", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
-  await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
 });
 
 test("home old feed archive renders the previous mirrored homepage", async ({ page }) => {
@@ -89,26 +90,24 @@ test("home new feed duplicate renders the mirrored homepage", async ({ page }) =
   await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raf Simons" })).toBeVisible();
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Bar Doubble");
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Mira");
-  await expect(page.getByLabel("Studio B inspired feed")).toContainText("Avantis");
-  await expect(page.getByLabel("Studio B inspired feed").locator("article")).toHaveCount(25);
-  await expect(page.getByLabel("Studio B inspired feed").locator("video")).toHaveCount(1);
+  await expect(page.getByLabel("Featured work feed")).toContainText("Bar Doubble");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Mira");
+  await expect(page.getByLabel("Featured work feed")).toContainText("Avantis");
+  await expect(page.getByLabel("Featured work feed")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.getByLabel("Featured work feed").locator("article")).toHaveCount(25);
+  await expect(page.getByLabel("Featured work feed").locator("video")).toHaveCount(1);
   await expect(
-    page.getByLabel("Studio B inspired feed").locator("article", { hasText: "Services" }),
+    page.getByLabel("Featured work feed").locator("article", { hasText: "Services" }),
   ).toContainText(/Strategy|Identity|Design|Motion/);
   await expect(page.getByLabel("View Raf Simons")).toHaveAttribute(
     "href",
-    "https://studio-b.framer.website/works/raf-simons",
+    "/case-studies/case-study-20",
   );
   await expect(page.getByLabel("Read We built a new online presence")).toHaveAttribute(
     "href",
-    "https://studio-b.framer.website/article-single",
+    "/writing",
   );
-  await expect(page.locator('iframe[title="Studio B Spotify playlist"]')).toHaveAttribute(
-    "src",
-    "https://open.spotify.com/embed/playlist/22KovfchogcaO7CcFsIzHl?theme=1",
-  );
+  await expect(page.getByLabel("Studio playlist")).toContainText("Ambient Systems");
 });
 
 test("home new feed keeps the hero and custom feed stable after hydration", async ({ page }) => {
@@ -133,7 +132,7 @@ test("home new feed keeps the hero and custom feed stable after hydration", asyn
   const readGeometry = () =>
     page.evaluate(() => {
       const heroTitle = document.querySelector(".h1-wrap");
-      const customFeed = document.querySelector('[aria-label="Studio B inspired feed"]');
+      const customFeed = document.querySelector('[aria-label="Featured work feed"]');
       const heroTitleRect = heroTitle?.getBoundingClientRect();
       const customFeedRect = customFeed?.getBoundingClientRect();
 
@@ -170,9 +169,11 @@ test("internal style guide renders the Ripe design system", async ({ page }) => 
 test("canonical case studies route renders visible cards", async ({ page }) => {
   await gotoAppPage(page, "/case-studies");
 
-  await expect(page).toHaveURL(/\/case-studies$/);
-  await expect(page).toHaveTitle("Case Studies NEW");
-  await expect(page.locator(".filter-list .checkbox-label").first()).toHaveText("Strategy");
+  await expect(page).toHaveURL(/\/case-studies(?:\?.*)?$/);
+  await expect(page).toHaveTitle("Case Studies");
+  await expect(page.getByLabel("Project view").getByRole("button")).toHaveCount(1);
+  await expect(page.getByLabel("Work filters").getByRole("button")).toHaveCount(10);
+  await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("grid");
   await expect(page.locator("body")).not.toContainText(/integrity=.*crossorigin=/);
 
   const stylesheets = await page
@@ -182,26 +183,26 @@ test("canonical case studies route renders visible cards", async ({ page }) => {
   expect(stylesheets).toContain("/css/normalize.css");
   expect(stylesheets).toContain("/css/webflow.css");
   expect(stylesheets).toContain("/css/ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.css");
-  const hoverThemeStyle = await page.request.get("/vendor/ripe/styles/case-studies/hover-theme.css");
-  expect(hoverThemeStyle.ok()).toBeTruthy();
-
-  const cards = page.locator(".case-studies-list .masonry-item");
-  await expect(cards).toHaveCount(12);
-  await expect(cards.first()).toBeVisible();
-  await expect(page.locator(".case-studies-list .casestudy_title-text").first()).toHaveText(
-    /Sticky Notes/i,
+  const workJournal = page.getByLabel("Work journal");
+  await expect(workJournal.getByRole("link")).toHaveCount(14);
+  await expect(workJournal.getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
+  await expect(workJournal.getByRole("link", { name: /Sticky Notes/ })).toHaveAttribute(
+    "href",
+    "/case-studies/case-study-20",
   );
 });
 
 test("legacy case studies route redirects to the canonical URL", async ({ page }) => {
   await gotoAppPage(page, "/case-studies-new");
-  await expect(page).toHaveURL(/\/case-studies$/);
+  await expect(page).toHaveURL(/\/case-studies(?:\?.*)?$/);
 });
 
-test("case study tag canonical route resolves through the mirror", async ({ page }) => {
+test("case study tag canonical route filters the native case studies grid", async ({ page }) => {
   await gotoAppPage(page, "/case-studies/tags/strategy");
-  await expect(page).toHaveURL(/\/case-studies\/tags\/strategy$/);
-  await expect(page.locator("html[data-wf-item-slug='strategy']")).toHaveCount(1);
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/case-studies/tags/strategy");
+  await expect.poll(() => new URL(page.url()).searchParams.get("filters")).toContain("Strategy");
+  await expect(page.getByLabel("Work journal").getByRole("link")).toHaveCount(4);
+  await expect(page.getByLabel("Work journal").getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
 });
 
 test("canonical writing route renders mirrored posts", async ({ page }) => {
@@ -336,7 +337,7 @@ test("canonical work route server-renders the final grid footprint", async ({ pa
   });
 });
 
-test("work new route renders the Swissfolio-style filtered journal grid", async ({ page }) => {
+test("work new route renders the filtered journal grid", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await gotoAppPage(page, "/work-new");
 
@@ -1071,12 +1072,12 @@ for (const redirect of legacyRedirects) {
   });
 }
 
-test("case study detail page renders the local Forma reference clone", async ({ page }) => {
+test("case study detail page renders the native project detail", async ({ page }) => {
   await gotoAppPage(page, "/case-studies/zetachain");
 
-  await expect(page).toHaveTitle("Polestar - Forma");
-  await expect(page.getByRole("heading", { name: "POLESTAR" })).toBeVisible();
-  await expect(page.getByText("A bold vision cast in futuristic steel and shade.")).toBeVisible();
+  await expect(page).toHaveTitle("ZetaChain - Case Study");
+  await expect(page.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
+  await expect(page.getByText("A South African icon.")).toBeVisible();
 });
 
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {
@@ -1098,7 +1099,7 @@ test("mirror editor assets load for the case studies canvas", async ({ page }) =
 
   await gotoAppPage(page, "/__editor?path=/case-studies-new");
   const frame = page.frameLocator("iframe[title='Mirrored site editor canvas']");
-  await expect(frame.locator(".case-studies-list .masonry-item").first()).toBeVisible();
+  await expect(frame.getByLabel("Work journal").getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
 });
 
 test("mirror editor exposes the home new feed duplicate", async ({ page }) => {

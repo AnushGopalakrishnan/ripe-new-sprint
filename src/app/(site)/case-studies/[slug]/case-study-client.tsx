@@ -81,6 +81,28 @@ const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
+type DragPosition = {
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  didDrag: boolean;
+  id: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+};
+
+const videoExtensions = new Set([
+  "mp4",
+  "webm",
+  "mov",
+  "m4v",
+  "ogv",
+  "ogg",
+  "m3u8",
+]);
 
 function parsePathname(src: string) {
   try {
@@ -104,6 +126,8 @@ function initials(name: string) {
   if (!words.length) return "?";
   if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
   return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
 }
 
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
@@ -116,6 +140,11 @@ function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
       const parsed = new URL(raw);
       const path = parsed.pathname.startsWith("/") ? parsed.pathname : `/${parsed.pathname}`;
       if (path.startsWith("/case-studies/")) return path as `/case-studies${string}`;
+      const path = parsed.pathname.startsWith("/")
+        ? parsed.pathname
+        : `/${parsed.pathname}`;
+      if (path.startsWith("/case-studies/"))
+        return path as `/case-studies${string}`;
       return `/case-studies${path}` as `/case-studies${string}`;
     } catch {
       return "/case-studies";

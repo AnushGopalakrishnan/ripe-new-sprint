@@ -43,9 +43,8 @@ export const homePage: HomePage = {
   secondaryCta: { label: "Read The Writing Feed", href: "/writing" },
   heroMedia: {
     kind: "video",
-    src: "https://vz-6a7f17ce.b-cdn.net/sample-hls/playlist.m3u8",
-    poster:
-      "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1600&q=80",
+    src: "/case-detail-media/feature.mp4",
+    poster: "/case-detail-media/hero.jpg",
     alt: "Team workshop surrounded by wall-sized motion boards",
     eyebrow: "Motion-ready media component",
   },
@@ -84,7 +83,7 @@ export const caseStudies: CaseStudy[] = [
     theme: "ember",
     coverMedia: {
       kind: "image",
-      src: "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1600&q=80",
+      src: "/work-media/zetachain.png",
       alt: "Warm-toned motion frames pinned across a production wall",
       eyebrow: "Featured Case Study",
     },
@@ -145,7 +144,7 @@ export const caseStudies: CaseStudy[] = [
     theme: "moss",
     coverMedia: {
       kind: "image",
-      src: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=80",
+      src: "/work-media/sticky-notes.png",
       alt: "Editorial workspace with notebooks, proofs, and photo contact sheets",
       eyebrow: "Content Migration",
     },
@@ -206,7 +205,7 @@ export const writingPosts: WritingPost[] = [
     readTime: "6 min read",
     coverMedia: {
       kind: "image",
-      src: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80",
+      src: "/case-detail-media/intro.jpg",
       alt: "Laptop showing animation timing frames and code side by side",
       eyebrow: "Engineering Note",
     },
@@ -245,7 +244,7 @@ export const writingPosts: WritingPost[] = [
     readTime: "5 min read",
     coverMedia: {
       kind: "image",
-      src: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1600&q=80",
+      src: "/case-detail-media/wide-feature.jpg",
       alt: "Printed editorial layouts spread across a large desk",
       eyebrow: "Content Systems",
     },

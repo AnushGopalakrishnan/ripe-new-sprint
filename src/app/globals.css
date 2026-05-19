@@ -2,6 +2,18 @@
 
 /* Public mirror pages load their exported styles from each route document. */
 
+body:has(#sanity) {
+  align-items: stretch;
+  display: block;
+  justify-content: flex-start;
+}
+
+#sanity {
+  height: 100vh;
+  min-height: 100vh;
+  width: 100vw;
+}
+
 [data-page-transition-container] {
   width: 100%;
 }

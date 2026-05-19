@@ -1,53 +1,52 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styles from "./studio-b-feed.module.css";
+import styles from "./home-feed.module.css";
 
 const images = {
   avantis: "/feed-assets/avantis-cube.png",
-  maison: "https://framerusercontent.com/images/PJ4eIw910N92PRbWoU7G8dQpCSQ.jpg",
-  cutPaste: "https://framerusercontent.com/images/TDVqw1tqR6Xs2CRjqnICnaPpH1o.jpg",
-  tesla: "https://framerusercontent.com/images/1tWZIqC7cLcjzMvm9KUZIoIEH0.jpeg",
+  maison: "/feed-media/maison.jpg",
+  cutPaste: "/feed-media/cut-paste.jpg",
+  tesla: "/feed-media/tesla.jpeg",
   mira: "/feed-assets/mira-shoes.png",
   oum: "/feed-assets/oum-ceramics.png",
-  polestar: "https://framerusercontent.com/images/Tlpib4CyrbdqyderduT9vzAadsc.jpg",
-  artObjects: "https://framerusercontent.com/images/9iUqmRc0mCszgnoIcbHNK758gck.jpg",
-  studio: "https://framerusercontent.com/images/YJ7KrAOMijDmR3aacD3lI8YfOC4.jpg?width=1280&height=853",
-  dries: "https://framerusercontent.com/images/nwabeIJBn9YTGH9qZPPHlf13mM.jpg",
-  yangLi: "https://framerusercontent.com/images/ez21OQNZzW1WsIvb3E0iXlwNw8.jpg",
-  margot: "https://framerusercontent.com/images/5w8O1Tx5e1JaHayg8lfISv2Mw.jpg",
-  faune: "https://framerusercontent.com/images/hWuHSaij56zc0oBboEog12rtI.jpg",
-  rick: "https://framerusercontent.com/images/nKHExlWmSBMLnqfZuSBVnUtNPPw.jpg",
+  polestar: "/feed-media/polestar.jpg",
+  artObjects: "/feed-media/art-objects.jpg",
+  studio: "/feed-media/studio.jpg",
+  dries: "/feed-media/dries.jpg",
+  yangLi: "/feed-media/yang-li.jpg",
+  margot: "/feed-media/margot.jpg",
+  faune: "/feed-media/faune.jpg",
+  rick: "/feed-media/rick.jpg",
   zeta: "/feed-assets/zetachain-bag.png",
 };
 
 const videos = {
-  maison: "https://ena-supply.b-cdn.net/Studio%20B/cottenbro%20(1).mp4",
-  polestar: "https://ena-supply.b-cdn.net/Studio%20B/pexels-yaroslav-shuraev-5418124%20trim%20(1).mp4",
+  maison: "/feed-media/maison.mp4",
+  polestar: "/feed-media/polestar.mp4",
 };
 
 const serviceWords = ["Strategy", "Identity", "Design", "Motion"];
 const initialLondonTime = "00:00:00 AM";
 const feedImageSizes = "(max-width: 767px) 100vw, 33vw";
-const responsiveImageWidths = [480, 800, 1080, 1400];
 
 const links = {
-  about: "https://studio-b.framer.website/about",
-  article: "https://studio-b.framer.website/article-single",
+  about: "/team",
+  article: "/writing",
   works: {
-    artObjects: "https://studio-b.framer.website/works/art-and-objects",
-    cutPaste: "https://studio-b.framer.website/works/cut-and-paste",
-    dries: "https://studio-b.framer.website/works/dries-van-noten",
-    faune: "https://studio-b.framer.website/works/faune",
-    jacquemus: "https://studio-b.framer.website/works/jacquemus",
-    maison: "https://studio-b.framer.website/works/maison-margiela",
-    margot: "https://studio-b.framer.website/works/margot-glasses",
-    nike: "https://studio-b.framer.website/works/nike",
-    polestar: "https://studio-b.framer.website/works/polestar",
-    raf: "https://studio-b.framer.website/works/raf-simons",
-    rick: "https://studio-b.framer.website/works/rick-owens",
-    tesla: "https://studio-b.framer.website/works/tesla-motors",
-    yangLi: "https://studio-b.framer.website/works/yang-li",
+    artObjects: "/case-studies/case-study-17",
+    cutPaste: "/case-studies/case-study-15",
+    dries: "/case-studies/case-study-14",
+    faune: "/case-studies/case-study-13",
+    jacquemus: "/case-studies/case-study-12",
+    maison: "/case-studies/case-study-11",
+    margot: "/case-studies/case-study-10",
+    nike: "/case-studies/case-study-9",
+    polestar: "/case-studies/case-study-19",
+    raf: "/case-studies/case-study-20",
+    rick: "/case-studies/case-study-18",
+    tesla: "/case-studies/zetachain",
+    yangLi: "/case-studies/case-study-19",
   },
 };
 
@@ -128,23 +127,8 @@ function CardLink({ href, label }: { href: string; label: string }) {
   return <a className={styles.cardLink} href={href} aria-label={label} />;
 }
 
-function responsiveImageProps(src: string) {
-  if (!src.startsWith("https://framerusercontent.com/")) {
-    return { sizes: feedImageSizes };
-  }
-
-  const url = new URL(src);
-  url.searchParams.delete("height");
-
-  return {
-    sizes: feedImageSizes,
-    srcSet: responsiveImageWidths
-      .map((width) => {
-        url.searchParams.set("width", String(width));
-        return `${url.toString()} ${width}w`;
-      })
-      .join(", "),
-  };
+function responsiveImageProps() {
+  return { sizes: feedImageSizes };
 }
 
 function SimpleCard({
@@ -193,7 +177,7 @@ function ImageCard({
         src={src}
         alt=""
         loading="lazy"
-        {...responsiveImageProps(src)}
+        {...responsiveImageProps()}
         style={position ? { objectPosition: position } : undefined}
       />
       <div className={styles.overlay} />
@@ -316,7 +300,7 @@ function CopyCard({
     <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.textCard} ${styles.medium}`}>
       <Pill action={href ? "About" : undefined}>{label}</Pill>
       <p className={large ? styles.bigCopy : styles.bodyCopy}>{children}</p>
-      {href ? <CardLink href={href} label="About Studio B" /> : null}
+      {href ? <CardLink href={href} label="About Ripe Studios" /> : null}
     </article>
   );
 }
@@ -366,13 +350,12 @@ function SoundsCard() {
     <article className={`${styles.card} ${styles.interactive} ${styles.textCard} ${styles.square} ${styles.soundsCard}`}>
       <Pill action="Sounds">Studio</Pill>
       <h3 className={styles.soundsTitle}>What we listen in the studio</h3>
-      <iframe
-        className={styles.spotify}
-        src="https://open.spotify.com/embed/playlist/22KovfchogcaO7CcFsIzHl?theme=1"
-        title="Studio B Spotify playlist"
-        loading="lazy"
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-      />
+      <div className={styles.playlistPanel} aria-label="Studio playlist">
+        <span>Studio Playlist</span>
+        <span>Ambient Systems</span>
+        <span>Low Light Motion</span>
+        <span>Late Session Notes</span>
+      </div>
     </article>
   );
 }
@@ -390,7 +373,7 @@ function ServicesCard() {
   );
 }
 
-export function StudioBFeed() {
+export function HomeFeed() {
   const feedRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -438,7 +421,7 @@ export function StudioBFeed() {
   }, []);
 
   return (
-    <section ref={feedRef} className={styles.feed} aria-label="Studio B inspired feed">
+    <section ref={feedRef} className={styles.feed} aria-label="Featured work feed">
       <div className={styles.grid}>
         <div className={styles.column}>
           <SimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simons" />

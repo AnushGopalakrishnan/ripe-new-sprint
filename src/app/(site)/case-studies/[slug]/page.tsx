@@ -34,7 +34,7 @@ type ClientMedia = {
 
 const fallbackMedia: MediaAsset = {
   kind: "image",
-  src: "https://framerusercontent.com/images/pZ6mbxzpeUTgS9ozeReZUTGVQ.jpg",
+  src: "/case-detail-media/hero.jpg",
   alt: "Case study media",
 };
 
