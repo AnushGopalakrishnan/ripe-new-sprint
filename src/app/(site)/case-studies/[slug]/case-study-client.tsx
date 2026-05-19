@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import styles from "@/app/(site)/detail-page.module.css";
@@ -84,6 +83,19 @@ type CaseStudyClientProps = {
   moreProjects: MoreProject[];
 };
 
+type DragPosition = {
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  didDrag: boolean;
+  id: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+};
+
 const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
@@ -106,11 +118,8 @@ function getMediaKind(src: string, kind: MediaKind = "auto") {
   return videoExtensions.has(extension) ? "video" : "image";
 }
 
-function initials(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "?";
-  if (words.length === 1) return words[0].slice(0, 1).toUpperCase();
-  return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase();
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
 }
 
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
@@ -150,13 +159,58 @@ function CommentableMedia({
 }) {
   const comments = media.comments ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragPositions, setDragPositions] = useState<Record<string, DragPosition>>({});
   const [frame, setFrame] = useState<{ offsetX: number; offsetY: number; width: number; height: number } | null>(
     null,
   );
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastPointerTypeRef = useRef<string | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
+  const suppressNextClickRef = useRef(false);
+  const suppressNextTouchRef = useRef(false);
   const kind = getMediaKind(media.src, media.kind);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current === null) return;
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+  };
+
+  const openComment = (id: string) => {
+    clearCloseTimer();
+    setActiveId(id);
+  };
+
+  const closeComment = (id: string) => {
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setActiveId((prev) => (prev === id ? null : prev));
+      closeTimerRef.current = null;
+    }, 90);
+  };
+
+  const moveCommentToPointer = (id: string, clientX: number, clientY: number) => {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+
+    const originX = rect.left + (frame?.offsetX ?? 0);
+    const originY = rect.top + (frame?.offsetY ?? 0);
+    const width = frame?.width ?? rect.width;
+    const height = frame?.height ?? rect.height;
+
+    if (width <= 0 || height <= 0) return;
+
+    setDragPositions((prev) => ({
+      ...prev,
+      [id]: {
+        x: clampPercent(((clientX - originX) / width) * 100),
+        y: clampPercent(((clientY - originY) / height) * 100),
+      },
+    }));
+  };
 
   const updateFrame = useCallback(() => {
     if (fitMode !== "contain") {
@@ -235,6 +289,12 @@ function CommentableMedia({
     return () => observer.disconnect();
   }, [updateFrame]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
   const mediaElement =
     kind === "video" ? (
       <video
@@ -273,31 +333,110 @@ function CommentableMedia({
     >
       {mediaElement}
       {comments.map((comment, index) => {
+        const position = dragPositions[comment.id] ?? comment;
         const isActive = activeId === comment.id;
-        const x = frame ? frame.offsetX + (frame.width * comment.x) / 100 : `${comment.x}%`;
-        const y = frame ? frame.offsetY + (frame.height * comment.y) / 100 : `${comment.y}%`;
+        const x = frame ? frame.offsetX + (frame.width * position.x) / 100 : `${position.x}%`;
+        const y = frame ? frame.offsetY + (frame.height * position.y) / 100 : `${position.y}%`;
+        const threadClasses = [
+          styles.detailCommentThread,
+          isActive ? styles.detailCommentThreadOpen : "",
+          position.x > 50 ? styles.detailCommentThreadExpandLeft : "",
+          position.y <= 50 ? styles.detailCommentThreadExpandDown : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         const style = {
           "--comment-x": typeof x === "number" ? `${x}px` : x,
           "--comment-y": typeof y === "number" ? `${y}px` : y,
         } as CSSProperties;
 
         return (
-          <div
-            key={comment.id}
-            className={`${styles.detailCommentThread} ${isActive ? styles.detailCommentThreadOpen : ""}`}
-            style={style}
-          >
+          <div key={comment.id} className={threadClasses} style={style}>
             <button
               aria-expanded={isActive}
-              aria-label={`${isActive ? "Close" : "Open"} comment ${index + 1}`}
+              aria-label={`Open and drag note ${index + 1}`}
               className={styles.detailCommentSurface}
+              onBlur={() => {
+                setActiveId((prev) => (prev === comment.id ? null : prev));
+              }}
               onClick={(event) => {
                 event.stopPropagation();
+                if (suppressNextClickRef.current) {
+                  suppressNextClickRef.current = false;
+                  return;
+                }
+                if (lastPointerTypeRef.current === "touch") {
+                  setActiveId((prev) => (prev === comment.id ? null : comment.id));
+                  return;
+                }
+                setActiveId(comment.id);
+              }}
+              onFocus={() => openComment(comment.id)}
+              onPointerDown={(event) => {
+                lastPointerTypeRef.current = event.pointerType;
+                if (!event.isPrimary || event.button !== 0) return;
+                clearCloseTimer();
+                dragStateRef.current = {
+                  didDrag: false,
+                  id: comment.id,
+                  pointerId: event.pointerId,
+                  startX: event.clientX,
+                  startY: event.clientY,
+                };
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerEnter={(event) => {
+                if (event.pointerType !== "touch") openComment(comment.id);
+              }}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== "touch") closeComment(comment.id);
+              }}
+              onPointerMove={(event) => {
+                const dragState = dragStateRef.current;
+                if (!dragState || dragState.id !== comment.id) return;
+
+                const distance = Math.hypot(event.clientX - dragState.startX, event.clientY - dragState.startY);
+                if (!dragState.didDrag && distance < 3) return;
+
+                dragState.didDrag = true;
+                suppressNextClickRef.current = true;
+                suppressNextTouchRef.current = true;
+                clearCloseTimer();
+                setActiveId(comment.id);
+                moveCommentToPointer(comment.id, event.clientX, event.clientY);
+              }}
+              onPointerUp={(event) => {
+                const dragState = dragStateRef.current;
+                if (!dragState || dragState.id !== comment.id) return;
+
+                if (dragState.didDrag) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  moveCommentToPointer(comment.id, event.clientX, event.clientY);
+                }
+
+                if (event.currentTarget.hasPointerCapture(dragState.pointerId)) {
+                  event.currentTarget.releasePointerCapture(dragState.pointerId);
+                }
+                dragStateRef.current = null;
+              }}
+              onTouchEnd={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (suppressNextTouchRef.current) {
+                  suppressNextTouchRef.current = false;
+                  return;
+                }
+                lastPointerTypeRef.current = "touch";
                 setActiveId((prev) => (prev === comment.id ? null : comment.id));
               }}
               type="button"
             >
-              <span className={styles.detailCommentAvatarWrap}>
+              <span
+                className={`${styles.detailCommentAvatarWrap} ${
+                  comment.avatar ? styles.detailCommentAvatarWrapWithImage : ""
+                }`}
+              >
                 {comment.avatar ? (
                   <img
                     className={styles.detailCommentAvatar}
@@ -307,13 +446,10 @@ function CommentableMedia({
                     decoding="async"
                   />
                 ) : (
-                  <span className={styles.detailCommentAvatarFallback}>{initials(comment.author)}</span>
+                  <span className={styles.detailCommentAvatarFallback} aria-hidden="true" />
                 )}
               </span>
-              <span className={styles.detailCommentIcon} aria-hidden="true">
-                <MessageCircle size={13} strokeWidth={2.15} />
-              </span>
-              <span className={styles.detailCommentContent}>
+              <span className={styles.detailCommentCard}>
                 <span className={styles.detailCommentAuthor}>{comment.author}</span>
                 <span className={styles.detailCommentBody}>{comment.body}</span>
               </span>
