@@ -145,6 +145,12 @@
   - `/studio` is served by the real Next/Sanity app
 - Current canonical unified public domain:
   - `https://ripe-studios.vercel.app`
+- Latest verified production deployment on 2026-05-19:
+  - `https://ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app`
+  - deployment id: `dpl_VU1hrghaF8SvFQ2cQYZwd5cQFntw`
+  - deployed from the correct `ripe-studios-cms` Vercel project after relinking this workspace with `pnpm dlx vercel link --yes --project ripe-studios-cms`
+  - `https://ripe-studios.vercel.app` was explicitly repointed to this deployment with `pnpm dlx vercel alias set ripe-studios-7lrm5tg4z-anushgopalakrishnans-projects.vercel.app ripe-studios.vercel.app`
+  - verification: production `/studio` has `#sanity` at `x=0` and fills a 1600x1000 viewport; production `/` has title `The Natural Outcome | Ripe Studios`, the original mirrored `.hero_section`, and the white `Featured work feed`.
 - Latest verified production deployment on 2026-05-15:
   - `https://ripe-studios-2u8tmv4jq-anushgopalakrishnans-projects.vercel.app`
   - deployment id: `dpl_DbVQVGNK3jNeKSByUnngtAFdY1ac`
