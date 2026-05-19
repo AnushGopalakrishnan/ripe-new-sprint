@@ -354,7 +354,10 @@
   border-radius: 999px;
   color: #000000;
   display: flex;
-  font: 500 16px / 1 "Detail Sans", Arial, sans-serif;
+  font:
+    500 16px / 1 "Detail Sans",
+    Arial,
+    sans-serif;
   height: 30px;
   justify-content: center;
   left: 18px;
@@ -597,7 +600,9 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
   color: #000000;
   display: inline-flex;
-  font: 600 13px / 1 Arial, sans-serif;
+  font:
+    600 13px / 1 Arial,
+    sans-serif;
   height: 36px;
   justify-content: center;
   min-width: 142px;
@@ -802,10 +807,12 @@
 }
 
 .detailCommentThread {
+  height: 40px;
   left: var(--comment-x);
   position: absolute;
   top: var(--comment-y);
   transform: translate(-50%, -50%);
+  width: 40px;
   z-index: 7;
 }
 
@@ -814,236 +821,224 @@
 }
 
 .detailCommentSurface {
-  --comment-shell-bg: rgba(252, 249, 244, 0.95);
-  --comment-ink: #17110d;
   align-items: center;
   appearance: none;
-  background: var(--comment-shell-bg);
-  backdrop-filter: blur(16px) saturate(1.08);
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 999px;
-  box-shadow:
-    0 18px 40px rgba(18, 16, 14, 0.18),
-    0 3px 10px rgba(18, 16, 14, 0.12);
-  color: var(--comment-ink);
-  cursor: pointer;
-  display: grid;
-  grid-template-columns: 34px 16px 0fr;
-  height: 42px;
-  justify-items: start;
-  min-width: 58px;
+  background: #ffffff;
+  bottom: 0;
+  border: 0;
+  border-radius: 32px 32px 32px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  color: #3c1b0b;
+  cursor: grab;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  height: auto;
+  justify-content: flex-start;
+  max-height: 40px;
+  max-width: 40px;
+  min-width: 40px;
   outline: none;
   overflow: hidden;
   padding: 4px;
-  position: relative;
-  transform: translateZ(0);
-  transition:
-    width 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    min-height 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    border-radius 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    box-shadow 280ms ease,
-    grid-template-columns 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    column-gap 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    padding 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
-  width: 58px;
-  will-change: width, min-height, border-radius, transform;
-}
-
-.detailCommentSurface::before {
-  background: rgba(23, 17, 13, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  border-radius: 999px;
-  bottom: -4px;
-  box-shadow: 0 0 0 4px rgba(252, 249, 244, 0.28);
-  content: "";
-  height: 9px;
-  left: 7px;
+  left: 0;
   position: absolute;
-  width: 9px;
+  text-align: left;
+  touch-action: none;
+  transform-origin: bottom left;
+  transition:
+    max-width 260ms cubic-bezier(0.23, 1, 0.32, 1),
+    max-height 260ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-radius 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 180ms ease,
+    gap 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    padding 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  width: max-content;
+  user-select: none;
 }
 
-.detailCommentSurface:focus-visible {
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.78),
-    0 18px 40px rgba(18, 16, 14, 0.2),
-    0 3px 10px rgba(18, 16, 14, 0.12);
+.detailCommentSurface:active {
+  cursor: grabbing;
+}
+
+.detailCommentThreadExpandLeft .detailCommentSurface {
+  border-radius: 32px 32px 0 32px;
+  left: auto;
+  right: 0;
+  transform-origin: bottom right;
+}
+
+.detailCommentThreadExpandDown .detailCommentSurface {
+  border-radius: 0 32px 32px 32px;
+  bottom: auto;
+  top: 0;
+  transform-origin: top left;
+}
+
+.detailCommentThreadExpandLeft.detailCommentThreadExpandDown
+  .detailCommentSurface {
+  border-radius: 32px 0 32px 32px;
+  transform-origin: top right;
 }
 
 .detailCommentThreadOpen .detailCommentSurface {
-  border-radius: 8px;
-  box-shadow:
-    0 24px 58px rgba(18, 16, 14, 0.22),
-    0 8px 18px rgba(18, 16, 14, 0.14);
-  column-gap: 10px;
-  grid-template-columns: 38px minmax(0, 1fr);
-  min-height: 112px;
-  padding: 10px 12px 12px 10px;
-  transform: translate(2px, 2px);
-  width: min(320px, 72vw);
+  align-items: flex-start;
+  border-radius: 16px 16px 16px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  gap: 8px;
+  max-height: 260px;
+  max-width: min(413px, calc(100vw - 40px));
+  padding: 12px;
+}
+
+.detailCommentThreadOpen.detailCommentThreadExpandLeft .detailCommentSurface {
+  border-radius: 16px 16px 0 16px;
+}
+
+.detailCommentThreadOpen.detailCommentThreadExpandDown .detailCommentSurface {
+  border-radius: 0 16px 16px 16px;
+}
+
+.detailCommentThreadOpen.detailCommentThreadExpandLeft.detailCommentThreadExpandDown
+  .detailCommentSurface {
+  border-radius: 16px 0 16px 16px;
+}
+
+.detailCommentSurface:focus-visible .detailCommentAvatarWrap {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 3px;
 }
 
 .detailCommentAvatarWrap {
   align-items: center;
-  background: rgba(23, 17, 13, 0.08);
-  border: 1px solid rgba(23, 17, 13, 0.1);
+  background: #979797;
+  border: 0;
   border-radius: 999px;
+  box-shadow: none;
   display: inline-flex;
   flex: 0 0 auto;
-  grid-column: 1;
-  grid-row: 1;
-  height: 34px;
+  height: 32px;
   justify-content: center;
   overflow: hidden;
-  transition:
-    width 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    height 280ms cubic-bezier(0.23, 1, 0.32, 1);
-  width: 34px;
+  position: relative;
+  width: 32px;
+}
+
+.detailCommentAvatarWrap::after {
+  background: #979797;
+  border-radius: 999px;
+  content: "";
+  height: 100%;
+  position: absolute;
+  width: 100%;
+}
+
+.detailCommentAvatarWrapWithImage::after {
+  content: none;
 }
 
 .detailCommentThreadOpen .detailCommentAvatarWrap {
-  height: 38px;
-  width: 38px;
+  background: #979797;
 }
 
 .detailCommentAvatar {
   border-radius: 999px;
   display: block;
-  height: 28px;
-  object-fit: cover;
-  width: 28px;
-}
-
-.detailCommentThreadOpen .detailCommentAvatar {
   height: 32px;
+  object-fit: cover;
+  position: relative;
   width: 32px;
+  z-index: 1;
 }
 
 .detailCommentAvatarFallback {
-  color: #2a1b14;
-  font: 600 11px / 1 "Detail Sans", Arial, sans-serif;
-  text-transform: uppercase;
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
-.detailCommentIcon {
-  align-items: center;
-  align-self: center;
-  background: #17110d;
-  border-radius: 999px;
-  color: #fff8ef;
-  display: inline-flex;
-  grid-column: 2;
-  grid-row: 1;
-  height: 18px;
-  justify-content: center;
-  margin-left: -2px;
-  opacity: 1;
-  transform: scale(1);
-  transition:
-    opacity 170ms ease,
-    transform 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    width 280ms cubic-bezier(0.23, 1, 0.32, 1);
-  width: 18px;
-}
-
-.detailCommentThreadOpen .detailCommentIcon {
-  opacity: 0;
-  transform: scale(0.7);
-  width: 0;
-}
-
-.detailCommentContent {
-  align-self: stretch;
+.detailCommentCard {
+  align-items: flex-start;
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: 7px;
-  grid-column: 2;
-  grid-row: 1;
-  justify-content: center;
-  max-height: 0;
-  max-width: 0;
+  gap: 10px;
+  height: auto;
+  justify-content: flex-start;
+  max-width: 349px;
   min-width: 0;
   opacity: 0;
   overflow: hidden;
-  transform: translateX(-7px);
+  padding: 0;
+  pointer-events: none;
   transition:
-    opacity 180ms ease,
-    transform 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    max-height 280ms cubic-bezier(0.23, 1, 0.32, 1),
-    max-width 280ms cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 160ms ease,
+    max-width 260ms cubic-bezier(0.23, 1, 0.32, 1);
+  visibility: hidden;
+  width: max-content;
 }
 
-.detailCommentThreadOpen .detailCommentContent {
-  max-height: 100px;
-  max-width: min(248px, 52vw);
+.detailCommentThreadOpen .detailCommentCard {
+  max-width: 349px;
   opacity: 1;
-  transform: translateX(0);
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .detailCommentAuthor {
-  color: rgba(23, 17, 13, 0.66);
-  font: 600 10px / 1.1 "Detail Sans", Arial, sans-serif;
-  letter-spacing: 0.04em;
+  color: #3c1b0b;
+  display: block;
+  font:
+    400 20px / 1.2 "Times New Roman",
+    Times,
+    serif;
+  letter-spacing: 0;
   margin: 0;
+  max-width: 100%;
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .detailCommentBody {
-  color: #17110d;
-  font: 500 13px / 1.34 "Detail Sans", Arial, sans-serif;
+  color: #3c1b0b;
+  display: block;
+  font:
+    400 12px / 1.6 "Graphik",
+    "GraphikRegular",
+    "Detail Sans",
+    Arial,
+    sans-serif;
+  letter-spacing: 0;
   margin: 0;
+  max-height: 76px;
+  max-width: 349px;
   overflow: hidden;
-  text-align: left;
-  width: 100%;
-  word-break: normal;
   overflow-wrap: anywhere;
+  text-align: left;
+  width: max-content;
 }
 
 @media (max-width: 900px) {
-  .detailCommentSurface {
-    grid-template-columns: 32px 15px 0fr;
-    height: 40px;
-    min-width: 55px;
-    width: 55px;
-  }
-
   .detailCommentThreadOpen .detailCommentSurface {
-    column-gap: 9px;
-    grid-template-columns: 34px minmax(0, 1fr);
-    min-height: 104px;
-    padding: 9px 10px 11px 9px;
-    width: min(282px, 78vw);
+    max-height: 220px;
+    max-width: min(340px, calc(100vw - 32px));
   }
 
-  .detailCommentAvatarWrap {
-    height: 32px;
-    width: 32px;
+  .detailCommentThreadOpen .detailCommentCard,
+  .detailCommentBody {
+    max-width: 276px;
   }
 
-  .detailCommentThreadOpen .detailCommentAvatarWrap {
-    height: 34px;
-    width: 34px;
-  }
-
-  .detailCommentAvatar {
-    height: 26px;
-    width: 26px;
-  }
-
-  .detailCommentThreadOpen .detailCommentAvatar {
-    height: 29px;
-    width: 29px;
-  }
-
-  .detailCommentThreadOpen .detailCommentContent {
-    max-width: min(222px, 58vw);
+  .detailCommentAuthor {
+    font-size: 18px;
   }
 
   .detailCommentBody {
     font-size: 12px;
+    line-height: 1.5;
+    max-height: 72px;
   }
 }
