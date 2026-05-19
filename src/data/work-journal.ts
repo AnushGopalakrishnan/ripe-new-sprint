@@ -4,6 +4,12 @@ export type WorkJournalItem = {
   description: string;
   industry: string;
   image: string;
+  coverMedia?: {
+    kind: "image" | "video";
+    src: string;
+    alt: string;
+    poster?: string;
+  };
   tags: string[];
   year: string;
   accentColor?: string;

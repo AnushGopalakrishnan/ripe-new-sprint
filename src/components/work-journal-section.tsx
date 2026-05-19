@@ -18,6 +18,7 @@ const THEME_GRADIENT_WHITE_STOP = 0.7;
 const MOBILE_MEDIA_QUERY = "(max-width: 50.5625em)";
 const workCardImageSizes = "(max-width: 50.5625em) 100vw, 25vw";
 const preloadedWorkImages = new Set<string>();
+const videoExtensions = [".mp4", ".webm", ".mov", ".m4v", ".m3u8", ".ogv", ".ogg"];
 
 type WorkJournalSectionProps = {
   filters: string[];
@@ -61,6 +62,30 @@ function preloadWorkImage(src: string) {
   link.as = "image";
   link.href = src;
   document.head.appendChild(link);
+}
+
+function parseSourcePath(src: string) {
+  try {
+    return new URL(src).pathname.toLowerCase();
+  } catch {
+    return src.toLowerCase();
+  }
+}
+
+function isVideoItem(item: WorkJournalItem) {
+  if (item.coverMedia?.kind === "video") return true;
+  const mediaSrc = item.coverMedia?.src ?? item.image;
+  if (mediaSrc.startsWith("data:video/")) return true;
+  const path = parseSourcePath(mediaSrc);
+  return videoExtensions.some((extension) => path.includes(extension));
+}
+
+function itemMediaSource(item: WorkJournalItem) {
+  return item.coverMedia?.src ?? item.image;
+}
+
+function itemMediaPoster(item: WorkJournalItem) {
+  return item.coverMedia?.poster;
 }
 
 function mixRgb(from: number[], to: number[], progress: number) {
@@ -466,7 +491,7 @@ export function WorkJournalSection({
   }
 
   function handleCardEnter(item: WorkJournalItem) {
-    preloadWorkImage(item.image);
+    if (!isVideoItem(item)) preloadWorkImage(itemMediaSource(item));
 
     if (clearThemeTimer.current) {
       window.clearTimeout(clearThemeTimer.current);
@@ -758,15 +783,29 @@ export function WorkJournalSection({
             onFocus={() => handleCardEnter(item)}
           >
             <div className={styles.media}>
-              <Image
-                className={styles.image}
-                src={item.image}
-                alt={item.title}
-                fill
-                loading={index < 4 ? "eager" : "lazy"}
-                fetchPriority={index < 4 ? "high" : "auto"}
-                sizes={workCardImageSizes}
-              />
+              {isVideoItem(item) ? (
+                <video
+                  className={styles.image}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload={index < 4 ? "auto" : "metadata"}
+                  poster={itemMediaPoster(item)}
+                >
+                  <source src={itemMediaSource(item)} />
+                </video>
+              ) : (
+                <Image
+                  className={styles.image}
+                  src={itemMediaSource(item)}
+                  alt={item.coverMedia?.alt || item.title}
+                  fill
+                  loading={index < 4 ? "eager" : "lazy"}
+                  fetchPriority={index < 4 ? "high" : "auto"}
+                  sizes={workCardImageSizes}
+                />
+              )}
               <div
                 className={styles.overlay}
                 style={
@@ -806,14 +845,29 @@ export function WorkJournalSection({
           <div className={styles.listPreviewFrame}>
             <div className={styles.listPreviewTrack}>
               {visibleItems.map((previewItem, previewIndex) => (
-                <img
-                  key={previewItem.slug}
-                  className={styles.listPreviewImage}
-                  src={previewItem.image}
-                  alt=""
-                  loading={previewIndex < 4 ? "eager" : "lazy"}
-                  fetchPriority={previewIndex < 4 ? "high" : "auto"}
-                />
+                isVideoItem(previewItem) ? (
+                  <video
+                    key={previewItem.slug}
+                    className={styles.listPreviewImage}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload={previewIndex < 4 ? "auto" : "metadata"}
+                    poster={itemMediaPoster(previewItem)}
+                  >
+                    <source src={itemMediaSource(previewItem)} />
+                  </video>
+                ) : (
+                  <img
+                    key={previewItem.slug}
+                    className={styles.listPreviewImage}
+                    src={itemMediaSource(previewItem)}
+                    alt=""
+                    loading={previewIndex < 4 ? "eager" : "lazy"}
+                    fetchPriority={previewIndex < 4 ? "high" : "auto"}
+                  />
+                )
               ))}
             </div>
             <div className={styles.listPreviewTag}>{activeListPreviewItem?.industry ?? ""}</div>
