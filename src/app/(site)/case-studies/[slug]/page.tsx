@@ -173,6 +173,12 @@ function toClientReference(study: CaseStudy) {
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
     services: uniqueDetailServices,
+    serviceDebug: {
+      detailServices: study.detailServices,
+      detailServiceTitles: study.detailServiceTitles,
+      detailServiceRefs: study.detailServiceRefs,
+      detailServiceItems: study.detailServiceItems,
+    },
     industry: study.detailIndustry || study.client,
     year: detailYear,
     information: study.detailInformation?.length ? study.detailInformation : [],

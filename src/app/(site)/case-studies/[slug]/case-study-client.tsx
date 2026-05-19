@@ -50,6 +50,12 @@ type CaseStudyReference = {
   heroNote: string;
   eyebrow: string;
   services: string[];
+  serviceDebug?: {
+    detailServices?: unknown;
+    detailServiceTitles?: unknown;
+    detailServiceRefs?: unknown;
+    detailServiceItems?: unknown;
+  };
   industry: string;
   year: string;
   information: string[];
@@ -337,10 +343,11 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
       title: reference.title,
       services: reference.services,
       servicesJoined: reference.services.join(", "),
+      serviceDebug: reference.serviceDebug,
       industry: reference.industry,
       year: reference.year,
     });
-  }, [reference.industry, reference.services, reference.title, reference.year]);
+  }, [reference.industry, reference.serviceDebug, reference.services, reference.title, reference.year]);
 
   useEffect(() => {
     const stage = heroStageRef.current;

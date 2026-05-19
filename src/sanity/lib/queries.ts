@@ -100,6 +100,8 @@ const CASE_STUDY_FIELDS = `
   detailEyebrow,
   detailServices,
   "detailServiceTitles": detailServices[]->title,
+  "detailServiceRefs": detailServices[]._ref,
+  "detailServiceItems": detailServices[]{_type, _ref, title},
   detailIndustry,
   detailInformation,
   detailLayouts[]{

@@ -130,6 +130,8 @@ export type CaseStudy = {
   detailEyebrow?: string;
   detailServices?: Array<string | { _ref?: string; _type?: string; title?: string }>;
   detailServiceTitles?: string[];
+  detailServiceRefs?: string[];
+  detailServiceItems?: Array<{ _type?: string; _ref?: string; title?: string }>;
   detailIndustry?: string;
   detailInformation?: string[];
   detailLayouts?: DetailLayoutBlock[];

@@ -113,30 +113,73 @@ export async function getCaseStudyBySlug(
       const normalizedRefs = Array.from(
         new Set(rawRefs.map((ref) => (ref.startsWith("drafts.") ? ref.slice("drafts.".length) : ref))),
       );
+      const slugRefs = Array.from(
+        new Set(
+          normalizedRefs
+            .filter((ref) => ref.startsWith("caseStudyTag."))
+            .map((ref) => ref.slice("caseStudyTag.".length))
+            .filter((slugValue) => slugValue.length > 0),
+        ),
+      );
 
-      if (normalizedRefs.length > 0) {
+      if (normalizedRefs.length > 0 || slugRefs.length > 0) {
         const tagDocs = await client
           .withConfig({
             useCdn: false,
             stega: false,
           })
-          .fetch<Array<{ title?: string }>>(
-            `*[_type == "caseStudyTag" && _id in $ids]{title}`,
-            { ids: normalizedRefs },
+          .fetch<Array<{ _id?: string; title?: string; slug?: { current?: string } }>>(
+            `*[
+              _type == "caseStudyTag" &&
+              (
+                _id in $ids ||
+                slug.current in $slugs
+              )
+            ]{
+              _id,
+              title,
+              slug
+            }`,
+            { ids: normalizedRefs, slugs: slugRefs },
             {
               perspective: "published",
               next: { revalidate: 0, tags: [] },
             },
           );
 
-        const tagTitles = tagDocs
-          .map((tag) => tag.title?.trim() || "")
-          .filter((title) => title.length > 0);
+        const byId = new Map<string, string>();
+        const bySlug = new Map<string, string>();
+        for (const tag of tagDocs) {
+          const title = tag.title?.trim();
+          if (!title) continue;
+          if (tag._id) byId.set(tag._id, title);
+          const slugCurrent = tag.slug?.current?.trim();
+          if (slugCurrent) bySlug.set(slugCurrent, title);
+        }
 
-        if (tagTitles.length > 0) {
+        const tagTitles = rawRefs
+          .map((ref) => (ref.startsWith("drafts.") ? ref.slice("drafts.".length) : ref))
+          .map((ref) => {
+            if (byId.has(ref)) return byId.get(ref) ?? "";
+            if (ref.startsWith("caseStudyTag.")) {
+              const refSlug = ref.slice("caseStudyTag.".length);
+              if (bySlug.has(refSlug)) return bySlug.get(refSlug) ?? "";
+              // Last-resort readability fallback for legacy slug-shaped refs.
+              return refSlug
+                .split("-")
+                .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+                .join(" ");
+            }
+            return "";
+          })
+          .map((title) => title.trim())
+          .filter((title) => title.length > 0);
+        const uniqueTagTitles = Array.from(new Set(tagTitles));
+
+        if (uniqueTagTitles.length > 0) {
           resolvedData = {
             ...resolvedData,
-            detailServiceTitles: tagTitles,
+            detailServiceTitles: uniqueTagTitles,
           };
         }
       }
