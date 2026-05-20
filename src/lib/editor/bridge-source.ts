@@ -30,10 +30,30 @@ export const bridgeScript = String.raw`
     return window.location.pathname.replace(/^\/__mirror/, "") || "/";
   }
 
-  function isInteractive(element) {
+  function isEditableControl(element) {
     return Boolean(
-      element.closest("input, textarea, select, option, button, [contenteditable='true'], [contenteditable='']")
+      element.closest("input, textarea, select, option, [contenteditable='true'], [contenteditable='']")
     );
+  }
+
+  function inspectableControlFor(element) {
+    return element.closest("button, a[href], [role='button']");
+  }
+
+  function selectableElementFrom(target) {
+    const element = target instanceof Element ? target : null;
+    if (!element || element === hoverBox || element === selectBox || isEditableControl(element)) return null;
+
+    const control = inspectableControlFor(element);
+    if (control && control !== document.body && control !== document.documentElement) return control;
+
+    return element;
+  }
+
+  function stopPageAction(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
   }
 
   function nthOfType(element) {
@@ -98,6 +118,10 @@ export const bridgeScript = String.raw`
     return null;
   }
 
+  function toCssProperty(property) {
+    return String(property).replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase());
+  }
+
   function draw(box, element) {
     if (!element || !enabled) {
       box.style.display = "none";
@@ -159,18 +183,26 @@ export const bridgeScript = String.raw`
 
   function onPointerMove(event) {
     if (!enabled) return;
-    const element = event.target instanceof Element ? event.target : null;
-    if (!element || element === hoverBox || element === selectBox || isInteractive(element)) return;
+    const element = selectableElementFrom(event.target);
+    if (!element) return;
     draw(hoverBox, element);
     post({ type: "editor:hover", target: targetFor(element) });
   }
 
+  function onPointerDown(event) {
+    if (!enabled) return;
+    const element = selectableElementFrom(event.target);
+    if (!element || !inspectableControlFor(element)) return;
+    stopPageAction(event);
+    draw(selectBox, element);
+    post({ type: "editor:select", selection: selectionFor(element) });
+  }
+
   function onClick(event) {
     if (!enabled) return;
-    const element = event.target instanceof Element ? event.target : null;
-    if (!element || isInteractive(element)) return;
-    event.preventDefault();
-    event.stopPropagation();
+    const element = selectableElementFrom(event.target);
+    if (!element) return;
+    stopPageAction(event);
     draw(selectBox, element);
     post({ type: "editor:select", selection: selectionFor(element) });
   }
@@ -180,18 +212,21 @@ export const bridgeScript = String.raw`
     if (!element) return;
     const previous = previews.get(payload.target.selector) || {
       style: element.getAttribute("style"),
-      text: element instanceof HTMLImageElement ? null : element.textContent,
+      html: element instanceof HTMLImageElement ? null : element.innerHTML,
       src: element instanceof HTMLImageElement ? element.getAttribute("src") : null,
     };
     previews.set(payload.target.selector, previous);
 
     if (payload.styles) {
       for (const [property, value] of Object.entries(payload.styles)) {
-        element.style[property] = value;
+        const cssProperty = toCssProperty(property);
+        if (value) element.style.setProperty(cssProperty, value, "important");
+        else element.style.removeProperty(cssProperty);
       }
     }
     if (typeof payload.hidden === "boolean") {
-      element.style.visibility = payload.hidden ? "hidden" : "";
+      if (payload.hidden) element.style.setProperty("visibility", "hidden", "important");
+      else element.style.removeProperty("visibility");
     }
     if (typeof payload.text === "string" && !(element instanceof HTMLImageElement)) {
       element.textContent = payload.text;
@@ -211,7 +246,7 @@ export const bridgeScript = String.raw`
       if (!element) continue;
       if (previous.style === null) element.removeAttribute("style");
       else element.setAttribute("style", previous.style);
-      if (previous.text !== null && !(element instanceof HTMLImageElement)) element.textContent = previous.text;
+      if (previous.html !== null && !(element instanceof HTMLImageElement)) element.innerHTML = previous.html;
       if (previous.src !== null && element instanceof HTMLImageElement) element.setAttribute("src", previous.src);
       previews.delete(selector);
     }
@@ -237,6 +272,7 @@ export const bridgeScript = String.raw`
   mountBox(hoverBox, "#111111", "2147483645");
   mountBox(selectBox, "#e23d28", "2147483646");
   document.addEventListener("pointermove", onPointerMove, true);
+  document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("click", onClick, true);
 })();
 `;

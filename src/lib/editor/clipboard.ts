@@ -20,34 +20,40 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
     "# Visual edit handoff",
     "",
     `Generated: ${spec.generatedAt}`,
+    `Routes: ${routes.size}`,
+    `Targets: ${spec.patches.length}`,
     "",
   ];
 
   for (const [route, patches] of routes.entries()) {
-    lines.push(`## Route: ${route}`, "");
+    lines.push(`## ${route}`, "");
+    lines.push(`${patches.length} target${patches.length === 1 ? "" : "s"} drafted`, "");
 
     patches.forEach((patch, index) => {
-      lines.push(`### Target ${index + 1}: ${patch.target.tag}`);
+      lines.push(`### ${index + 1}. ${patch.target.tag}`);
       lines.push(`Selector: \`${patch.target.selector}\``);
-      lines.push(
-        `Fingerprint: ${JSON.stringify(
-          {
-            id: patch.target.id,
-            dataAttrs: patch.target.dataAttrs,
-            classes: patch.target.classes,
-            nthOfType: patch.target.nthOfType,
-            textSnippet: patch.target.textSnippet,
-          },
-          null,
-          2,
-        )}`,
-      );
+      lines.push("Fingerprint:", "```json");
+      lines.push(JSON.stringify(
+        {
+          id: patch.target.id,
+          dataAttrs: patch.target.dataAttrs,
+          classes: patch.target.classes,
+          nthOfType: patch.target.nthOfType,
+          textSnippet: patch.target.textSnippet,
+        },
+        null,
+        2,
+      ));
+      lines.push("```");
 
       if (patch.notes.trim()) {
         lines.push(`Notes: ${patch.notes.trim()}`);
       }
 
       lines.push("Changes:");
+      if (patch.changes.length === 0) {
+        lines.push("- No style/content changes; note only.");
+      }
       for (const change of patch.changes) {
         if (change.kind === "style") {
           lines.push(
