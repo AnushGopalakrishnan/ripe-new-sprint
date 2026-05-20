@@ -175,6 +175,10 @@
   z-index: 2;
 }
 
+.formaHeroCopyHidden {
+  display: none;
+}
+
 .formaHeroCopy p,
 .formaHeroCopy span {
   font-size: 15px;
@@ -1041,6 +1045,76 @@
   width: max-content;
 }
 
+.detailCommentToggleDock {
+  bottom: 24px;
+  left: 50%;
+  pointer-events: none;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 60;
+}
+
+.detailCommentToggle {
+  align-items: center;
+  background: #000000;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font:
+    400 16px / 1 "Graphik",
+    "GraphikRegular",
+    "Detail Sans",
+    Arial,
+    sans-serif;
+  gap: 8px;
+  justify-content: space-between;
+  width: 210px;
+  display:flex;
+  justify-content: flex-end;
+  letter-spacing: -0.1px;
+  padding: 17px 24px;
+  pointer-events: auto;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+  white-space: nowrap;
+}
+
+.detailCommentToggle:hover {
+  transform: translateY(-1px);
+}
+
+.detailCommentToggle:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+  outline: none;
+}
+
+.detailCommentToggleLabel {
+  display: inline-flex;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.detailCommentToggleKey {
+  align-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 4px;
+  display: inline-flex;
+  font:
+    400 16px / 1 "Graphik",
+    "GraphikRegular",
+    "Detail Sans",
+    Arial,
+    sans-serif;
+  justify-content: center;
+  line-height: 24px;
+  padding-inline: 8px;
+  padding-bottom: 0.04em;
+}
+
 @media (max-width: 900px) {
   .detailCommentThreadOpen .detailCommentSurface {
     max-height: 220px;
@@ -1060,5 +1134,19 @@
     font-size: 12px;
     line-height: 1.5;
     max-height: 72px;
+  }
+
+  .detailCommentToggleDock {
+    bottom: 16px;
+  }
+
+  .detailCommentToggle {
+    height: auto;
+    width: 208px;
+  }
+
+  .detailCommentToggleKey {
+    height: 34px;
+    min-width: 34px;
   }
 }

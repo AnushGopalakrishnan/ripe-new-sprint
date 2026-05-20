@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -149,6 +150,8 @@ function CommentableMedia({
   load = "lazy",
   priority = false,
   fitMode = "cover",
+  imageSizes = "100vw",
+  commentsVisible = true,
 }: {
   sectionId: string;
   media: CaseStudyMedia;
@@ -156,6 +159,8 @@ function CommentableMedia({
   load?: "lazy" | "eager";
   priority?: boolean;
   fitMode?: "cover" | "contain";
+  imageSizes?: string;
+  commentsVisible?: boolean;
 }) {
   const comments = media.comments ?? [];
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -268,6 +273,11 @@ function CommentableMedia({
   }, [fitMode, kind]);
 
   useEffect(() => {
+    if (commentsVisible) return;
+    setActiveId(null);
+  }, [commentsVisible]);
+
+  useEffect(() => {
     if (!activeId) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setActiveId(null);
@@ -311,15 +321,18 @@ function CommentableMedia({
         <source src={media.src} type={media.src.includes("m3u8") ? "application/vnd.apple.mpegurl" : undefined} />
       </video>
     ) : (
-      <img
-        ref={imageRef}
+      <Image
         className={mediaClassName}
         src={media.src}
         alt={media.alt}
-        loading={load}
-        decoding="async"
-        fetchPriority={priority ? "high" : "auto"}
-        onLoad={updateFrame}
+        fill
+        sizes={imageSizes}
+        priority={priority}
+        loading={priority ? undefined : load}
+        onLoad={(event) => {
+          imageRef.current = event.currentTarget;
+          updateFrame();
+        }}
       />
     );
 
@@ -332,7 +345,8 @@ function CommentableMedia({
       role="presentation"
     >
       {mediaElement}
-      {comments.map((comment, index) => {
+      {commentsVisible
+        ? comments.map((comment, index) => {
         const position = dragPositions[comment.id] ?? comment;
         const isActive = activeId === comment.id;
         const x = frame ? frame.offsetX + (frame.width * position.x) / 100 : `${position.x}%`;
@@ -456,7 +470,8 @@ function CommentableMedia({
             </button>
           </div>
         );
-      })}
+      })
+        : null}
     </div>
   );
 }
@@ -472,9 +487,15 @@ function FormaFact({ label, children }: { label: string; children: string }) {
 
 export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [commentsVisible, setCommentsVisible] = useState(true);
+  const hideHeroOverlayText = true;
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
   const heroStageRef = useRef<HTMLElement | null>(null);
+
+  const toggleCommentsVisibility = useCallback(() => {
+    setCommentsVisible((current) => !current);
+  }, []);
 
   useEffect(() => {
     console.log("[CaseStudy Services Debug]", {
@@ -539,6 +560,26 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
     };
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() !== "c") return;
+
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName.toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable) return;
+      }
+
+      event.preventDefault();
+      setCommentsVisible((current) => !current);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <main className={styles.formaPage}>
       <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
@@ -550,8 +591,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               mediaClassName={styles.formaHeroMedia}
               load="eager"
               priority
+              imageSizes="100vw"
+              commentsVisible={commentsVisible}
             />
-            <div className={styles.formaHeroCopy}>
+            <div className={`${styles.formaHeroCopy} ${hideHeroOverlayText ? styles.formaHeroCopyHidden : ""}`}>
               <p>{reference.eyebrow}</p>
               <h1>{reference.title}</h1>
               <span>{reference.heroNote}</span>
@@ -626,6 +669,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                                   media={cell.media}
                                   mediaClassName={styles.formaLayoutMedia}
                                   fitMode="cover"
+                                  imageSizes="(max-width: 900px) 100vw, 95vw"
+                                  commentsVisible={commentsVisible}
                                 />
                               </div>
                             );
@@ -645,6 +690,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   media={reference.media.intro}
                   mediaClassName={styles.formaSectionMedia}
                   load="eager"
+                  imageSizes="(max-width: 900px) 100vw, 95vw"
+                  commentsVisible={commentsVisible}
                 />
               </section>
 
@@ -663,6 +710,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                     sectionId="carousel-left"
                     media={slides[carouselIndex]}
                     mediaClassName={styles.formaCarouselPanelMedia}
+                    imageSizes="(max-width: 900px) 80vw, 524px"
+                    commentsVisible={commentsVisible}
                   />
                   <button
                     className={`${styles.formaArrow} ${styles.formaArrowNext}`}
@@ -686,6 +735,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                     sectionId="carousel-poster"
                     media={reference.media.carouselPoster}
                     mediaClassName={styles.formaSectionMedia}
+                    imageSizes="(max-width: 900px) 100vw, 50vw"
+                    commentsVisible={commentsVisible}
                   />
                 </div>
               </section>
@@ -695,6 +746,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   sectionId="black-feature"
                   media={reference.media.blackFeature}
                   mediaClassName={styles.formaBlackFeatureMedia}
+                  imageSizes="(max-width: 900px) 100vw, 1116px"
+                  commentsVisible={commentsVisible}
                 />
               </section>
 
@@ -703,6 +756,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   sectionId="wide-feature"
                   media={reference.media.wideFeature}
                   mediaClassName={styles.formaSectionMedia}
+                  imageSizes="(max-width: 900px) 100vw, 95vw"
+                  commentsVisible={commentsVisible}
                 />
               </section>
             </>
@@ -722,7 +777,14 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                   className={styles.formaProjectCard}
                   key={`${project.title}-${project.year}`}
                 >
-                  <img src={project.image} alt="" loading="lazy" decoding="async" />
+                  <Image
+                    src={project.image}
+                    alt=""
+                    width={698}
+                    height={872}
+                    sizes="(max-width: 560px) 100vw, (max-width: 900px) 50vw, 25vw"
+                    loading="lazy"
+                  />
                   <span>{project.title}</span>
                   <span>{project.year}</span>
                 </Link>
@@ -736,6 +798,8 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                 sectionId="cta"
                 media={reference.media.cta}
                 mediaClassName={styles.formaSectionMedia}
+                imageSizes="100vw"
+                commentsVisible={commentsVisible}
               />
               <div className={styles.formaCtaCopy}>
                 <h2>
@@ -751,6 +815,22 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           ) : null}
         </div>
       </section>
+      <div className={styles.detailCommentToggleDock}>
+        <button
+          className={styles.detailCommentToggle}
+          onClick={toggleCommentsVisibility}
+          type="button"
+          aria-pressed={commentsVisible}
+          aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
+        >
+          <span className={styles.detailCommentToggleLabel}>
+            {commentsVisible ? "Hide Comments" : "Show Comments"}
+          </span>
+          <span className={styles.detailCommentToggleKey} aria-hidden="true">
+            C
+          </span>
+        </button>
+      </div>
     </main>
   );
 }
