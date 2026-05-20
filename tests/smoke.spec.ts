@@ -1081,7 +1081,7 @@ test("case study detail page renders the native project detail", async ({ page }
   const projectInfo = page.getByLabel("Project information");
   await expect(projectInfo).toContainText("(Brand)");
   await expect(projectInfo).toContainText("(Industry)");
-  await expect(projectInfo).toContainText("ZetaChain");
+  await expect(projectInfo).toContainText("(Year)");
   await expect(page.getByRole("button", { name: "Hide comments (C)" })).toBeVisible();
 });
 
