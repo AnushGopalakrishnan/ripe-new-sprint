@@ -17,6 +17,8 @@ const legacyRedirects = [
   { from: "/case-studies-tags/strategy", to: /\/case-studies\/tags\/strategy(?:\?.*)?$/ },
 ];
 
+const editorFrameTitle = "Ripe site editor preview";
+
 const canonicalMirrorPages = [
   { path: "/team", title: "Team new" },
   { path: "/services", title: "Services" },
@@ -1076,8 +1078,11 @@ test("case study detail page renders the native project detail", async ({ page }
   await gotoAppPage(page, "/case-studies/zetachain");
 
   await expect(page).toHaveTitle("ZetaChain - Case Study");
-  await expect(page.getByRole("heading", { name: "ZetaChain" })).toBeVisible();
-  await expect(page.getByLabel("Project information").getByText("A South African icon.")).toBeVisible();
+  const projectInfo = page.getByLabel("Project information");
+  await expect(projectInfo).toContainText("(Brand)");
+  await expect(projectInfo).toContainText("(Industry)");
+  await expect(projectInfo).toContainText("(Year)");
+  await expect(page.getByRole("button", { name: "Hide comments (C)" })).toBeVisible();
 });
 
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {
@@ -1098,16 +1103,17 @@ test("mirror editor assets load for the case studies canvas", async ({ page }) =
   expect(favicon.ok()).toBeTruthy();
 
   await gotoAppPage(page, "/__editor?path=/case-studies-new");
-  const frame = page.frameLocator("iframe[title='Mirrored site editor canvas']");
+  await expect(page.locator(`iframe[title='${editorFrameTitle}']`)).toHaveAttribute("src", "/case-studies?__editor=1");
+  const frame = page.frameLocator(`iframe[title='${editorFrameTitle}']`);
   await expect(frame.getByLabel("Work journal").getByRole("heading", { name: "Sticky Notes" })).toBeVisible();
 });
 
 test("mirror editor exposes the home new feed duplicate", async ({ page }) => {
   await gotoAppPage(page, "/__editor?path=/home-new-feed");
-  await expect(page.locator("iframe[title='Mirrored site editor canvas']")).toHaveAttribute(
+  await expect(page.locator(`iframe[title='${editorFrameTitle}']`)).toHaveAttribute(
     "src",
     "/home-new-feed?__editor=1",
   );
-  const frame = page.frameLocator("iframe[title='Mirrored site editor canvas']");
+  const frame = page.frameLocator(`iframe[title='${editorFrameTitle}']`);
   await expect(frame.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
 });

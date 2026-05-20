@@ -1,21 +1,12 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
-import * as Popover from "@radix-ui/react-popover";
-import * as ScrollArea from "@radix-ui/react-scroll-area";
-import * as Select from "@radix-ui/react-select";
-import * as Separator from "@radix-ui/react-separator";
-import * as Tabs from "@radix-ui/react-tabs";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import clsx from "clsx";
 import {
   Box,
-  Check,
-  ChevronDown,
   Clipboard,
   CopyCheck,
   Eye,
   EyeOff,
+  FileText,
   Image as ImageIcon,
   Layers,
   Monitor,
@@ -24,13 +15,72 @@ import {
   PanelRightOpen,
   PaintBucket,
   RotateCcw,
+  Search,
   SlidersHorizontal,
   Smartphone,
   Tablet,
   Type,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/editor-ui/badge";
+import { Button } from "@/components/editor-ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/editor-ui/command";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/editor-ui/field";
+import { Input } from "@/components/editor-ui/input";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/editor-ui/resizable";
+import { ScrollArea } from "@/components/editor-ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/editor-ui/select";
+import { Separator } from "@/components/editor-ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/editor-ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/editor-ui/tabs";
+import { Textarea } from "@/components/editor-ui/textarea";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/editor-ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/editor-ui/tooltip";
+import { Toaster } from "@/components/editor-ui/sonner";
 import { createClipboardSpec, formatClipboardSpec } from "@/lib/editor/clipboard";
 import type {
   ContentChange,
@@ -58,39 +108,39 @@ type FieldConfig = {
 
 type FieldGroupName = "layout" | "spacing" | "typography" | "appearance";
 
-const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon }> = {
-  desktop: { width: 1440, icon: Monitor },
-  tablet: { width: 834, icon: Tablet },
-  mobile: { width: 390, icon: Smartphone },
+const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon; label: string }> = {
+  desktop: { width: 1440, icon: Monitor, label: "Desktop" },
+  tablet: { width: 834, icon: Tablet, label: "Tablet" },
+  mobile: { width: 390, icon: Smartphone, label: "Mobile" },
 };
 
 const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   layout: [
     { property: "display", label: "Display", options: ["block", "flex", "grid", "inline-flex", "none"] },
     { property: "position", label: "Position", options: ["static", "relative", "absolute", "fixed", "sticky"] },
-    { property: "width", label: "Width" },
-    { property: "maxWidth", label: "Max width" },
-    { property: "height", label: "Height" },
-    { property: "gap", label: "Gap" },
+    { property: "width", label: "Width", placeholder: "100%" },
+    { property: "maxWidth", label: "Max width", placeholder: "720px" },
+    { property: "height", label: "Height", placeholder: "auto" },
+    { property: "gap", label: "Gap", placeholder: "16px" },
     { property: "alignItems", label: "Align", options: ["stretch", "flex-start", "center", "flex-end", "baseline"] },
     { property: "justifyContent", label: "Justify", options: ["flex-start", "center", "flex-end", "space-between", "space-around"] },
   ],
   spacing: [
-    { property: "margin", label: "Margin" },
-    { property: "padding", label: "Padding" },
+    { property: "margin", label: "Margin", placeholder: "0 0 24px" },
+    { property: "padding", label: "Padding", placeholder: "16px 24px" },
   ],
   typography: [
-    { property: "fontSize", label: "Size" },
-    { property: "lineHeight", label: "Line height" },
-    { property: "letterSpacing", label: "Tracking" },
+    { property: "fontSize", label: "Size", placeholder: "16px" },
+    { property: "lineHeight", label: "Line height", placeholder: "1.4" },
+    { property: "letterSpacing", label: "Tracking", placeholder: "0" },
     { property: "fontWeight", label: "Weight", options: ["300", "400", "500", "600", "700", "800"] },
     { property: "textAlign", label: "Align", options: ["left", "center", "right", "justify"] },
-    { property: "color", label: "Color" },
+    { property: "color", label: "Color", placeholder: "#111111" },
   ],
   appearance: [
-    { property: "backgroundColor", label: "Background" },
-    { property: "borderRadius", label: "Radius" },
-    { property: "opacity", label: "Opacity" },
+    { property: "backgroundColor", label: "Background", placeholder: "#ffffff" },
+    { property: "borderRadius", label: "Radius", placeholder: "8px" },
+    { property: "opacity", label: "Opacity", placeholder: "1" },
   ],
 };
 
@@ -126,6 +176,7 @@ function canvasPath(path: string) {
     const canonical = normalized.replace(/^\/case-studies-tags\//, "/case-studies/tags/");
     return withEditorQuery(canonical);
   }
+  if (/^\/case-studies\/[^/]+$/.test(normalized)) return withEditorQuery(normalized);
   if (normalized === "/writing" || normalized === "/archive/writing" || normalized === "/archive/writing-new-copy") {
     return withEditorQuery("/writing");
   }
@@ -181,107 +232,138 @@ function upsertPatch(patches: EditorPatch[], patch: EditorPatch) {
   return patches.map((candidate, candidateIndex) => (candidateIndex === index ? patch : candidate));
 }
 
-function Field({
+function previewSourceLabel(iframeSrc: string) {
+  if (iframeSrc.startsWith("/__mirror")) {
+    return {
+      label: "Mirror fallback",
+      variant: "outline" as const,
+      path: iframeSrc.replace(/^\/__mirror/, "") || "/",
+    };
+  }
+
+  const path = iframeSrc.split("?")[0] || "/";
+  return {
+    label: "Native route",
+    variant: "secondary" as const,
+    path,
+  };
+}
+
+function shortRouteLabel(route: MirrorRoute) {
+  return route.label === route.path ? route.path : `${route.label} (${route.path})`;
+}
+
+function collectionItemLabel(route: MirrorRoute) {
+  return route.collection?.itemLabel || route.label || route.path;
+}
+
+function StyleField({
   config,
   value,
+  disabled,
   onChange,
 }: {
   config: FieldConfig;
   value: string;
+  disabled: boolean;
   onChange: (value: string) => void;
 }) {
+  const fieldId = `editor-style-${config.property}`;
+
   return (
-    <label className={styles.field}>
-      <span>{config.label}</span>
+    <Field className="gap-1.5" data-disabled={disabled ? true : undefined}>
+      <FieldLabel htmlFor={fieldId} className="text-xs text-muted-foreground">{config.label}</FieldLabel>
       {config.options ? (
-        <OptionSelect value={value} options={config.options} onChange={onChange} />
+        <OptionSelect
+          id={fieldId}
+          disabled={disabled}
+          value={value}
+          options={config.options}
+          onChange={onChange}
+        />
       ) : (
-        <input
+        <Input
+          id={fieldId}
+          disabled={disabled}
           value={value}
           placeholder={config.placeholder ?? "value"}
+          className={styles.valueInput}
+          autoComplete="off"
+          spellCheck={false}
           onChange={(event) => onChange(event.target.value)}
         />
       )}
-    </label>
+    </Field>
   );
 }
 
 function OptionSelect({
+  id,
   value,
   options,
+  disabled,
   onChange,
 }: {
+  id: string;
   value: string;
   options: string[];
+  disabled: boolean;
   onChange: (value: string) => void;
 }) {
   const selectedValue = value || "__unset__";
 
   return (
-    <Select.Root
+    <Select
+      disabled={disabled}
       value={selectedValue}
       onValueChange={(nextValue) => onChange(nextValue === "__unset__" ? "" : nextValue)}
     >
-      <Select.Trigger className={styles.fieldSelect} aria-label="Value">
-        <Select.Value />
-        <Select.Icon>
-          <ChevronDown size={15} />
-        </Select.Icon>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content className={styles.selectContent} position="popper" sideOffset={6}>
-          <Select.Viewport className={styles.selectViewport}>
-            <Select.Item className={styles.selectItem} value="__unset__">
-              <Select.ItemText>Unset</Select.ItemText>
-              <Select.ItemIndicator>
-                <Check size={14} />
-              </Select.ItemIndicator>
-            </Select.Item>
-            {options.map((option) => (
-              <Select.Item className={styles.selectItem} value={option} key={option}>
-                <Select.ItemText>{option}</Select.ItemText>
-                <Select.ItemIndicator>
-                  <Check size={14} />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
+      <SelectTrigger id={id} className={styles.valueSelectTrigger} size="sm" aria-label="Style value">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent position="popper">
+        <SelectGroup>
+          <SelectItem value="__unset__">Unset</SelectItem>
+          {options.map((option) => (
+            <SelectItem value={option} key={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   );
 }
 
-function IconButton({
+function ToolbarButton({
   label,
   children,
   active,
+  disabled,
   onClick,
 }: {
   label: string;
-  children: ReactNode;
+  children: React.ReactNode;
   active?: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <button
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
           type="button"
-          className={clsx(styles.iconButton, active && styles.activeIconButton)}
+          variant={active ? "default" : "outline"}
+          size="icon"
           aria-label={label}
+          disabled={disabled}
           onClick={onClick}
         >
           {children}
-        </button>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content className={styles.tooltip} sideOffset={8}>
-          {label}
-          <Tooltip.Arrow className={styles.tooltipArrow} />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={8}>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -290,6 +372,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [route, setRoute] = useState(normalizedInitialPath);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
   const [baseStyles, setBaseStyles] = useState<Record<string, string>>({});
@@ -298,11 +381,27 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [imageValue, setImageValue] = useState("");
   const [hidden, setHidden] = useState(false);
   const [notes, setNotes] = useState("");
-  const [patches, setPatches] = useState<EditorPatch[]>(() => readDrafts(normalizedInitialPath));
+  const [patches, setPatches] = useState<EditorPatch[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
+  const previewSource = useMemo(() => previewSourceLabel(iframeSrc), [iframeSrc]);
+  const selectionLabel = selection
+    ? selection.target.textSnippet || selection.target.selector
+    : "Select an element in the preview";
+
+  const routeOptions = useMemo(() => {
+    if (routes.some((candidate) => candidate.path === route)) return routes;
+    return [{ path: route, label: route }, ...routes];
+  }, [route, routes]);
+  const currentRoute = routeOptions.find((candidate) => candidate.path === route);
+  const currentCollectionKey = currentRoute?.collection?.key;
+  const collectionRoutes = useMemo(() => {
+    if (!currentCollectionKey) return [];
+    return routeOptions.filter((candidate) => candidate.collection?.key === currentCollectionKey);
+  }, [currentCollectionKey, routeOptions]);
+  const currentCollectionIndex = collectionRoutes.findIndex((candidate) => candidate.path === route);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -320,10 +419,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }, []);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(storageKey(route), JSON.stringify(patches));
-    } catch {}
-  }, [patches, route]);
+    const draftLoad = window.setTimeout(() => {
+      setPatches(readDrafts(route));
+    }, 0);
+    return () => window.clearTimeout(draftLoad);
+  }, [route]);
 
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage(
@@ -391,6 +491,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     window.history.replaceState(null, "", `/__editor?${params.toString()}`);
   }
 
+  function persistPatches(nextPatches: EditorPatch[], nextRoute = route) {
+    try {
+      window.localStorage.setItem(storageKey(nextRoute), JSON.stringify(nextPatches));
+    } catch {}
+  }
+
+  function updatePatches(updater: (current: EditorPatch[]) => EditorPatch[]) {
+    setPatches((current) => {
+      const nextPatches = updater(current);
+      persistPatches(nextPatches);
+      return nextPatches;
+    });
+  }
+
   function changesForDraft({
     nextStyleValues = styleValues,
     nextTextValue = textValue,
@@ -454,7 +568,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     const draft = changesForDraft(overrides);
     if (!draft) return;
 
-    setPatches((current) => {
+    updatePatches((current) => {
       if (draft.changes.length === 0 && !draft.notes.trim()) {
         return current.filter((patch) => !sameTarget(patch.target, draft.target));
       }
@@ -503,7 +617,10 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function resetSelectedPreview() {
-    if (!selection) return;
+    if (!selection) {
+      toast.info("Select an element first");
+      return;
+    }
     iframeRef.current?.contentWindow?.postMessage(
       { type: "editor:clear-preview", target: selection.target },
       window.location.origin,
@@ -512,226 +629,381 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     setTextValue(selection.text);
     setImageValue(selection.imageSrc);
     setHidden(false);
-    setPatches((current) => current.filter((patch) => !sameTarget(patch.target, selection.target)));
+    updatePatches((current) => current.filter((patch) => !sameTarget(patch.target, selection.target)));
+    toast.success("Selection reset");
   }
 
   async function copyStyles() {
-    const spec = createClipboardSpec(patches);
-    await navigator.clipboard.writeText(formatClipboardSpec(spec));
-    setCopyState("copied");
-    window.setTimeout(() => setCopyState("idle"), 1400);
+    if (patches.length === 0) {
+      toast.info("No draft changes to copy");
+      return;
+    }
+
+    try {
+      const spec = createClipboardSpec(patches);
+      await navigator.clipboard.writeText(formatClipboardSpec(spec));
+      setCopyState("copied");
+      toast.success("Handoff copied");
+      window.setTimeout(() => setCopyState("idle"), 1400);
+    } catch {
+      toast.error("Clipboard copy failed");
+    }
   }
 
   return (
-    <Tooltip.Provider>
-      <div className={clsx(styles.editor, sidebarOpen && styles.editorPanelOpen)}>
+    <TooltipProvider>
+      <div className={styles.editor} data-visual-editor-shell="">
         <header className={styles.topbar}>
           <div className={styles.brandMark}>
-            <Layers size={17} />
+            <Layers className="size-4" />
             <span>Ripe Visual Editor</span>
           </div>
+
           <div className={styles.routeCluster}>
-            <Select.Root value={route} onValueChange={setRouteAndUrl}>
-              <Select.Trigger className={styles.routeSelect} aria-label="Route">
-                <Select.Value />
-                <Select.Icon>
-                  <ChevronDown size={16} />
-                </Select.Icon>
-              </Select.Trigger>
-              <Select.Portal>
-                <Select.Content className={styles.selectContent} position="popper" sideOffset={8}>
-                  <Select.Viewport className={styles.selectViewport}>
-                    {routes.map((candidate) => (
-                      <Select.Item className={styles.selectItem} value={candidate.path} key={candidate.path}>
-                        <Select.ItemText>{candidate.label}</Select.ItemText>
-                        <Select.ItemIndicator>
-                          <Check size={14} />
-                        </Select.ItemIndicator>
-                      </Select.Item>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
-            </Select.Root>
-            <span className={styles.targetCrumb}>
-              {selection ? `${selection.target.tag} · ${selection.target.selector}` : "Canvas ready"}
-            </span>
+            <Select value={route} onValueChange={setRouteAndUrl}>
+              <SelectTrigger className="min-w-[260px] max-w-[420px]" aria-label="Route">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectGroup>
+                  {routeOptions.map((candidate) => (
+                    <SelectItem value={candidate.path} key={candidate.path}>
+                      {shortRouteLabel(candidate)}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              className={styles.routeSearchButton}
+              aria-label="Routes"
+              onClick={() => setRoutesOpen(true)}
+            >
+              <Search data-icon="inline-start" />
+              <span className={styles.routeSearchLabel}>Routes</span>
+            </Button>
+          </div>
+
+          <div className={styles.statusCluster}>
+            <Badge variant={previewSource.variant}>{previewSource.label}</Badge>
+            <Badge variant="outline">{previewSource.path}</Badge>
+            <Badge variant="outline">{viewportSizes[viewport].label}</Badge>
+            {currentRoute?.collection && collectionRoutes.length > 1 ? (
+              <div className={styles.collectionSwitcher}>
+                <Badge variant="secondary" className={styles.collectionBadge}>
+                  {currentRoute.collection.label}
+                </Badge>
+                <Select value={route} onValueChange={setRouteAndUrl}>
+                  <SelectTrigger
+                    className={styles.collectionSelectTrigger}
+                    size="sm"
+                    aria-label={`Switch ${currentRoute.collection.label} page`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectGroup>
+                      {collectionRoutes.map((candidate) => (
+                        <SelectItem value={candidate.path} key={candidate.path}>
+                          {collectionItemLabel(candidate)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <Badge variant="outline" className={styles.collectionCount}>
+                  {currentCollectionIndex + 1}/{collectionRoutes.length}
+                </Badge>
+              </div>
+            ) : null}
           </div>
 
           <div className={styles.toolbarActions}>
-            <div className={styles.segmented}>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              spacing={0}
+              value={viewport}
+              onValueChange={(value) => {
+                if (value) setViewportAndCommit(value as ViewportName);
+              }}
+              aria-label="Viewport"
+            >
               {(Object.keys(viewportSizes) as ViewportName[]).map((name) => {
                 const Icon = viewportSizes[name].icon;
                 return (
-                  <IconButton
-                    label={name}
-                    key={name}
-                    active={viewport === name}
-                    onClick={() => setViewportAndCommit(name)}
-                  >
-                    <Icon size={17} />
-                  </IconButton>
+                  <Tooltip key={name}>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem value={name} aria-label={viewportSizes[name].label}>
+                        <Icon />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={8}>{viewportSizes[name].label}</TooltipContent>
+                  </Tooltip>
                 );
               })}
-            </div>
-            <IconButton label={sidebarOpen ? "Close panel" : "Open panel"} onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
-            </IconButton>
+            </ToggleGroup>
+
+            <ToolbarButton
+              label={sidebarOpen ? "Close inspector" : "Open inspector"}
+              active={sidebarOpen}
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            </ToolbarButton>
           </div>
         </header>
 
-        <main className={styles.stage}>
-          <div className={styles.canvasChrome} style={{ width: `min(100%, ${viewportWidth}px)` }}>
-            <iframe
-              ref={iframeRef}
-              key={iframeSrc}
-              className={styles.canvas}
-              title="Mirrored site editor canvas"
-              src={iframeSrc}
-              onLoad={() =>
-                iframeRef.current?.contentWindow?.postMessage(
-                  { type: "editor:set-enabled", enabled: sidebarOpen },
-                  window.location.origin,
-                )
-              }
-            />
-          </div>
-        </main>
-
-        <Dialog.Root open={sidebarOpen} onOpenChange={setSidebarOpen} modal={false}>
-          <Dialog.Portal>
-            <Dialog.Content className={styles.sidebar} aria-describedby={undefined}>
-              <div className={styles.sidebarHeader}>
-                <div>
-                  <Dialog.Title className={styles.sidebarTitle}>Visual edits</Dialog.Title>
-                  <p className={styles.sidebarMeta}>{route} · {patches.length} drafted</p>
-                </div>
-                <div className={styles.sidebarHeaderActions}>
-                  <IconButton label="Reset selected" onClick={resetSelectedPreview}>
-                    <RotateCcw size={17} />
-                  </IconButton>
-                  <IconButton label="Copy styles" onClick={copyStyles}>
-                    <Clipboard size={17} />
-                  </IconButton>
-                </div>
+        <ResizablePanelGroup orientation="horizontal" className={styles.workspace}>
+          <ResizablePanel minSize="280px" className={styles.previewPanel}>
+            <main className={styles.stage}>
+              <div className={styles.canvasChrome} style={{ width: `min(100%, ${viewportWidth}px)` }}>
+                <iframe
+                  ref={iframeRef}
+                  key={iframeSrc}
+                  className={styles.canvas}
+                  title="Ripe site editor preview"
+                  src={iframeSrc}
+                  onLoad={() =>
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-enabled", enabled: sidebarOpen },
+                      window.location.origin,
+                    )
+                  }
+                />
               </div>
-              <Separator.Root className={styles.separator} />
+            </main>
+          </ResizablePanel>
 
-              <ScrollArea.Root className={styles.scrollRoot}>
-                <ScrollArea.Viewport className={styles.scrollViewport}>
-                  <div className={styles.selectionCard}>
-                    <div className={styles.selectionIcon}>
-                      <MousePointer2 size={16} />
+          {sidebarOpen ? (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel
+                className={styles.inspectorPanel}
+                defaultSize="360px"
+                minSize="300px"
+                maxSize="520px"
+                groupResizeBehavior="preserve-pixel-size"
+              >
+                <aside className={styles.inspector} aria-label="Visual editor inspector">
+                  <div className={styles.inspectorHeader}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-muted-foreground" />
+                        <h2 className="truncate text-sm font-medium">Visual edits</h2>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {route} · {patches.length} drafted
+                      </p>
                     </div>
-                    <div className={styles.selectionText}>
-                      <span>{selection ? selection.target.tag : "No element selected"}</span>
-                      <strong>
-                        {selection
-                          ? selection.target.textSnippet || selection.target.selector
-                          : "Awaiting target"}
-                      </strong>
+                    <div className="flex items-center gap-2">
+                      <ToolbarButton label="Reset selected" disabled={!selection} onClick={resetSelectedPreview}>
+                        <RotateCcw />
+                      </ToolbarButton>
+                      <ToolbarButton
+                        label="Copy handoff"
+                        disabled={patches.length === 0}
+                        onClick={copyStyles}
+                        active={copyState === "copied"}
+                      >
+                        {copyState === "copied" ? <CopyCheck /> : <Clipboard />}
+                      </ToolbarButton>
                     </div>
                   </div>
+                  <Separator />
 
-                  <Tabs.Root defaultValue="layout" className={styles.tabs}>
-                    <Tabs.List className={styles.tabList}>
-                      {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
-                        const Icon = groupMeta[group].icon;
-                        return (
-                        <Tabs.Trigger value={group} className={styles.tab} key={group} aria-label={group}>
-                          <Icon size={14} />
-                          <span>{groupMeta[group].label}</span>
-                        </Tabs.Trigger>
-                        );
-                      })}
-                      <Tabs.Trigger value="content" className={styles.tab} aria-label="content">
-                        <ImageIcon size={14} />
-                        <span>Asset</span>
-                      </Tabs.Trigger>
-                    </Tabs.List>
+                  <ScrollArea className={styles.inspectorScroll}>
+                    <div className={styles.inspectorBody}>
+                      <section className={styles.selectionCard} aria-live="polite">
+                        <div className={styles.selectionIcon}>
+                          <MousePointer2 className="size-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            {selection ? selection.target.tag : "No element selected"}
+                          </p>
+                          <p className="mt-1 truncate text-sm font-medium">{selectionLabel}</p>
+                        </div>
+                      </section>
 
-                    {Object.entries(fieldGroups).map(([group, fields]) => (
-                      <Tabs.Content value={group} className={styles.tabPanel} key={group}>
-                        {fields.map((field) => (
-                          <Field
-                            config={field}
-                            key={field.property}
-                            value={styleValues[field.property] ?? ""}
-                            onChange={(value) => updateStyle(field.property, value)}
-                          />
+                      <Tabs defaultValue="layout" className="flex flex-col gap-4">
+                        <TabsList className="grid h-auto w-full grid-cols-5">
+                          {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
+                            const Icon = groupMeta[group].icon;
+                            return (
+                              <TabsTrigger value={group} key={group} aria-label={groupMeta[group].label}>
+                                <Icon />
+                                <span className="sr-only">{groupMeta[group].label}</span>
+                              </TabsTrigger>
+                            );
+                          })}
+                          <TabsTrigger value="content" aria-label="Content">
+                            <ImageIcon />
+                            <span className="sr-only">Content</span>
+                          </TabsTrigger>
+                        </TabsList>
+
+                        {Object.entries(fieldGroups).map(([group, fields]) => (
+                          <TabsContent value={group} key={group}>
+                            <FieldGroup className="grid grid-cols-2 gap-3">
+                              {fields.map((field) => (
+                                <StyleField
+                                  config={field}
+                                  key={field.property}
+                                  disabled={!selection}
+                                  value={styleValues[field.property] ?? ""}
+                                  onChange={(value) => updateStyle(field.property, value)}
+                                />
+                              ))}
+                            </FieldGroup>
+                          </TabsContent>
                         ))}
-                      </Tabs.Content>
-                    ))}
 
-                    <Tabs.Content value="content" className={styles.tabPanel}>
-                      <label className={styles.field}>
-                        <span>Text</span>
-                        <textarea value={textValue} onChange={(event) => updateText(event.target.value)} />
-                      </label>
-                      <label className={styles.field}>
-                        <span>Image src</span>
-                        <input value={imageValue} onChange={(event) => updateImage(event.target.value)} />
-                      </label>
-                      <button
-                        type="button"
-                        className={clsx(styles.visibilityButton, hidden && styles.visibilityActive)}
-                        onClick={() => updateHidden(!hidden)}
-                      >
-                        {hidden ? <EyeOff size={16} /> : <Eye size={16} />}
-                        Visibility
-                      </button>
-                    </Tabs.Content>
-                  </Tabs.Root>
+                        <TabsContent value="content">
+                          <FieldGroup>
+                            <Field data-disabled={!selection ? true : undefined}>
+                              <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
+                              <Textarea
+                                id="editor-content-text"
+                                disabled={!selection}
+                                value={textValue}
+                                placeholder="Edit selected text"
+                                className={styles.contentTextarea}
+                                onChange={(event) => updateText(event.target.value)}
+                              />
+                            </Field>
+                            <Field data-disabled={!selection ? true : undefined}>
+                              <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
+                              <Input
+                                id="editor-content-image-src"
+                                disabled={!selection}
+                                value={imageValue}
+                                placeholder="https://... or /asset.jpg"
+                                className={styles.valueInput}
+                                autoComplete="off"
+                                spellCheck={false}
+                                onChange={(event) => updateImage(event.target.value)}
+                              />
+                            </Field>
+                            <Button
+                              type="button"
+                              variant={hidden ? "destructive" : "outline"}
+                              disabled={!selection}
+                              onClick={() => updateHidden(!hidden)}
+                            >
+                              {hidden ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
+                              {hidden ? "Hidden in preview" : "Visible in preview"}
+                            </Button>
+                          </FieldGroup>
+                        </TabsContent>
+                      </Tabs>
 
-                  <Separator.Root className={styles.separator} />
+                      <Separator />
 
-                  <label className={styles.field}>
-                    <span>Note</span>
-                    <textarea value={notes} onChange={(event) => updateNotes(event.target.value)} />
-                  </label>
+                      <FieldGroup>
+                        <Field data-disabled={!selection ? true : undefined}>
+                          <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
+                          <Textarea
+                            id="editor-handoff-note"
+                            disabled={!selection}
+                            value={notes}
+                            placeholder="Add reviewer context for this target"
+                            className={styles.contentTextarea}
+                            onChange={(event) => updateNotes(event.target.value)}
+                          />
+                        </Field>
+                      </FieldGroup>
 
-                  <Popover.Root>
-                    <Popover.Trigger asChild>
-                      <button type="button" className={styles.patchButton}>
-                        Draft patches
-                        <span>{patches.length}</span>
-                      </button>
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                      <Popover.Content className={styles.popover} side="left" sideOffset={12}>
-                        {patches.length === 0 ? (
-                          <p>No drafts</p>
-                        ) : (
-                          patches.map((patch) => (
-                            <div className={styles.patchRow} key={patch.id}>
-                              <strong>{patch.target.tag}</strong>
-                              <span>{patch.changes.length} changes</span>
-                            </div>
-                          ))
-                        )}
-                        <Popover.Arrow className={styles.popoverArrow} />
-                      </Popover.Content>
-                    </Popover.Portal>
-                  </Popover.Root>
+                      <section className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-medium">Draft patches</h3>
+                          <Badge variant={patches.length ? "secondary" : "outline"}>{patches.length}</Badge>
+                        </div>
+                        <div className={styles.patchList}>
+                          {patches.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No local drafts for this route.</p>
+                          ) : (
+                            patches.map((patch) => (
+                              <div className={styles.patchRow} key={patch.id}>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{patch.target.tag}</p>
+                                  <p className="truncate text-xs text-muted-foreground">{patch.target.selector}</p>
+                                </div>
+                                <Badge variant="outline">{patch.changes.length} changes</Badge>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <Button type="button" onClick={copyStyles} disabled={patches.length === 0}>
+                          {copyState === "copied" ? <CopyCheck data-icon="inline-start" /> : <Clipboard data-icon="inline-start" />}
+                          {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
+                        </Button>
+                      </section>
+                    </div>
+                  </ScrollArea>
+                </aside>
+              </ResizablePanel>
+            </>
+          ) : null}
+        </ResizablePanelGroup>
 
-                  <button
-                    type="button"
-                    className={styles.copyButton}
-                    onClick={copyStyles}
-                    disabled={patches.length === 0}
-                  >
-                    {copyState === "copied" ? <CopyCheck size={16} /> : <Clipboard size={16} />}
-                    {copyState === "copied" ? "Copied" : "Copy styles"}
-                  </button>
-                </ScrollArea.Viewport>
-                <ScrollArea.Scrollbar className={styles.scrollbar} orientation="vertical">
-                  <ScrollArea.Thumb className={styles.scrollThumb} />
-                </ScrollArea.Scrollbar>
-              </ScrollArea.Root>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        <Sheet open={routesOpen} onOpenChange={setRoutesOpen}>
+          <SheetContent side="left" className="w-[min(440px,calc(100vw-24px))] gap-0 p-0" showCloseButton>
+            <SheetHeader>
+              <SheetTitle>Routes</SheetTitle>
+              <SheetDescription>Switch the preview without leaving the editor.</SheetDescription>
+            </SheetHeader>
+            <Command className="rounded-none border-t">
+              <CommandInput placeholder="Search routes..." />
+              <CommandList>
+                <CommandEmpty>No routes found.</CommandEmpty>
+                {currentRoute?.collection && collectionRoutes.length > 1 ? (
+                  <>
+                    <CommandGroup heading={`${currentRoute.collection.label} pages`}>
+                      {collectionRoutes.map((candidate) => (
+                        <CommandItem
+                          key={`collection-${candidate.path}`}
+                          value={`${collectionItemLabel(candidate)} ${candidate.path}`}
+                          data-checked={candidate.path === route}
+                          onSelect={() => {
+                            setRouteAndUrl(candidate.path);
+                            setRoutesOpen(false);
+                          }}
+                        >
+                          <span className="truncate">{collectionItemLabel(candidate)}</span>
+                          {candidate.path === route ? <Badge variant="secondary">Current</Badge> : null}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                    <CommandSeparator />
+                  </>
+                ) : null}
+                <CommandGroup heading="Available routes">
+                  {routeOptions.map((candidate) => (
+                    <CommandItem
+                      key={candidate.path}
+                      value={shortRouteLabel(candidate)}
+                      data-checked={candidate.path === route}
+                      onSelect={() => {
+                        setRouteAndUrl(candidate.path);
+                        setRoutesOpen(false);
+                      }}
+                    >
+                      <span className="truncate">{shortRouteLabel(candidate)}</span>
+                      {candidate.path === route ? <Badge variant="secondary">Current</Badge> : null}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </SheetContent>
+        </Sheet>
+
+        <Toaster richColors position="bottom-right" />
       </div>
-    </Tooltip.Provider>
+    </TooltipProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { draftMode } from "next/headers";
 import { VisualEditing } from "next-sanity/visual-editing";
 import { DisableDraftMode } from "@/components/disable-draft-mode";
+import { EditorBridgeRuntime } from "@/components/editor-bridge-runtime";
 import { PageTransitionController } from "@/components/page-transition-controller";
 import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
 
@@ -16,6 +17,7 @@ export default async function SiteLayout({
       <SmoothScrollProvider />
       <PageTransitionController />
       {children}
+      <EditorBridgeRuntime />
       {isDraftMode ? (
         <>
           <VisualEditing />

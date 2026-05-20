@@ -1,600 +1,244 @@
-:is(.editor, .sidebar, .selectContent, .popover, .tooltip) {
-  --ink: #101211;
-  --muted: #6b706a;
-  --soft: #a3aaa1;
-  --line: rgba(16, 18, 17, 0.14);
-  --line-strong: rgba(16, 18, 17, 0.24);
-  --panel: #f7f8f3;
-  --panel-raised: #ffffff;
-  --canvas: #cfd4cd;
-  --accent: #c8ff41;
-  --accent-ink: #182000;
-  --danger: #ff5f45;
-  --shadow: 0 24px 70px rgba(16, 18, 17, 0.18);
-}
-
 .editor {
-  min-height: 100vh;
-  background:
-    linear-gradient(90deg, rgba(16, 18, 17, 0.055) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(16, 18, 17, 0.055) 1px, transparent 1px),
-    linear-gradient(135deg, #d7dcd4 0%, #e8ebe4 46%, #ccd3cf 100%);
-  background-size: 32px 32px, 32px 32px, auto;
-  color: var(--ink);
-  font-family: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #f5f5f3;
+  color: var(--foreground);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   letter-spacing: 0;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .topbar {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  height: 64px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(247, 248, 243, 0.86);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) inset;
-  backdrop-filter: blur(18px);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  flex: 0 0 auto;
+  gap: 12px;
+  grid-template-columns: auto minmax(280px, 0.9fr) minmax(220px, 1fr) auto;
+  min-height: 64px;
+  padding: 12px 16px;
 }
 
 .brandMark,
 .routeCluster,
+.statusCluster,
+.collectionSwitcher,
 .toolbarActions,
-.sidebarHeader,
-.sidebarHeaderActions,
-.segmented,
-.tab,
-.fieldSelect,
-.routeSelect,
+.inspectorHeader,
 .selectionCard,
-.selectionIcon {
-  display: flex;
+.selectionIcon,
+.patchRow {
   align-items: center;
+  display: flex;
 }
 
 .brandMark {
-  gap: 9px;
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--ink);
-  color: #f8faf4;
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--foreground);
+  gap: 8px;
+  min-width: max-content;
+}
+
+.brandMark span {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .routeCluster {
+  gap: 8px;
   min-width: 0;
-  gap: 10px;
+}
+
+.routeCluster [aria-label="Route"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.routeSearchButton {
+  flex: 0 0 auto;
+}
+
+.statusCluster {
+  gap: 8px;
+  justify-content: flex-start;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.statusCluster [data-slot="badge"] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.collectionSwitcher {
+  flex: 1 1 280px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.collectionBadge,
+.collectionCount {
+  flex: 0 0 auto;
+}
+
+.collectionSelectTrigger {
+  flex: 1 1 170px;
+  min-width: 0;
 }
 
 .toolbarActions {
+  gap: 8px;
   justify-content: flex-end;
-  gap: 10px;
 }
 
-.segmented {
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.66);
+.workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
 }
 
-.segmented .iconButton {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-
-.routeSelect,
-.fieldSelect {
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-raised);
-  color: var(--ink);
-  outline: none;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
-}
-
-.routeSelect {
-  width: min(32vw, 360px);
-  padding: 0 12px;
-  font-size: 12px;
-}
-
-.fieldSelect {
-  width: 100%;
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.routeSelect:hover,
-.fieldSelect:hover,
-.field input:hover,
-.field textarea:hover {
-  border-color: var(--line-strong);
-}
-
-.routeSelect:focus-visible,
-.fieldSelect:focus-visible,
-.field input:focus-visible,
-.field textarea:focus-visible,
-.iconButton:focus-visible,
-.copyButton:focus-visible,
-.patchButton:focus-visible,
-.visibilityButton:focus-visible,
-.tab:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(200, 255, 65, 0.42);
-}
-
-.targetCrumb {
+.previewPanel,
+.inspectorPanel {
   min-width: 0;
-  overflow: hidden;
-  padding: 0 10px;
-  color: var(--muted);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .stage {
-  display: flex;
   align-items: flex-start;
+  background: #f1f1ee;
+  display: flex;
+  height: 100%;
   justify-content: center;
-  min-height: 100vh;
-  padding: 88px 28px 28px;
-  transition: padding-right 180ms ease;
-}
-
-.editorPanelOpen .stage {
-  padding-right: min(440px, 31vw);
+  min-width: 0;
+  overflow: auto;
+  padding: 24px;
 }
 
 .canvasChrome {
-  position: relative;
-  min-width: 280px;
-  height: calc(100vh - 116px);
-  overflow: hidden;
-  border: 1px solid rgba(16, 18, 17, 0.2);
-  border-radius: 8px;
   background: #fff;
-  box-shadow:
-    0 0 0 7px rgba(255, 255, 255, 0.28),
-    var(--shadow);
-  transition:
-    width 180ms ease,
-    transform 180ms ease;
-}
-
-.canvasChrome::before {
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 1;
-  height: 8px;
-  border-bottom: 1px solid rgba(16, 18, 17, 0.12);
-  background: linear-gradient(90deg, var(--accent), #ffffff 34%, var(--danger));
-  content: "";
-  pointer-events: none;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(19, 18, 21, 0.08);
+  height: calc(100vh - 112px);
+  min-width: 280px;
+  outline: 1px solid color-mix(in oklch, var(--border) 74%, var(--foreground));
+  overflow: hidden;
+  position: relative;
+  transition: width 180ms ease;
 }
 
 .canvas {
-  width: 100%;
-  height: 100%;
-  border: 0;
   background: #fff;
-}
-
-.sidebar {
-  position: fixed;
-  inset: 76px 14px 14px auto;
-  z-index: 30;
-  display: flex;
-  width: min(408px, calc(100vw - 28px));
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 248, 243, 1)),
-    var(--panel);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.85) inset,
-    var(--shadow);
-}
-
-.sidebarHeader {
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-}
-
-.sidebarHeaderActions {
-  gap: 8px;
-}
-
-.sidebarTitle {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.sidebarMeta {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.separator {
-  height: 1px;
-  background: var(--line);
-}
-
-.scrollRoot {
-  min-height: 0;
-  flex: 1;
-}
-
-.scrollViewport {
-  width: 100%;
-  height: calc(100vh - 157px);
-  padding: 12px;
-}
-
-.selectionCard {
-  gap: 10px;
-  min-height: 66px;
-  margin-bottom: 12px;
-  padding: 11px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--ink);
-  color: #f8faf4;
-}
-
-.selectionIcon {
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.selectionText {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.selectionText span {
-  color: rgba(248, 250, 244, 0.62);
-  font-size: 10px;
-  text-transform: uppercase;
-}
-
-.selectionText strong {
-  overflow: hidden;
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tabs {
-  display: grid;
-  gap: 12px;
-}
-
-.tabList {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(16, 18, 17, 0.055);
-}
-
-.tab {
-  justify-content: center;
-  gap: 5px;
-  min-width: 0;
-  height: 34px;
-  overflow: hidden;
   border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  transition:
-    background 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.tab span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tab[data-state="active"] {
-  background: var(--panel-raised);
-  color: var(--ink);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
-}
-
-.tabPanel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.field:has(textarea),
-.tabPanel .field:nth-last-child(1):nth-child(odd) {
-  grid-column: 1 / -1;
-}
-
-.field input,
-.field textarea {
+  height: 100%;
   width: 100%;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-raised);
-  color: var(--ink);
-  font-size: 12px;
-  text-transform: none;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
 }
 
-.field input {
-  padding: 0 10px;
+.inspector {
+  background: var(--background);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 280px;
+  overflow: hidden;
 }
 
-.field textarea {
-  min-height: 88px;
-  padding: 10px;
+.inspectorHeader {
+  flex: 0 0 auto;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 16px;
+}
+
+.inspectorScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.inspectorScroll [data-slot="scroll-area-viewport"] > div {
+  display: block !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.inspectorBody {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  padding: 16px;
+}
+
+.valueInput,
+.valueSelectTrigger {
+  min-height: 32px;
+  width: 100%;
+}
+
+.contentTextarea {
+  min-height: 96px;
   resize: vertical;
 }
 
-.field input::placeholder {
-  color: var(--soft);
-}
-
-.iconButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--line);
+.selectionCard {
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--panel-raised);
-  color: var(--ink);
-  transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    transform 140ms ease;
+  gap: 10px;
+  min-height: 64px;
+  padding: 12px;
 }
 
-.iconButton:hover,
-.activeIconButton {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: #f8faf4;
-}
-
-.iconButton:hover {
-  transform: translateY(-1px);
-}
-
-.visibilityButton,
-.patchButton,
-.copyButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 40px;
-  border: 1px solid var(--line);
+.selectionIcon {
+  background: var(--secondary);
   border-radius: 8px;
-  background: var(--panel-raised);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    transform 140ms ease;
-}
-
-.visibilityButton {
-  grid-column: 1 / -1;
-}
-
-.visibilityButton:hover,
-.patchButton:hover {
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-}
-
-.visibilityActive {
-  border-color: var(--danger);
-  background: var(--danger);
-  color: #fff;
-}
-
-.patchButton {
-  justify-content: space-between;
-  margin-top: 12px;
-  padding: 0 12px;
-}
-
-.patchButton span {
-  display: inline-flex;
-  align-items: center;
+  color: var(--secondary-foreground);
+  flex: 0 0 auto;
+  height: 36px;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--ink);
-  color: #f8faf4;
+  width: 36px;
 }
 
-.copyButton {
-  margin-top: 10px;
-  border-color: var(--ink);
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.copyButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(89, 118, 0, 0.18);
-}
-
-.copyButton:disabled {
-  cursor: not-allowed;
-  filter: grayscale(1);
-  opacity: 0.42;
-}
-
-.selectContent,
-.popover,
-.tooltip {
-  z-index: 60;
-  border: 1px solid var(--line-strong);
+.patchList {
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--panel-raised);
-  color: var(--ink);
-  box-shadow: 0 18px 50px rgba(16, 18, 17, 0.2);
-}
-
-.selectContent {
-  width: var(--radix-select-trigger-width);
-  max-height: min(520px, var(--radix-select-content-available-height));
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
-.selectViewport {
-  padding: 4px;
-}
-
-.selectItem {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 34px 0 10px;
-  border-radius: 6px;
-  outline: none;
-  color: var(--ink);
-  font-size: 12px;
-}
-
-.selectItem[data-highlighted] {
-  background: var(--ink);
-  color: #f8faf4;
-}
-
-.selectItem [data-radix-select-item-indicator] {
-  position: absolute;
-  right: 10px;
-}
-
-.popover {
-  width: 254px;
+.patchList > p {
   padding: 12px;
-  font-size: 12px;
 }
 
 .patchRow {
-  display: flex;
-  align-items: center;
+  gap: 12px;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 0;
+  min-height: 56px;
+  padding: 10px 12px;
 }
 
 .patchRow + .patchRow {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
-.patchRow span {
-  color: var(--muted);
-}
-
-.popoverArrow,
-.tooltipArrow {
-  fill: var(--panel-raised);
-}
-
-.tooltip {
-  padding: 7px 9px;
-  font-size: 11px;
-}
-
-.scrollbar {
-  width: 8px;
-  padding: 2px;
-}
-
-.scrollThumb {
-  border-radius: 999px;
-  background: rgba(16, 18, 17, 0.28);
-}
-
-@media (max-width: 1080px) {
-  .editorPanelOpen .stage {
-    padding-right: 28px;
+@media (max-width: 1120px) {
+  .topbar {
+    grid-template-columns: auto minmax(220px, 1fr) auto;
   }
 
-  .canvasChrome {
-    width: min(100%, 1000px) !important;
+  .statusCluster {
+    display: none;
   }
 }
 
 @media (max-width: 760px) {
   .topbar {
     grid-template-columns: 1fr auto;
-    height: auto;
   }
 
   .brandMark {
@@ -602,34 +246,66 @@
   }
 
   .routeCluster {
-    width: 100%;
+    grid-column: 1 / -1;
+    order: 3;
   }
 
-  .routeSelect,
-  .targetCrumb {
-    max-width: none;
-    width: 100%;
+  .toolbarActions {
+    justify-content: flex-end;
   }
 
   .stage {
-    padding-top: 110px;
+    padding: 16px;
   }
 
   .canvasChrome {
-    height: calc(100vh - 138px);
+    height: calc(100vh - 152px);
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    display: block !important;
   }
 
-  .sidebar {
-    inset: auto 8px 8px;
-    width: auto;
-    max-height: min(78vh, 680px);
+  .previewPanel {
+    height: 100% !important;
+    width: 100% !important;
   }
 
-  .scrollViewport {
-    height: min(60vh, 540px);
+  .workspace [data-slot="resizable-handle"] {
+    display: none;
   }
 
-  .tabPanel {
-    grid-template-columns: 1fr;
+  .inspectorPanel {
+    bottom: 0 !important;
+    height: 100% !important;
+    left: auto !important;
+    max-width: 100%;
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: min(360px, 100%) !important;
+    z-index: 20;
+  }
+
+  .inspector {
+    box-shadow: -12px 0 28px rgba(19, 18, 21, 0.12);
+  }
+}
+
+@media (max-width: 420px) {
+  .routeCluster {
+    gap: 6px;
+  }
+
+  .routeSearchButton {
+    padding-left: 0;
+    padding-right: 0;
+    width: 40px;
+  }
+
+  .routeSearchLabel {
+    display: none;
   }
 }

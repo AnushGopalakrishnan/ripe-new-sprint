@@ -274,7 +274,8 @@ function CommentableMedia({
 
   useEffect(() => {
     if (commentsVisible) return;
-    setActiveId(null);
+    const resetTimer = window.setTimeout(() => setActiveId(null), 0);
+    return () => window.clearTimeout(resetTimer);
   }, [commentsVisible]);
 
   useEffect(() => {

@@ -3,6 +3,11 @@ export type ViewportName = "desktop" | "tablet" | "mobile";
 export type MirrorRoute = {
   path: string;
   label: string;
+  collection?: {
+    key: string;
+    label: string;
+    itemLabel: string;
+  };
 };
 
 export type ElementTarget = {

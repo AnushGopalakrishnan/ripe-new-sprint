@@ -8,6 +8,12 @@ body:has(#sanity) {
   justify-content: flex-start;
 }
 
+body:has([data-visual-editor-shell]) {
+  align-items: stretch;
+  display: block;
+  justify-content: flex-start;
+}
+
 #sanity {
   height: 100vh;
   min-height: 100vh;

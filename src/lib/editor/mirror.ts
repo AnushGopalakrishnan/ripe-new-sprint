@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { workJournalItems } from "@/data/work-journal";
 import { bridgeScript } from "@/lib/editor/bridge-source";
 import type { MirrorRoute } from "@/lib/editor/types";
+import { getCaseStudies, getWritingPosts } from "@/lib/content";
 
 const siteRoot = path.join(/* turbopackIgnore: true */ process.cwd(), "site");
 
@@ -38,6 +40,99 @@ function normalizeSegments(segments: string[] = []) {
 function routeToHtmlPath(routePath: string) {
   if (!routePath || routePath === "/") return path.join(siteRoot, "index.html");
   return path.join(siteRoot, routePath.replace(/^\/+/, ""), "index.html");
+}
+
+const collectionDefinitions = [
+  { prefix: "/case-studies/tags/", key: "case-study-tags", label: "Case study tags" },
+  { prefix: "/case-studies/", key: "case-studies", label: "Case studies" },
+  { prefix: "/feed-posts/", key: "feed-posts", label: "Feed posts" },
+  { prefix: "/job-listings/", key: "job-listings", label: "Job listings" },
+  { prefix: "/team/", key: "team", label: "Team" },
+  { prefix: "/writing/", key: "writing", label: "Writing" },
+];
+
+function humanizeSlug(value: string) {
+  return value
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .at(-1)
+    ?.replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()) || value;
+}
+
+function collectionForPath(route: string, itemLabel = humanizeSlug(route)) {
+  const collection = collectionDefinitions.find((definition) => {
+    if (!route.startsWith(definition.prefix)) return false;
+    return route.slice(definition.prefix.length).length > 0;
+  });
+
+  if (!collection) return undefined;
+
+  return {
+    key: collection.key,
+    label: collection.label,
+    itemLabel,
+  };
+}
+
+function routeLabel(route: string) {
+  if (route === "/") return "Home";
+  return route.replace(/^\//, "");
+}
+
+function makeRoute(route: string, label = routeLabel(route), itemLabel?: string): MirrorRoute {
+  return {
+    path: route,
+    label,
+    collection: collectionForPath(route, itemLabel),
+  };
+}
+
+function mergeRoutes(routes: MirrorRoute[]) {
+  const byPath = new Map<string, MirrorRoute>();
+
+  for (const route of routes) {
+    const existing = byPath.get(route.path);
+    byPath.set(route.path, {
+      ...existing,
+      ...route,
+      collection: route.collection ?? existing?.collection,
+    });
+  }
+
+  return Array.from(byPath.values());
+}
+
+async function getCmsCollectionRoutes() {
+  try {
+    const [caseStudies, writingPosts] = await Promise.all([
+      getCaseStudies(),
+      getWritingPosts(),
+    ]);
+
+    return [
+      ...caseStudies
+        .filter((study) => study.slug)
+        .map((study) =>
+          makeRoute(
+            `/case-studies/${study.slug}`,
+            study.title || routeLabel(`/case-studies/${study.slug}`),
+            study.title || humanizeSlug(study.slug),
+          ),
+        ),
+      ...writingPosts
+        .filter((post) => post.slug)
+        .map((post) =>
+          makeRoute(
+            `/writing/${post.slug}`,
+            post.title || routeLabel(`/writing/${post.slug}`),
+            post.title || humanizeSlug(post.slug),
+          ),
+        ),
+    ];
+  } catch {
+    return [];
+  }
 }
 
 async function firstExisting(paths: string[]) {
@@ -184,7 +279,10 @@ export async function readMirrorResource(segments: string[] = []) {
 
 export async function getMirrorRoutes(): Promise<MirrorRoute[]> {
   try {
-    const manifest = await fs.readFile(path.join(siteRoot, "routes.json"), "utf8");
+    const [manifest, cmsCollectionRoutes] = await Promise.all([
+      fs.readFile(path.join(siteRoot, "routes.json"), "utf8"),
+      getCmsCollectionRoutes(),
+    ]);
     const routes = JSON.parse(manifest) as string[];
     const canonicalRoutes = routes.map((route) => {
       if (route === "/case-studies-new" || route === "/case-studies-new-copy") return "/case-studies";
@@ -199,15 +297,16 @@ export async function getMirrorRoutes(): Promise<MirrorRoute[]> {
       return route;
     });
     const uniqueRoutes = [...new Set(canonicalRoutes)];
-    const routesWithCustomPages = [
+    const routesWithCustomPages = mergeRoutes([
       { path: "/home-new-feed", label: "Home (new feed)" },
       { path: "/work-new", label: "Work (new journal)" },
       { path: "/work-new-alternate", label: "Work (alternate journal)" },
-      ...uniqueRoutes.map((route) => ({
-        path: route,
-        label: route === "/" ? "Home" : route.replace(/^\//, ""),
-      })),
-    ];
+      ...uniqueRoutes.map((route) => makeRoute(route)),
+      ...workJournalItems.map((item) =>
+        makeRoute(`/case-studies/${item.slug}`, item.title, item.title),
+      ),
+      ...cmsCollectionRoutes,
+    ]);
     return routesWithCustomPages;
   } catch {
     return [{ path: "/", label: "Home" }];
