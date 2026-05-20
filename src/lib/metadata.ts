@@ -13,6 +13,11 @@ const baseDescription =
 
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(absoluteUrl("/")),
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: ["/favicon.svg"],
+    apple: ["/webclip.svg"],
+  },
   title: {
     default: siteName,
     template: `%s | ${siteName}`,

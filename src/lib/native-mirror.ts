@@ -158,6 +158,8 @@ function stripHeadNoise(headMarkup: string) {
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<title[\s\S]*?<\/title>/gi, "")
     .replace(/<meta[\s\S]*?>/gi, "")
+    .replace(/<link\b[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon|mask-icon)["'][^>]*>/gi, "")
+    .replace(/<link\b[^>]*rel=["']manifest["'][^>]*>/gi, "")
     .trim();
 }
 
