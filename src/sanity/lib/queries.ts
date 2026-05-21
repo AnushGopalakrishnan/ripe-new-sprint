@@ -83,7 +83,13 @@ const CASE_STUDY_COMMENT_FIELDS = `
       commenter->{
         name,
         role,
-        "avatar": avatar.asset->url
+        "avatar": coalesce(
+          avatar.upload.asset->url,
+          avatar.image.asset->url,
+          avatar.asset->url,
+          avatar.src,
+          avatar.video.asset->url
+        )
       },
       body,
       position{
@@ -331,6 +337,48 @@ export const WRITING_POST_QUERY = defineQuery(`
 
 export const WRITING_POST_SLUGS_QUERY = defineQuery(`
   *[_type == "writing" && defined(slug.current)]{
+    "slug": slug.current
+  }
+`);
+
+const TEAM_MEMBER_FIELDS = `
+  name,
+  "slug": slug.current,
+  role,
+  "group": coalesce(group, "Team"),
+  avatar{
+    kind,
+    "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
+    alt,
+    "poster": coalesce(poster, posterImage.asset->url),
+    eyebrow
+  },
+  bio,
+  bioSummary,
+  email,
+  phone,
+  websiteUrl,
+  twitterUrl,
+  "projects": projects[]->{
+    title,
+    "slug": slug.current
+  }
+`;
+
+export const TEAM_MEMBERS_QUERY = defineQuery(`
+  *[_type == "teamMember" && defined(slug.current)] | order(group asc, publishedAt asc, name asc){
+    ${TEAM_MEMBER_FIELDS}
+  }
+`);
+
+export const TEAM_MEMBER_QUERY = defineQuery(`
+  *[_type == "teamMember" && slug.current == $slug][0]{
+    ${TEAM_MEMBER_FIELDS}
+  }
+`);
+
+export const TEAM_MEMBER_SLUGS_QUERY = defineQuery(`
+  *[_type == "teamMember" && defined(slug.current)]{
     "slug": slug.current
   }
 `);

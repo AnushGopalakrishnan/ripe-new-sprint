@@ -191,3 +191,21 @@ export type WritingPost = {
   bodyHtml?: string;
   seo: Seo;
 };
+
+export type TeamMember = {
+  name: string;
+  slug: string;
+  role?: string;
+  group?: string;
+  avatar?: MediaAsset;
+  bio?: string;
+  bioSummary?: string;
+  email?: string;
+  phone?: string;
+  websiteUrl?: string;
+  twitterUrl?: string;
+  projects?: Array<{
+    title?: string;
+    slug?: string;
+  }>;
+};
