@@ -11,6 +11,7 @@ import type {
   HomePage,
   MediaAsset,
   SiteSettings,
+  TeamMember,
   WritingPost,
 } from "@/types/content";
 import { sanityFetch } from "@/sanity/lib/fetch";
@@ -20,6 +21,9 @@ import {
   CASE_STUDY_QUERY,
   HOME_PAGE_QUERY,
   SITE_SETTINGS_QUERY,
+  TEAM_MEMBER_QUERY,
+  TEAM_MEMBER_SLUGS_QUERY,
+  TEAM_MEMBERS_QUERY,
   WRITING_POST_QUERY,
   WRITING_POST_SLUGS_QUERY,
   WRITING_POSTS_QUERY,
@@ -277,4 +281,82 @@ export async function getWritingPostSlugs(): Promise<string[]> {
   });
 
   return data?.map((entry) => entry.slug) || fallbackWritingPosts.map((entry) => entry.slug);
+}
+
+export async function getTeamMembers(): Promise<TeamMember[]> {
+  if (!hasSanityConfig) {
+    return [];
+  }
+
+  const { data } = await sanityFetch<TeamMember[] | null>({
+    query: TEAM_MEMBERS_QUERY,
+    revalidate: 0,
+    tags: [],
+  });
+
+  const publishedMembers = data?.filter((member) => Boolean(member.slug && member.name)) ?? [];
+  if (publishedMembers.length > 0) return publishedMembers;
+
+  if (!sanityEnv.readToken) return publishedMembers;
+
+  const draftMembers = await client
+    .withConfig({
+      useCdn: false,
+      stega: false,
+    })
+    .fetch<TeamMember[]>(
+      TEAM_MEMBERS_QUERY,
+      {},
+      {
+        perspective: "drafts",
+        token: sanityEnv.readToken,
+        next: { revalidate: 0, tags: [] },
+      },
+    );
+
+  return draftMembers?.filter((member) => Boolean(member.slug && member.name)) ?? [];
+}
+
+export async function getTeamMemberBySlug(slug: string): Promise<TeamMember | null> {
+  if (!hasSanityConfig) {
+    return null;
+  }
+
+  const { data } = await sanityFetch<TeamMember | null>({
+    query: TEAM_MEMBER_QUERY,
+    params: { slug },
+    revalidate: 0,
+    tags: [],
+  });
+
+  if (data) return data;
+  if (!sanityEnv.readToken) return null;
+
+  return client
+    .withConfig({
+      useCdn: false,
+      stega: false,
+    })
+    .fetch<TeamMember | null>(
+      TEAM_MEMBER_QUERY,
+      { slug },
+      {
+        perspective: "drafts",
+        token: sanityEnv.readToken,
+        next: { revalidate: 0, tags: [] },
+      },
+    );
+}
+
+export async function getTeamMemberSlugs(): Promise<string[]> {
+  if (!hasSanityConfig) {
+    return [];
+  }
+
+  const { data } = await sanityFetch<Array<{ slug: string }> | null>({
+    query: TEAM_MEMBER_SLUGS_QUERY,
+    tags: ["teamMember"],
+  });
+
+  return data?.map((entry) => entry.slug).filter(Boolean) ?? [];
 }

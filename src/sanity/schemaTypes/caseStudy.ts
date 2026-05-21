@@ -20,7 +20,7 @@ const placedCommentFields = [
     name: "commenter",
     title: "Commenter",
     type: "reference",
-    to: [{ type: "caseStudyCommenter" }],
+    to: [{ type: "teamMember" }],
   }),
   defineField({
     name: "author",
