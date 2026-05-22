@@ -97,7 +97,7 @@ type DragState = {
   startY: number;
 };
 
-const DESIGN_SIDE_PADDING_PX = 200;
+const LAYOUT_DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
@@ -645,7 +645,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               {reference.layouts.map((layout) => {
                 const rowGap = layout.gap ?? DESIGN_CELL_GAP_PX;
                 const designWidth = DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
-                const designInnerWidth = Math.max(designWidth - DESIGN_SIDE_PADDING_PX * 2, 1);
+                const designInnerWidth = Math.max(designWidth - LAYOUT_DESIGN_SIDE_PADDING_PX * 2, 1);
 
                 return (
                   <section
