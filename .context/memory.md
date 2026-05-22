@@ -99,6 +99,7 @@
 - Correction on 2026-05-19: some `detailServices` refs are legacy slug-shaped values (`caseStudyTag.<slug>`) rather than document `_id`s. Resolver now handles both forms: it fetches tags by `_id` and by `slug.current`, then rebuilds service titles in original ref order; if slug lookup misses, it humanizes the slug token as a last-resort label.
 - Update on 2026-05-19: flexible case-study layout media now defaults to crop-safe behavior with `object-fit: cover` (runtime `fitMode="cover"` + CSS `.formaLayoutMedia { object-fit: cover; }`) so incorrect asset aspect ratios are handled gracefully by the layout.
 - Update on 2026-05-19: mobile flexible layout behavior was simplified by request: under the mobile breakpoint, fancy row/cell ratio composition is disabled (`.formaLayoutRow` `aspect-ratio: auto`, single-column) and cells/media render as a straightforward stacked list of assets.
+- Update on 2026-05-22: reverted experimental case-study row-span support. Flexible layouts are back to row-by-row rendering only. The floating comments toggle now only appears when at least one comment exists across hero/layout/media sections, and keyboard `C` toggle is disabled when no comments are present.
 - Update on 2026-05-19: mobile hero text composition adjusted to match reference: title and short description now form a fixed left-aligned overlay block (`.formaHeroCopy` mobile top offset var, title top anchored, description positioned directly beneath with constrained width).
 - Fix on 2026-05-20: favicon intermittently disappeared on mirrored `(site)` routes due head composition differences. Added explicit icon metadata (`/favicon.ico`) in `src/lib/metadata.ts` and explicit favicon links in `src/app/(site)/head.tsx` to keep the icon stable across site pages.
 - Follow-up fix on 2026-05-20: mirrored route head sanitizer now strips incoming icon/manifest links from Webflow head markup (`stripHeadNoise` in `src/lib/native-mirror.ts`). This prevents mirror-injected favicon links from overriding/removing the app-level `/favicon.ico` during navigation.
@@ -596,6 +597,7 @@
 ## Runtime Notes
 
 - `pnpm build` passes with the native non-detail route cutover.
+- Fix on 2026-05-21: Apple Silicon/Turbopack local dev could throw `Cannot find module '../lightningcss.darwin-arm64.node'` from `lightningcss/node/index.js` during PostCSS evaluation. Added `scripts/fix-lightningcss-native.mjs` and root `postinstall` hook (`node scripts/fix-lightningcss-native.mjs`) to copy the platform binary from `node_modules/lightningcss-<platform-arch>/` into `node_modules/lightningcss/` as fallback for the relative native-module load path.
 - Local `next dev` correctly serves the rewritten clone routes and `/studio`.
 - Local `next start` now works for smoke coverage through `playwright.config.ts`.
 - Active home/work static-mirror cleanup on 2026-05-12:
