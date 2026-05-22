@@ -493,6 +493,15 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
   const heroStageRef = useRef<HTMLElement | null>(null);
+  const hasAnyComments =
+    (reference.media.hero.comments?.length ?? 0) > 0 ||
+    (reference.media.intro.comments?.length ?? 0) > 0 ||
+    reference.media.carouselSlides.some((media) => (media.comments?.length ?? 0) > 0) ||
+    (reference.media.carouselPoster.comments?.length ?? 0) > 0 ||
+    (reference.media.blackFeature.comments?.length ?? 0) > 0 ||
+    (reference.media.wideFeature.comments?.length ?? 0) > 0 ||
+    (reference.media.cta.comments?.length ?? 0) > 0 ||
+    reference.layouts.some((layout) => layout.rows.some((row) => row.cells.some((cell) => (cell.media.comments?.length ?? 0) > 0)));
 
   const toggleCommentsVisibility = useCallback(() => {
     setCommentsVisible((current) => !current);
@@ -562,6 +571,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   }, []);
 
   useEffect(() => {
+    if (!hasAnyComments) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -579,7 +589,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [hasAnyComments]);
 
   return (
     <main className={styles.formaPage}>
@@ -816,22 +826,24 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           ) : null}
         </div>
       </section>
-      <div className={styles.detailCommentToggleDock}>
-        <button
-          className={styles.detailCommentToggle}
-          onClick={toggleCommentsVisibility}
-          type="button"
-          aria-pressed={commentsVisible}
-          aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
-        >
-          <span className={styles.detailCommentToggleLabel}>
-            {commentsVisible ? "Hide Comments" : "Show Comments"}
-          </span>
-          <span className={styles.detailCommentToggleKey} aria-hidden="true">
-            C
-          </span>
-        </button>
-      </div>
+      {hasAnyComments ? (
+        <div className={styles.detailCommentToggleDock}>
+          <button
+            className={styles.detailCommentToggle}
+            onClick={toggleCommentsVisibility}
+            type="button"
+            aria-pressed={commentsVisible}
+            aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
+          >
+            <span className={styles.detailCommentToggleLabel}>
+              {commentsVisible ? "Hide Comments" : "Show Comments"}
+            </span>
+            <span className={styles.detailCommentToggleKey} aria-hidden="true">
+              C
+            </span>
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }
