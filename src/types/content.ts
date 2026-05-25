@@ -21,6 +21,10 @@ export type MediaAsset = {
   alt: string;
   poster?: string;
   eyebrow?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
 };
 
 export type CommentPosition = {

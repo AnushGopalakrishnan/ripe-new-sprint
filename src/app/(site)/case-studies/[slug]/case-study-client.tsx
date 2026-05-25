@@ -5,7 +5,22 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import {
+  MediaControlBar,
+  MediaController,
+  MediaFullscreenButton,
+  MediaMuteButton,
+  MediaPipButton,
+  MediaPlaybackRateButton,
+  MediaPlayButton,
+  MediaSeekBackwardButton,
+  MediaSeekForwardButton,
+  MediaTimeDisplay,
+  MediaTimeRange,
+  MediaVolumeRange,
+} from "media-chrome/react";
 import styles from "@/app/(site)/detail-page.module.css";
+import "hls-video-element";
 
 type MediaKind = "auto" | "image" | "video";
 
@@ -14,6 +29,10 @@ type CaseStudyMedia = {
   alt: string;
   kind?: MediaKind;
   poster?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
   comments?: CaseStudyComment[];
 };
 
@@ -171,12 +190,15 @@ function CommentableMedia({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const longFormVideoRef = useRef<HTMLVideoElement | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const suppressNextTouchRef = useRef(false);
   const kind = getMediaKind(media.src, media.kind);
+  const longFormHlsUrl = media.longForm?.hlsUrl?.trim();
+  const isLongFormVideo = kind === "video" && media.longForm?.enabled === true && Boolean(longFormHlsUrl);
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current === null) return;
@@ -223,7 +245,8 @@ function CommentableMedia({
       return;
     }
     const wrapper = wrapperRef.current;
-    const mediaElement = kind === "video" ? videoRef.current : imageRef.current;
+    const mediaElement =
+      kind === "video" ? (isLongFormVideo ? longFormVideoRef.current : videoRef.current) : imageRef.current;
     if (!wrapper || !mediaElement) {
       setFrame(null);
       return;
@@ -237,7 +260,9 @@ function CommentableMedia({
     }
 
     const intrinsicWidth =
-      kind === "video" ? (mediaElement as HTMLVideoElement).videoWidth : (mediaElement as HTMLImageElement).naturalWidth;
+      kind === "video"
+        ? (mediaElement as HTMLVideoElement).videoWidth
+        : (mediaElement as HTMLImageElement).naturalWidth;
     const intrinsicHeight =
       kind === "video"
         ? (mediaElement as HTMLVideoElement).videoHeight
@@ -270,7 +295,7 @@ function CommentableMedia({
       width: renderedWidth,
       height: renderedHeight,
     });
-  }, [fitMode, kind]);
+  }, [fitMode, isLongFormVideo, kind]);
 
   useEffect(() => {
     if (commentsVisible) return;
@@ -307,7 +332,37 @@ function CommentableMedia({
   }, []);
 
   const mediaElement =
-    kind === "video" ? (
+    kind === "video" && isLongFormVideo && longFormHlsUrl ? (
+      <div className={styles.detailLongFormPlayer}>
+        <MediaController className={styles.detailLongFormController}>
+          <hls-video
+            ref={(element) => {
+              longFormVideoRef.current = element as HTMLVideoElement | null;
+            }}
+            slot="media"
+            className={mediaClassName}
+            src={longFormHlsUrl}
+            poster={media.poster}
+            preload={priority ? "auto" : "metadata"}
+            playsInline
+            crossOrigin="anonymous"
+            onLoadedMetadata={updateFrame}
+          />
+          <MediaControlBar>
+            <MediaPlayButton />
+            <MediaSeekBackwardButton seekOffset={10} />
+            <MediaSeekForwardButton seekOffset={10} />
+            <MediaTimeRange />
+            <MediaTimeDisplay showDuration />
+            <MediaMuteButton />
+            <MediaVolumeRange />
+            <MediaPlaybackRateButton />
+            <MediaPipButton />
+            <MediaFullscreenButton />
+          </MediaControlBar>
+        </MediaController>
+      </div>
+    ) : kind === "video" ? (
       <video
         ref={videoRef}
         className={mediaClassName}

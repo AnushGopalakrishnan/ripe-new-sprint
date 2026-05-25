@@ -830,6 +830,22 @@
   width: 100%;
 }
 
+.detailLongFormPlayer {
+  height: 100%;
+  width: 100%;
+}
+
+.detailLongFormController {
+  --media-control-background: rgba(0, 0, 0, 0.72);
+  --media-primary-color: #ffffff;
+  --media-secondary-color: #ffffff;
+  --media-range-track-background: rgba(255, 255, 255, 0.34);
+  --media-range-thumb-background: #ffffff;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .detailCommentThread {
   height: 40px;
   left: var(--comment-x);

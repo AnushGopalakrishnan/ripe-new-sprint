@@ -29,6 +29,10 @@ type ClientMedia = {
   alt: string;
   kind: "auto" | "image" | "video";
   poster?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
   comments: ClientComment[];
 };
 
@@ -79,6 +83,7 @@ function toClientMedia(entry: CommentableMedia | undefined, fallback: MediaAsset
     alt: media.alt || "Case study media",
     kind: media.kind ?? "image",
     poster: media.poster,
+    longForm: media.longForm,
     comments: toClientComments(entry?.comments),
   };
 }

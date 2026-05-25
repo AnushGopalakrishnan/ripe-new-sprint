@@ -1,5 +1,54 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
 
+const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
+
+type MediaBlockValue = {
+  kind?: "image" | "video";
+  src?: string;
+  image?: unknown;
+  video?: unknown;
+  upload?: { asset?: { mimeType?: string } } | unknown;
+  longFormEnabled?: boolean;
+  longFormHlsUrl?: string;
+};
+
+function parseMediaPathname(src: string) {
+  try {
+    return new URL(src).pathname;
+  } catch {
+    return src;
+  }
+}
+
+function srcLooksLikeVideo(src: string | undefined) {
+  if (!src) return false;
+  if (src.startsWith("data:video/")) return true;
+
+  const pathname = parseMediaPathname(src).toLowerCase();
+  const extension = pathname.split(".").pop() ?? "";
+  return videoExtensions.has(extension);
+}
+
+function inferIsVideo(media: MediaBlockValue) {
+  if (media.kind === "video") return true;
+  if (media.video) return true;
+  if (srcLooksLikeVideo(media.src)) return true;
+  if (srcLooksLikeVideo(media.longFormHlsUrl)) return true;
+
+  const mimeType =
+    typeof media.upload === "object" &&
+    media.upload !== null &&
+    "asset" in media.upload &&
+    typeof media.upload.asset === "object" &&
+    media.upload.asset !== null &&
+    "mimeType" in media.upload.asset &&
+    typeof media.upload.asset.mimeType === "string"
+      ? media.upload.asset.mimeType
+      : undefined;
+
+  return typeof mimeType === "string" && mimeType.startsWith("video/");
+}
+
 export const seoType = defineType({
   name: "seo",
   title: "SEO",
@@ -123,6 +172,31 @@ export const mediaType = defineType({
       hidden: ({ parent }) => parent?.kind !== "video",
     }),
     defineField({
+      name: "longFormEnabled",
+      title: "Enable Long Form Video",
+      description:
+        "Turn on for externally hosted long-form HLS playback with full player controls.",
+      type: "boolean",
+      initialValue: false,
+    }),
+    defineField({
+      name: "longFormHlsUrl",
+      title: "Long Form HLS URL",
+      description: "Externally hosted HLS manifest URL (for example, .m3u8).",
+      type: "url",
+      validation: (rule) =>
+        rule.custom((value, context) => {
+          const parent = context.parent as MediaBlockValue | undefined;
+          if (!parent?.longFormEnabled) return true;
+
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Add a Long Form HLS URL when long form video is enabled.";
+          }
+
+          return true;
+        }),
+    }),
+    defineField({
       name: "alt",
       title: "Alt Text",
       type: "string",
@@ -137,13 +211,16 @@ export const mediaType = defineType({
   validation: (rule) =>
     rule.custom((value) => {
       if (!value || typeof value !== "object") return true;
-      const media = value as {
-        kind?: "image" | "video";
-        src?: string;
-        image?: unknown;
-        video?: unknown;
-        upload?: unknown;
-      };
+      const media = value as MediaBlockValue;
+
+      if (media.longFormEnabled) {
+        if (!inferIsVideo(media)) {
+          return "Long form video requires video media (kind, video upload, or video source URL).";
+        }
+        if (!media.longFormHlsUrl || media.longFormHlsUrl.trim().length === 0) {
+          return "Add a Long Form HLS URL when long form video is enabled.";
+        }
+      }
 
       if (media.upload) return true;
 
