@@ -69,12 +69,17 @@ const CASE_STUDY_MEDIA_FIELDS = `
       kind,
       select(defined(upload.asset->mimeType) && upload.asset->mimeType match "video/*" => "video"),
       select(defined(video.asset->url) => "video"),
+      select(defined(longFormHlsUrl) => "video"),
       "image"
     ),
     "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
     alt,
     "poster": coalesce(poster, posterImage.asset->url),
-    eyebrow
+    eyebrow,
+    "longForm": {
+      "enabled": coalesce(longFormEnabled, false),
+      "hlsUrl": longFormHlsUrl
+    }
 `;
 
 const CASE_STUDY_COMMENT_FIELDS = `
