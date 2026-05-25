@@ -530,7 +530,7 @@ function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
       const computed = window.getComputedStyle(firstParagraph ?? content);
       const fontSize = Number.parseFloat(computed.fontSize) || 15;
       const parsedLineHeight = Number.parseFloat(computed.lineHeight);
-      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.34;
+      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.38;
       const collapsedHeight = lineHeight * INFORMATION_COLLAPSED_LINES;
 
       content.style.setProperty("--information-collapsed-height", `${collapsedHeight}px`);
@@ -565,7 +565,7 @@ function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
           onClick={() => setExpanded((current) => !current)}
           type="button"
         >
-          {expanded ? "(SEE LESS)" : "(SEE MORE)"}
+          {expanded ? "See Less.." : "See More.."}
         </button>
       ) : null}
     </div>

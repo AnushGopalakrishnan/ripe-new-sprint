@@ -277,7 +277,7 @@
 
 .formaFact p {
   color: rgba(0, 0, 0, 0.42);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
   line-height: 1;
   margin: 0;
@@ -286,7 +286,7 @@
 
 .formaLabel {
   color: #0000006b !important;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 400;
   line-height: 1;
   margin: 0;
@@ -308,19 +308,34 @@
   color: #000000;
   font-size: 15px;
   font-weight: 400;
-  line-height: 1.34;
+  line-height: 1.38;
   margin: 0;
+}
+
+.formaInformation > .formaLabel {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .formaInformationCopy {
   display: grid;
   gap: 14px;
   overflow: visible;
+  position: relative;
 }
 
 .formaInformationCopyCollapsed {
   max-height: var(--information-collapsed-height, 201px);
   overflow: hidden;
+}
+
+.formaInformationCopyCollapsed::after {
+  background: #ffffff;
+  bottom: 0;
+  content: "..";
+  padding-left: 0.15em;
+  position: absolute;
+  right: 0;
 }
 
 .formaInformationToggle {
@@ -329,10 +344,12 @@
   border: 0;
   color: #000000;
   cursor: pointer;
-  font: 400 15px / 1.34 "Graphik", Arial, sans-serif;
+  font: 400 15px / 1.38 "Graphik", Arial, sans-serif;
   justify-self: start;
   margin: 0.4em 0 8rem;
   padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
 }
 
 .formaIntroMedia {
