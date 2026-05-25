@@ -1071,6 +1071,110 @@
   width: 1.5em;
 }
 
+.detailLongFormVolumeControl {
+  align-items: center;
+  display: flex;
+  height: 1.5em;
+  justify-content: center;
+  position: relative;
+  width: 1.5em;
+}
+
+.detailLongFormVolumeSliderWrap {
+  align-items: center;
+  backdrop-filter: blur(16px);
+  background: rgba(20, 20, 20, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  bottom: calc(100% + 0.65em);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  display: flex;
+  height: 7.25em;
+  justify-content: center;
+  left: 50%;
+  opacity: 0;
+  padding: 0.7em 0.55em;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, 0.35em);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 160ms ease;
+  visibility: hidden;
+  width: 2.25em;
+}
+
+.detailLongFormVolumeControl:hover .detailLongFormVolumeSliderWrap,
+.detailLongFormVolumeControl:focus-within .detailLongFormVolumeSliderWrap {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.detailLongFormVolumeSlider {
+  --player-volume: 100%;
+  accent-color: var(--case-study-player-accent, #ffffff);
+  appearance: none;
+  background: linear-gradient(
+    to top,
+    var(--case-study-player-accent, #ffffff) 0 var(--player-volume),
+    rgba(255, 255, 255, 0.22) var(--player-volume) 100%
+  );
+  border-radius: 999px;
+  cursor: pointer;
+  direction: rtl;
+  height: 5.75em;
+  margin: 0;
+  outline: none;
+  padding: 0;
+  width: 0.25em;
+  writing-mode: vertical-lr;
+}
+
+.detailLongFormVolumeSlider:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.82);
+  outline-offset: 0.45em;
+}
+
+.detailLongFormVolumeSlider::-webkit-slider-runnable-track {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  height: 100%;
+  width: 0.25em;
+}
+
+.detailLongFormVolumeSlider::-webkit-slider-thumb {
+  appearance: none;
+  background: var(--case-study-player-accent, #ffffff);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.24);
+  height: 0.8em;
+  width: 0.8em;
+}
+
+.detailLongFormVolumeSlider::-moz-range-track {
+  background: transparent;
+  border: 0;
+}
+
+.detailLongFormVolumeSlider::-moz-range-progress {
+  background: var(--case-study-player-accent, #ffffff);
+  border-radius: 999px;
+}
+
+.detailLongFormVolumeSlider::-moz-range-thumb {
+  background: var(--case-study-player-accent, #ffffff);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.24);
+  height: 0.8em;
+  width: 0.8em;
+}
+
 .detailLongFormTime {
   align-items: center;
   display: flex;

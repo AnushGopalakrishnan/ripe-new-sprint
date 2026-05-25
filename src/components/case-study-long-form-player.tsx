@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import "hls-video-element";
 
 type CaseStudyLongFormPlayerProps = {
@@ -114,9 +115,11 @@ export function CaseStudyLongFormPlayer({
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   const wasPlayingBeforeDragRef = useRef(false);
+  const lastAudibleVolumeRef = useRef(1);
   const [status, setStatus] = useState<"idle" | "ready" | "loading" | "playing" | "paused">("idle");
   const [hover, setHover] = useState<"idle" | "active">("idle");
   const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [fullscreen, setFullscreen] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -125,6 +128,8 @@ export function CaseStudyLongFormPlayer({
   const [activated, setActivated] = useState(false);
 
   const progress = duration > 0 ? clampUnit(currentTime / duration) * 100 : 0;
+  const effectiveMuted = muted || volume === 0;
+  const volumePercent = Math.round(volume * 100);
 
   const wakeControls = () => {
     setHover("active");
@@ -136,8 +141,9 @@ export function CaseStudyLongFormPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    video.muted = muted;
-  }, [muted, videoRef]);
+    video.volume = volume;
+    video.muted = effectiveMuted;
+  }, [effectiveMuted, videoRef, volume]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -279,13 +285,34 @@ export function CaseStudyLongFormPlayer({
     }
   };
 
+  const setPlayerVolume = (nextVolume: number) => {
+    const next = clampUnit(nextVolume);
+    setVolume(next);
+
+    if (next > 0) {
+      lastAudibleVolumeRef.current = next;
+      setMuted(false);
+    } else {
+      setMuted(true);
+    }
+  };
+
+  const toggleMute = () => {
+    if (effectiveMuted) {
+      if (volume === 0) setVolume(lastAudibleVolumeRef.current);
+      setMuted(false);
+    } else {
+      setMuted(true);
+    }
+  };
+
   return (
     <div
       ref={playerRef}
       className={styles.detailLongFormPlayer}
       data-player-status={status}
       data-player-hover={hover}
-      data-player-muted={muted ? "true" : "false"}
+      data-player-muted={effectiveMuted ? "true" : "false"}
       data-player-fullscreen={fullscreen ? "true" : "false"}
       data-player-activated={activated ? "true" : "false"}
       data-timeline-drag={dragging ? "true" : "false"}
@@ -385,19 +412,48 @@ export function CaseStudyLongFormPlayer({
             <div className={styles.detailLongFormTimelineHandle} style={{ left: `${progress}%` }} />
           </div>
           <div className={styles.detailLongFormInterfaceButtons}>
-            <button
-              className={styles.detailLongFormToggleMute}
-              type="button"
-              aria-label={muted ? "Unmute video" : "Mute video"}
-              onClick={(event) => {
+            <div
+              className={styles.detailLongFormVolumeControl}
+              onPointerDown={(event) => {
                 event.stopPropagation();
                 wakeControls();
-                setMuted((current) => !current);
               }}
+              onPointerEnter={wakeControls}
+              onFocus={wakeControls}
             >
-              <VolumeUpIcon className={styles.detailLongFormVolumeUpIcon} />
-              <VolumeMuteIcon className={styles.detailLongFormVolumeMuteIcon} />
-            </button>
+              <div className={styles.detailLongFormVolumeSliderWrap}>
+                <input
+                  className={styles.detailLongFormVolumeSlider}
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={volumePercent}
+                  aria-label="Video volume"
+                  aria-valuetext={effectiveMuted ? "Muted" : `${volumePercent}%`}
+                  style={{ "--player-volume": `${volumePercent}%` } as CSSProperties}
+                  onChange={(event) => {
+                    wakeControls();
+                    setPlayerVolume(Number(event.currentTarget.value) / 100);
+                  }}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              </div>
+              <button
+                className={styles.detailLongFormToggleMute}
+                type="button"
+                aria-label={effectiveMuted ? "Unmute video" : "Mute video"}
+                aria-haspopup="true"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  wakeControls();
+                  toggleMute();
+                }}
+              >
+                <VolumeUpIcon className={styles.detailLongFormVolumeUpIcon} />
+                <VolumeMuteIcon className={styles.detailLongFormVolumeMuteIcon} />
+              </button>
+            </div>
             <button
               className={styles.detailLongFormToggleFullscreen}
               type="button"
