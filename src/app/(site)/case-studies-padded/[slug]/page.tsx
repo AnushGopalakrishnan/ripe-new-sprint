@@ -175,6 +175,7 @@ function toClientReference(study: CaseStudy) {
   return {
     brand: study.client || study.title,
     title: study.title,
+    accentColor: study.accentColor || undefined,
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
     services: uniqueDetailServices,
@@ -259,6 +260,7 @@ function toReferenceFromWorkJournal(item: WorkJournalItem) {
   return {
     brand: item.industry || "Ripe",
     title: item.title,
+    accentColor: item.accentColor || undefined,
     heroNote: "Scroll to view more",
     eyebrow: description,
     services: item.tags.length ? item.tags : ["Brand"],

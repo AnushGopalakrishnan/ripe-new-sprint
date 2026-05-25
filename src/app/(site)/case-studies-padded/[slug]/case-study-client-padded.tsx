@@ -5,22 +5,8 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import {
-  MediaControlBar,
-  MediaController,
-  MediaFullscreenButton,
-  MediaMuteButton,
-  MediaPipButton,
-  MediaPlaybackRateButton,
-  MediaPlayButton,
-  MediaSeekBackwardButton,
-  MediaSeekForwardButton,
-  MediaTimeDisplay,
-  MediaTimeRange,
-  MediaVolumeRange,
-} from "media-chrome/react";
+import { CaseStudyLongFormPlayer } from "@/components/case-study-long-form-player";
 import styles from "./detail-page-padded.module.css";
-import "hls-video-element";
 
 type MediaKind = "auto" | "image" | "video";
 
@@ -67,6 +53,7 @@ type CaseStudyComment = {
 type CaseStudyReference = {
   brand: string;
   title: string;
+  accentColor?: string;
   heroNote: string;
   eyebrow: string;
   services: string[];
@@ -339,35 +326,15 @@ function CommentableMedia({
 
   const mediaElement =
     kind === "video" && isLongFormVideo && longFormHlsUrl ? (
-      <div className={styles.detailLongFormPlayer}>
-        <MediaController className={styles.detailLongFormController}>
-          <hls-video
-            ref={(element) => {
-              longFormVideoRef.current = element as HTMLVideoElement | null;
-            }}
-            slot="media"
-            className={mediaClassName}
-            src={longFormHlsUrl}
-            poster={media.poster}
-            preload={priority ? "auto" : "metadata"}
-            playsInline
-            crossOrigin="anonymous"
-            onLoadedMetadata={updateFrame}
-          />
-          <MediaControlBar>
-            <MediaPlayButton />
-            <MediaSeekBackwardButton seekOffset={10} />
-            <MediaSeekForwardButton seekOffset={10} />
-            <MediaTimeRange />
-            <MediaTimeDisplay showDuration />
-            <MediaMuteButton />
-            <MediaVolumeRange />
-            <MediaPlaybackRateButton />
-            <MediaPipButton />
-            <MediaFullscreenButton />
-          </MediaControlBar>
-        </MediaController>
-      </div>
+      <CaseStudyLongFormPlayer
+        styles={styles}
+        mediaClassName={mediaClassName}
+        src={longFormHlsUrl}
+        poster={media.poster}
+        preload={priority ? "auto" : "metadata"}
+        videoRef={longFormVideoRef}
+        onLoadedMetadata={updateFrame}
+      />
     ) : kind === "video" ? (
       <video
         ref={videoRef}
@@ -550,6 +517,9 @@ function FormaFact({ label, children }: { label: string; children: string }) {
 export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [commentsVisible, setCommentsVisible] = useState(true);
+  const pageStyle = {
+    "--case-study-player-accent": reference.accentColor?.trim() || "#ffffff",
+  } as CSSProperties;
   const hideHeroOverlayText = true;
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
@@ -653,7 +623,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   }, [hasAnyComments]);
 
   return (
-    <main className={styles.formaPage}>
+    <main className={styles.formaPage} style={pageStyle}>
       <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
         <div className={styles.formaHeroStageSticky}>
           <section className={styles.formaHero} data-case-hero>
