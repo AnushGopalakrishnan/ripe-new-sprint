@@ -106,6 +106,7 @@ type DragState = {
 const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
+const INFORMATION_COLLAPSED_LINES = 10;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
 
 function parsePathname(src: string) {
@@ -508,6 +509,63 @@ function FormaFact({ label, children }: { label: string; children: string }) {
   );
 }
 
+function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const contentKey = paragraphs.join("\n");
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    const measure = () => {
+      const firstParagraph = content.querySelector("p");
+      const computed = window.getComputedStyle(firstParagraph ?? content);
+      const fontSize = Number.parseFloat(computed.fontSize) || 15;
+      const parsedLineHeight = Number.parseFloat(computed.lineHeight);
+      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.34;
+      const collapsedHeight = lineHeight * INFORMATION_COLLAPSED_LINES;
+
+      content.style.setProperty("--information-collapsed-height", `${collapsedHeight}px`);
+      setCanExpand(content.scrollHeight > collapsedHeight + 1);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+
+    return () => observer.disconnect();
+  }, [contentKey]);
+
+  return (
+    <div className={styles.formaInformation}>
+      <p className={styles.formaLabel}>(Information)</p>
+      <div
+        ref={contentRef}
+        className={`${styles.formaInformationCopy} ${
+          !expanded && canExpand ? styles.formaInformationCopyCollapsed : ""
+        }`}
+      >
+        {paragraphs.map((paragraph, index) => (
+          <p key={`${index}-${paragraph}`} dangerouslySetInnerHTML={{ __html: paragraph }} />
+        ))}
+      </div>
+      {canExpand ? (
+        <button
+          aria-expanded={expanded}
+          className={styles.formaInformationToggle}
+          onClick={() => setExpanded((current) => !current)}
+          type="button"
+        >
+          {expanded ? "(SEE LESS)" : "(SEE MORE)"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [commentsVisible, setCommentsVisible] = useState(true);
@@ -647,12 +705,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               <FormaFact label="Year">{reference.year}</FormaFact>
             </div>
             {reference.information.length > 0 ? (
-              <div className={styles.formaInformation}>
-                <p className={styles.formaLabel}>(Information)</p>
-                {reference.information.map((paragraph) => (
-                  <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
-                ))}
-              </div>
+              <CaseStudyInformation paragraphs={reference.information} />
             ) : (
               <div />
             )}

@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { ColorStringInput } from "@/sanity/components/color-string-input";
 
 const CELL_WIDTH_TOTAL_TOLERANCE = 0.5;
 
@@ -412,7 +413,14 @@ export const caseStudyType = defineType({
       type: "boolean",
       initialValue: false,
     }),
-    defineField({ name: "accentColor", title: "Accent Color", type: "string" }),
+    defineField({
+      name: "accentColor",
+      title: "Accent Color",
+      type: "string",
+      components: {
+        input: ColorStringInput,
+      },
+    }),
     defineField({
       name: "accentColorText",
       title: "Accent Color Text",
