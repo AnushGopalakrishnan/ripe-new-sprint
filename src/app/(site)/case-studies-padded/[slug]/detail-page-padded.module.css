@@ -302,6 +302,7 @@
 .formaInformation {
   display: grid;
   gap: 14px;
+  position: relative;
 }
 
 .formaInformation p {
@@ -321,21 +322,19 @@
   display: grid;
   gap: 14px;
   overflow: visible;
-  position: relative;
 }
 
-.formaInformationCopyCollapsed {
-  max-height: var(--information-collapsed-height, 201px);
-  overflow: hidden;
-}
-
-.formaInformationCopyCollapsed::after {
-  background: #ffffff;
-  bottom: 0;
-  content: "..";
-  padding-left: 0.15em;
+.formaInformationCopyMeasure {
+  left: 0;
+  pointer-events: none;
   position: absolute;
-  right: 0;
+  top: 25px;
+  visibility: hidden;
+  width: 100%;
+}
+
+.formaInformationPreview {
+  overflow: visible;
 }
 
 .formaInformationToggle {

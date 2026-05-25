@@ -509,9 +509,78 @@ function FormaFact({ label, children }: { label: string; children: string }) {
   );
 }
 
+function getInitialInformationText(paragraphs: string[]) {
+  return paragraphs
+    .map((paragraph) => paragraph.replace(/<[^>]*>/g, " "))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getDecodedInformationText(paragraphs: string[]) {
+  const container = document.createElement("div");
+
+  return paragraphs
+    .map((paragraph) => {
+      container.innerHTML = paragraph;
+      return container.textContent ?? "";
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getCollapsedInformationText(
+  text: string,
+  content: HTMLDivElement,
+  computed: CSSStyleDeclaration,
+  collapsedHeight: number,
+) {
+  const width = content.clientWidth;
+  if (width <= 0 || text.length === 0) return text;
+
+  const probe = document.createElement("p");
+  probe.style.fontFamily = computed.fontFamily;
+  probe.style.fontSize = computed.fontSize;
+  probe.style.fontStyle = computed.fontStyle;
+  probe.style.fontWeight = computed.fontWeight;
+  probe.style.letterSpacing = computed.letterSpacing;
+  probe.style.lineHeight = computed.lineHeight;
+  probe.style.margin = "0";
+  probe.style.pointerEvents = "none";
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.whiteSpace = "normal";
+  probe.style.width = `${width}px`;
+  document.body.appendChild(probe);
+
+  let low = 0;
+  let high = text.length;
+  let best = "";
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidate = text.slice(0, mid).trimEnd();
+    probe.textContent = `${candidate}..`;
+
+    if (probe.scrollHeight <= collapsedHeight + 1) {
+      best = candidate;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  document.body.removeChild(probe);
+
+  const wordSafe = best.replace(/\s+\S*$/, "").trimEnd();
+  return `${wordSafe || best.trimEnd()}..`;
+}
+
 function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
+  const [collapsedText, setCollapsedText] = useState(() => getInitialInformationText(paragraphs));
   const contentRef = useRef<HTMLDivElement | null>(null);
   const contentKey = paragraphs.join("\n");
 
@@ -526,9 +595,14 @@ function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
       const parsedLineHeight = Number.parseFloat(computed.lineHeight);
       const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.38;
       const collapsedHeight = lineHeight * INFORMATION_COLLAPSED_LINES;
+      const nextCanExpand = content.scrollHeight > collapsedHeight + 1;
 
-      content.style.setProperty("--information-collapsed-height", `${collapsedHeight}px`);
-      setCanExpand(content.scrollHeight > collapsedHeight + 1);
+      setCanExpand(nextCanExpand);
+      setCollapsedText(
+        nextCanExpand
+          ? getCollapsedInformationText(getDecodedInformationText(paragraphs), content, computed, collapsedHeight)
+          : getDecodedInformationText(paragraphs),
+      );
     };
 
     measure();
@@ -537,21 +611,27 @@ function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
     observer.observe(content);
 
     return () => observer.disconnect();
-  }, [contentKey]);
+  }, [contentKey, paragraphs]);
+
+  const showCollapsedPreview = !expanded && canExpand;
 
   return (
     <div className={styles.formaInformation}>
       <p className={styles.formaLabel}>(Information)</p>
       <div
         ref={contentRef}
-        className={`${styles.formaInformationCopy} ${
-          !expanded && canExpand ? styles.formaInformationCopyCollapsed : ""
-        }`}
+        aria-hidden={showCollapsedPreview}
+        className={`${styles.formaInformationCopy} ${showCollapsedPreview ? styles.formaInformationCopyMeasure : ""}`}
       >
         {paragraphs.map((paragraph, index) => (
           <p key={`${index}-${paragraph}`} dangerouslySetInnerHTML={{ __html: paragraph }} />
         ))}
       </div>
+      {showCollapsedPreview ? (
+        <div className={`${styles.formaInformationCopy} ${styles.formaInformationPreview}`}>
+          <p>{collapsedText}</p>
+        </div>
+      ) : null}
       {canExpand ? (
         <button
           aria-expanded={expanded}
@@ -559,7 +639,7 @@ function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
           onClick={() => setExpanded((current) => !current)}
           type="button"
         >
-          {expanded ? "See Less.." : "See More.."}
+          {expanded ? "See Less" : "See More"}
         </button>
       ) : null}
     </div>
