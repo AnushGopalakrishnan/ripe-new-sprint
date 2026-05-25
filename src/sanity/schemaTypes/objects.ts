@@ -162,14 +162,17 @@ export const mediaType = defineType({
     defineField({
       name: "poster",
       title: "Poster URL",
+      description:
+        "Optional override. If empty, supported providers (for example Mux/Cloudflare HLS) can auto-resolve a poster from the video source.",
       type: "url",
     }),
     defineField({
       name: "posterImage",
       title: "Uploaded Poster Image",
+      description: "Optional custom poster upload for this video.",
       type: "image",
       options: { hotspot: true },
-      hidden: ({ parent }) => parent?.kind !== "video",
+      hidden: ({ parent }) => parent?.kind === "image",
     }),
     defineField({
       name: "longFormEnabled",

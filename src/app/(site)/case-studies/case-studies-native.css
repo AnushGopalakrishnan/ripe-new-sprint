@@ -230,6 +230,40 @@ body {
   height: 100%;
 }
 
+.ripe-video-shell {
+  background: #dedede;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.ripe-video-shell::before {
+  background: rgba(255, 255, 255, 0.1);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transition: opacity 220ms ease;
+}
+
+.ripe-video-shell[data-video-ready="false"]::before {
+  opacity: 1;
+}
+
+.ripe-video-shell[data-video-ready="true"]::before {
+  animation: none;
+  opacity: 0;
+}
+
+.ripe-video-el {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.ripe-video-shell[data-video-ready="true"] .ripe-video-el {
+  opacity: 1;
+}
+
 .preview-follower {
   z-index: 100;
   aspect-ratio: 1 / 1.25;

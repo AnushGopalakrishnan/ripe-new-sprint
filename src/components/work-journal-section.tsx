@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { FocusEvent } from "react";
 import type { WorkJournalItem } from "@/data/work-journal";
+import { resolveVideoPoster } from "@/lib/video-poster";
 import type { WorkJournalViewMode } from "@/lib/work-journal-url-state";
 import styles from "./work-journal-section.module.css";
 
@@ -85,7 +86,80 @@ function itemMediaSource(item: WorkJournalItem) {
 }
 
 function itemMediaPoster(item: WorkJournalItem) {
-  return item.coverMedia?.poster;
+  return (
+    resolveVideoPoster({
+      poster: item.coverMedia?.poster,
+      src: item.coverMedia?.src ?? item.image,
+    }) ?? item.image
+  );
+}
+
+function LazyVideo({
+  className,
+  src,
+  poster,
+  forceLoad = false,
+}: {
+  className: string;
+  src: string;
+  poster?: string;
+  forceLoad?: boolean;
+}) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(forceLoad);
+  const [hasFrame, setHasFrame] = useState(false);
+
+  useEffect(() => {
+    if (forceLoad) setShouldLoad(true);
+  }, [forceLoad]);
+
+  useEffect(() => {
+    if (shouldLoad) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      {
+        rootMargin: "360px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  const resolvedPoster = resolveVideoPoster({ poster, src });
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={styles.videoShell}
+      data-video-ready={hasFrame || resolvedPoster ? "true" : "false"}
+      data-video-loaded={shouldLoad ? "true" : "false"}
+    >
+      <video
+        className={`${className} ${styles.videoImage}`}
+        src={shouldLoad ? src : undefined}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload={shouldLoad ? "metadata" : "none"}
+        poster={resolvedPoster}
+        onLoadedMetadata={() => setHasFrame(true)}
+        onLoadedData={() => setHasFrame(true)}
+        onCanPlay={() => setHasFrame(true)}
+        onPlay={() => setHasFrame(true)}
+        onError={() => setHasFrame(true)}
+      />
+    </div>
+  );
 }
 
 function mixRgb(from: number[], to: number[], progress: number) {
@@ -784,17 +858,12 @@ export function WorkJournalSection({
           >
             <div className={styles.media}>
               {isVideoItem(item) ? (
-                <video
+                <LazyVideo
                   className={styles.image}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload={index < 4 ? "auto" : "metadata"}
+                  src={itemMediaSource(item)}
                   poster={itemMediaPoster(item)}
-                >
-                  <source src={itemMediaSource(item)} />
-                </video>
+                  forceLoad={index < 4}
+                />
               ) : (
                 <Image
                   className={styles.image}
@@ -846,18 +915,13 @@ export function WorkJournalSection({
             <div className={styles.listPreviewTrack}>
               {visibleItems.map((previewItem, previewIndex) => (
                 isVideoItem(previewItem) ? (
-                  <video
+                  <LazyVideo
                     key={previewItem.slug}
                     className={styles.listPreviewImage}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload={previewIndex < 4 ? "auto" : "metadata"}
+                    src={itemMediaSource(previewItem)}
                     poster={itemMediaPoster(previewItem)}
-                  >
-                    <source src={itemMediaSource(previewItem)} />
-                  </video>
+                    forceLoad={previewIndex < 4 || (activeListPreviewIndex >= 0 && Math.abs(previewIndex - activeListPreviewIndex) <= 1)}
+                  />
                 ) : (
                   <img
                     key={previewItem.slug}

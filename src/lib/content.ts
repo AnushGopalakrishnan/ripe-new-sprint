@@ -5,6 +5,7 @@ import {
   writingPosts as fallbackWritingPosts,
 } from "@/data/site-content";
 import { hasSanityConfig, sanityEnv } from "@/lib/env";
+import { resolveVideoPoster } from "@/lib/video-poster";
 import { client } from "@/sanity/lib/client";
 import type {
   CaseStudy,
@@ -35,28 +36,99 @@ const fallbackCaseStudyMedia: MediaAsset = {
   alt: "Case study media",
 };
 
-function normalizeCaseStudy(study: CaseStudy): CaseStudy {
-  if (study.coverMedia?.src) {
-    return {
-      ...study,
-      coverMedia: {
-        ...study.coverMedia,
-        kind: study.coverMedia.kind ?? "image",
-        alt: study.coverMedia.alt || study.title,
-      },
-    };
-  }
+function normalizeMediaPoster(media: MediaAsset): MediaAsset {
+  const resolvedPoster = resolveVideoPoster({
+    poster: media.poster,
+    src: media.src,
+    hlsUrl: media.longForm?.hlsUrl,
+  });
+  if (resolvedPoster === media.poster) return media;
+  return { ...media, poster: resolvedPoster };
+}
 
-  const fallbackStudy = fallbackCaseStudies.find((entry) => entry.slug === study.slug);
-  const fallbackMedia = fallbackStudy?.coverMedia?.src ? fallbackStudy.coverMedia : fallbackCaseStudyMedia;
+function normalizeCommentableEntry<T extends { media?: MediaAsset } | undefined>(entry: T): T {
+  if (!entry?.media) return entry;
+  const normalizedMedia = normalizeMediaPoster(entry.media);
+  if (normalizedMedia === entry.media) return entry;
+  return { ...entry, media: normalizedMedia } as T;
+}
+
+function normalizeCaseStudyMedia(study: CaseStudy): CaseStudy {
+  const normalizedCoverMedia = normalizeMediaPoster(study.coverMedia);
+  const normalizedDetailHero = normalizeCommentableEntry(study.detailHero);
+  const normalizedDetailIntro = normalizeCommentableEntry(study.detailIntro);
+  const normalizedDetailCarouselSlides = study.detailCarouselSlides?.map((entry) => normalizeCommentableEntry(entry));
+  const normalizedDetailCarouselPoster = normalizeCommentableEntry(study.detailCarouselPoster);
+  const normalizedDetailBlackFeature = normalizeCommentableEntry(study.detailBlackFeature);
+  const normalizedDetailWideFeature = normalizeCommentableEntry(study.detailWideFeature);
+  const normalizedDetailCta = normalizeCommentableEntry(study.detailCta);
+  const normalizedDetailLayouts = study.detailLayouts?.map((block) => ({
+    ...block,
+    rows: block.rows?.map((row) => ({
+      ...row,
+      cells: row.cells?.map((cell) => ({
+        ...cell,
+        content: normalizeCommentableEntry(cell.content),
+      })),
+    })),
+  }));
+  const normalizedDetailLayoutEntries = study.detailLayoutEntries?.map((entry) => ({
+    ...entry,
+    content: entry.content?.map((content) => normalizeCommentableEntry(content)),
+  }));
+  const normalizedDetailMoreProjects = study.detailMoreProjects?.map((project) =>
+    project.media
+      ? {
+          ...project,
+          media: normalizeMediaPoster(project.media),
+        }
+      : project,
+  );
+  const normalizedTestimonial =
+    study.testimonial?.avatar
+      ? {
+          ...study.testimonial,
+          avatar: normalizeMediaPoster(study.testimonial.avatar),
+        }
+      : study.testimonial;
 
   return {
     ...study,
-    coverMedia: {
-      ...fallbackMedia,
-      alt: fallbackMedia.alt || study.title,
-    },
+    coverMedia: normalizedCoverMedia,
+    detailHero: normalizedDetailHero,
+    detailIntro: normalizedDetailIntro,
+    detailCarouselSlides: normalizedDetailCarouselSlides,
+    detailCarouselPoster: normalizedDetailCarouselPoster,
+    detailBlackFeature: normalizedDetailBlackFeature,
+    detailWideFeature: normalizedDetailWideFeature,
+    detailCta: normalizedDetailCta,
+    detailLayouts: normalizedDetailLayouts,
+    detailLayoutEntries: normalizedDetailLayoutEntries,
+    detailMoreProjects: normalizedDetailMoreProjects,
+    testimonial: normalizedTestimonial,
   };
+}
+
+function normalizeCaseStudy(study: CaseStudy): CaseStudy {
+  const fallbackStudy = !study.coverMedia?.src
+    ? fallbackCaseStudies.find((entry) => entry.slug === study.slug)
+    : null;
+  const fallbackMedia = fallbackStudy?.coverMedia?.src ? fallbackStudy.coverMedia : fallbackCaseStudyMedia;
+  const baseCoverMedia = study.coverMedia?.src
+    ? {
+        ...study.coverMedia,
+        kind: study.coverMedia.kind ?? "image",
+        alt: study.coverMedia.alt || study.title,
+      }
+    : {
+        ...fallbackMedia,
+        alt: fallbackMedia.alt || study.title,
+      };
+
+  return normalizeCaseStudyMedia({
+    ...study,
+    coverMedia: baseCoverMedia,
+  });
 }
 
 export async function getSiteSettings(): Promise<SiteSettings> {

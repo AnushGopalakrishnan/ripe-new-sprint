@@ -126,6 +126,7 @@ export function CaseStudyLongFormPlayer({
   const [bufferedPercent, setBufferedPercent] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [frameReady, setFrameReady] = useState(false);
 
   const progress = duration > 0 ? clampUnit(currentTime / duration) * 100 : 0;
   const effectiveMuted = muted || volume === 0;
@@ -169,15 +170,22 @@ export function CaseStudyLongFormPlayer({
       setStatus((current) => (current === "idle" ? "ready" : current));
       onLoadedMetadata();
     };
+    const onLoadedData = () => setFrameReady(true);
     const onPlay = () => {
       wakeControls();
       setActivated(true);
       setStatus("playing");
+      setFrameReady(true);
     };
     const onPause = () => setStatus("paused");
     const onWaiting = () => setStatus("loading");
-    const onPlaying = () => setStatus("playing");
+    const onPlaying = () => {
+      setStatus("playing");
+      setFrameReady(true);
+    };
+    const onError = () => setStatus("paused");
     const onCanPlay = () => {
+      setFrameReady(true);
       if (!video.paused && !video.ended) setStatus("playing");
       else setStatus((current) => (current === "idle" ? "ready" : current));
     };
@@ -188,6 +196,7 @@ export function CaseStudyLongFormPlayer({
     };
 
     video.addEventListener("loadedmetadata", onLoaded);
+    video.addEventListener("loadeddata", onLoadedData);
     video.addEventListener("durationchange", updateTime);
     video.addEventListener("timeupdate", updateTime);
     video.addEventListener("progress", updateBuffered);
@@ -196,10 +205,12 @@ export function CaseStudyLongFormPlayer({
     video.addEventListener("canplay", onCanPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("waiting", onWaiting);
+    video.addEventListener("error", onError);
     video.addEventListener("ended", onEnded);
 
     return () => {
       video.removeEventListener("loadedmetadata", onLoaded);
+      video.removeEventListener("loadeddata", onLoadedData);
       video.removeEventListener("durationchange", updateTime);
       video.removeEventListener("timeupdate", updateTime);
       video.removeEventListener("progress", updateBuffered);
@@ -208,9 +219,14 @@ export function CaseStudyLongFormPlayer({
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("error", onError);
       video.removeEventListener("ended", onEnded);
     };
   }, [onLoadedMetadata, videoRef]);
+
+  useEffect(() => {
+    setFrameReady(false);
+  }, [src, poster]);
 
   useEffect(() => {
     const onFullscreenChange = () => setFullscreen(document.fullscreenElement === playerRef.current);
@@ -226,7 +242,7 @@ export function CaseStudyLongFormPlayer({
 
   const togglePlay = () => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || typeof video.play !== "function") return;
 
     if (video.paused || video.ended) {
       setStatus("loading");
@@ -315,6 +331,7 @@ export function CaseStudyLongFormPlayer({
       data-player-muted={effectiveMuted ? "true" : "false"}
       data-player-fullscreen={fullscreen ? "true" : "false"}
       data-player-activated={activated ? "true" : "false"}
+      data-frame-ready={frameReady ? "true" : "false"}
       data-timeline-drag={dragging ? "true" : "false"}
       onPointerDown={wakeControls}
       onPointerEnter={wakeControls}
@@ -337,6 +354,7 @@ export function CaseStudyLongFormPlayer({
         tabIndex={-1}
         suppressHydrationWarning
       />
+      {poster ? <img className={styles.detailLongFormPoster} src={poster} alt="" aria-hidden="true" /> : null}
       <div className={styles.detailLongFormShade} aria-hidden="true" />
       <button
         className={styles.detailLongFormPlayPause}

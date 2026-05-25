@@ -45,7 +45,7 @@ export const HOME_PAGE_QUERY = defineQuery(`
       kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
     },
     "featuredStudySlugs": featuredCaseStudies[]->slug.current,
@@ -74,7 +74,7 @@ const CASE_STUDY_MEDIA_FIELDS = `
     ),
     "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow,
     "longForm": {
       "enabled": coalesce(longFormEnabled, false),
@@ -299,7 +299,7 @@ const WRITING_FIELDS = `
     kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
   },
   publishDate,
@@ -311,7 +311,7 @@ const WRITING_FIELDS = `
     kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
   },
   body[]{
@@ -355,7 +355,7 @@ const TEAM_MEMBER_FIELDS = `
     kind,
     "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
   },
   bio,

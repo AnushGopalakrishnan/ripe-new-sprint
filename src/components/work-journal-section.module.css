@@ -290,6 +290,31 @@
   width: 100%;
 }
 
+.videoShell {
+  background: #dedede;
+  height: 100%;
+  position: relative;
+  width: 100%;
+}
+
+.videoShell::before {
+  background: rgba(255, 255, 255, 0.1);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transition: opacity 220ms ease;
+  z-index: 1;
+}
+
+.videoShell[data-video-ready="false"]::before {
+  opacity: 1;
+}
+
+.videoShell[data-video-ready="true"]::before {
+  animation: none;
+  opacity: 0;
+}
+
 .grid[data-layout="standard"] .media {
   aspect-ratio: 4 / 5;
 }
@@ -425,6 +450,14 @@
   object-position: center;
   transition: filter 420ms ease, opacity 420ms ease, transform 420ms ease;
   width: 100%;
+}
+
+.videoImage {
+  opacity: 0;
+}
+
+.videoShell[data-video-ready="true"] .videoImage {
+  opacity: 1;
 }
 
 .grid[data-view="list"] .image {
