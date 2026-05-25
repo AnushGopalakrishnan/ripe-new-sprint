@@ -8,12 +8,34 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.frame[data-video-ready="false"]::before {
+  background: rgba(255, 255, 255, 0.1);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transition: opacity 200ms ease;
+  z-index: 1;
+}
+
+.frame[data-video-ready="true"]::before {
+  opacity: 0;
+}
+
 .media,
 .image {
   width: 100%;
   height: 100%;
   min-height: inherit;
   object-fit: cover;
+}
+
+.videoMedia {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+.frame[data-video-ready="true"] .videoMedia {
+  opacity: 1;
 }
 
 .overlay {

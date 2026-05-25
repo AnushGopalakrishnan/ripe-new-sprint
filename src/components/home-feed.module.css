@@ -81,6 +81,19 @@
   color: #fff;
 }
 
+.imageCard[data-video-ready="false"]::before {
+  background: rgba(255, 255, 255, 0.1);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transition: opacity 200ms ease;
+  z-index: 1;
+}
+
+.imageCard[data-video-ready="true"]::before {
+  opacity: 0;
+}
+
 .textCard {
   flex-direction: column;
   align-items: center;

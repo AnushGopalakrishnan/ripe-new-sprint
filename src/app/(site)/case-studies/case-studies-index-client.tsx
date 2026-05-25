@@ -2,7 +2,7 @@
 
 import { gsap } from "gsap";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { NavLink } from "@/types/content";
 
 type CaseStudiesIndexClientProps = {
@@ -44,6 +44,72 @@ function isVideoStudy(study: CaseStudyListItem) {
   return videoExtensions.some((ext) => src.includes(ext));
 }
 
+function LazyVideo({
+  className,
+  src,
+  poster,
+  forceLoad = false,
+}: {
+  className: string;
+  src: string;
+  poster?: string;
+  forceLoad?: boolean;
+}) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(forceLoad);
+  const [hasFrame, setHasFrame] = useState(false);
+
+  useEffect(() => {
+    if (forceLoad) setShouldLoad(true);
+  }, [forceLoad]);
+
+  useEffect(() => {
+    if (shouldLoad) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting || entry.intersectionRatio > 0)) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      {
+        rootMargin: "360px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="ripe-video-shell"
+      data-video-ready={hasFrame || poster ? "true" : "false"}
+      data-video-loaded={shouldLoad ? "true" : "false"}
+    >
+      <video
+        className={`${className} ripe-video-el`}
+        src={shouldLoad ? src : undefined}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload={shouldLoad ? "metadata" : "none"}
+        poster={poster}
+        onLoadedMetadata={() => setHasFrame(true)}
+        onLoadedData={() => setHasFrame(true)}
+        onCanPlay={() => setHasFrame(true)}
+        onPlay={() => setHasFrame(true)}
+        onError={() => setHasFrame(true)}
+      />
+    </div>
+  );
+}
+
 function toRgb(hex: string) {
   const normalized = hex.trim();
   const value = normalized.startsWith("#") ? normalized.slice(1) : normalized;
@@ -66,17 +132,7 @@ function luminance({ r, g, b }: { r: number; g: number; b: number }) {
 function GridMedia({ study }: { study: CaseStudyListItem }) {
   if (isVideoStudy(study)) {
     return (
-      <video
-        className="casestudy_coverimage"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
-        poster={study.coverMedia.poster}
-      >
-        <source src={study.coverMedia.src} />
-      </video>
+      <LazyVideo className="casestudy_coverimage" src={study.coverMedia.src} poster={study.coverMedia.poster} />
     );
   }
 
@@ -91,12 +147,15 @@ function GridMedia({ study }: { study: CaseStudyListItem }) {
   );
 }
 
-function FollowerVisual({ study }: { study: CaseStudyListItem }) {
+function FollowerVisual({ study, forceLoad = false }: { study: CaseStudyListItem; forceLoad?: boolean }) {
   if (isVideoStudy(study)) {
     return (
-      <video className="preview-item__visual-img" autoPlay loop muted playsInline preload="metadata" poster={study.coverMedia.poster}>
-        <source src={study.coverMedia.src} />
-      </video>
+      <LazyVideo
+        className="preview-item__visual-img"
+        src={study.coverMedia.src}
+        poster={study.coverMedia.poster}
+        forceLoad={forceLoad}
+      />
     );
   }
 
@@ -122,6 +181,16 @@ export function CaseStudiesIndexClient({ studies, tags, activeTag, nav }: CaseSt
   const followerInnerRef = useRef<HTMLDivElement | null>(null);
   const followerCollectionRef = useRef<HTMLDivElement | null>(null);
   const isInitialViewRenderRef = useRef(true);
+  const [loadedFollowerSlugs, setLoadedFollowerSlugs] = useState<Set<string>>(() => new Set());
+
+  const primeFollowerVideo = useCallback((slug: string) => {
+    setLoadedFollowerSlugs((current) => {
+      if (current.has(slug)) return current;
+      const next = new Set(current);
+      next.add(slug);
+      return next;
+    });
+  }, []);
 
   const mobileLabel = useMemo(() => {
     return activeTag ? activeTag.toUpperCase() : "CATEGORIES";
@@ -485,7 +554,12 @@ export function CaseStudiesIndexClient({ studies, tags, activeTag, nav }: CaseSt
           <div role="list" className="cases_list-view-list w-dyn-items" ref={listWrapperRef}>
             {studies.map((study) => (
               <div data-follower-item="" role="listitem" className="cases-list-view-row w-dyn-item preview-item" key={study.slug}>
-                <Link href={`/case-studies/${study.slug}`} className="preview-item__inner w-inline-block">
+                <Link
+                  href={`/case-studies/${study.slug}`}
+                  className="preview-item__inner w-inline-block"
+                  onPointerEnter={() => primeFollowerVideo(study.slug)}
+                  onFocus={() => primeFollowerVideo(study.slug)}
+                >
                   <div className="preview-item__row tablet--hide">
                     <div className="preview-item__col is--large">
                       <h2 className="casestudy_title-text">{study.title}</h2>
@@ -498,7 +572,7 @@ export function CaseStudiesIndexClient({ studies, tags, activeTag, nav }: CaseSt
                     </div>
                   </div>
                   <div data-follower-visual="" className="preview-item__visual">
-                    <FollowerVisual study={study} />
+                    <FollowerVisual study={study} forceLoad={loadedFollowerSlugs.has(study.slug)} />
                   </div>
                 </Link>
               </div>
