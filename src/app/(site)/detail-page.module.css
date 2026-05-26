@@ -1137,6 +1137,16 @@
   width: 1.5em;
 }
 
+.detailLongFormVolumeControl::before {
+  bottom: 100%;
+  content: "";
+  height: 0.85em;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 2.75em;
+}
+
 .detailLongFormVolumeSliderWrap {
   align-items: center;
   backdrop-filter: blur(16px);
@@ -1174,11 +1184,13 @@
   --player-volume: 100%;
   accent-color: var(--case-study-player-accent, #ffffff);
   appearance: none;
-  background: linear-gradient(
-    to top,
-    var(--case-study-player-accent, #ffffff) 0 var(--player-volume),
-    rgba(255, 255, 255, 0.22) var(--player-volume) 100%
-  );
+  background:
+    linear-gradient(
+      to top,
+      var(--case-study-player-accent, #ffffff) 0 var(--player-volume),
+      rgba(255, 255, 255, 0.22) var(--player-volume) 100%
+    )
+    center / 0.25em 100% no-repeat;
   border-radius: 999px;
   cursor: pointer;
   direction: rtl;
@@ -1186,7 +1198,7 @@
   margin: 0;
   outline: none;
   padding: 0;
-  width: 0.25em;
+  width: 0.8em;
   writing-mode: vertical-lr;
 }
 

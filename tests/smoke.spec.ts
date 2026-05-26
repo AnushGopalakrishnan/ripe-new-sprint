@@ -1085,6 +1085,41 @@ test("case study detail page renders the native project detail", async ({ page }
   await expect(page.getByRole("button", { name: "Hide comments (C)" })).toBeVisible();
 });
 
+test("case study video volume slider remains reachable from the mute control", async ({ page }) => {
+  await gotoAppPage(page, "/case-studies/zetachain");
+
+  const volumeControl = page.locator('[class*="detailLongFormVolumeControl"]').first();
+  const sliderWrap = page.locator('[class*="detailLongFormVolumeSliderWrap"]').first();
+  const slider = page.getByLabel("Video volume").first();
+
+  await expect(volumeControl).toBeVisible();
+  await volumeControl.hover();
+  await expect(sliderWrap).toBeVisible();
+
+  const controlBox = await volumeControl.boundingBox();
+  const sliderBox = await sliderWrap.boundingBox();
+  expect(controlBox).toBeTruthy();
+  expect(sliderBox).toBeTruthy();
+  if (!controlBox || !sliderBox) return;
+
+  await page.mouse.move(controlBox.x + controlBox.width / 2, controlBox.y - 2);
+  await expect(sliderWrap).toBeVisible();
+  await page.mouse.move(sliderBox.x + sliderBox.width / 2, sliderBox.y + sliderBox.height / 2);
+  await expect(sliderWrap).toBeVisible();
+
+  const sliderGeometry = await slider.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      backgroundPositionX: styles.backgroundPositionX,
+      backgroundSize: styles.backgroundSize,
+      width: Number.parseFloat(styles.width),
+    };
+  });
+  expect(sliderGeometry.width).toBeGreaterThan(10);
+  expect(sliderGeometry.backgroundPositionX).toBe("50%");
+  expect(sliderGeometry.backgroundSize.endsWith("100%")).toBeTruthy();
+});
+
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {
   const publicCss = await page.request.get("/css/ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.css");
   const publicVendorStyle = await page.request.get("/vendor/ripe/styles/global/theme.css");
