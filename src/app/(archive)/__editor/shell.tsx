@@ -2,6 +2,8 @@
 
 import {
   Box,
+  ChevronDown,
+  ChevronUp,
   Clipboard,
   CopyCheck,
   Eye,
@@ -41,6 +43,13 @@ import {
   FieldLabel,
 } from "@/components/editor-ui/field";
 import { Input } from "@/components/editor-ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/editor-ui/input-group";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -104,6 +113,11 @@ type FieldConfig = {
   label: string;
   placeholder?: string;
   options?: string[];
+  unit?: string;
+  units?: string[];
+  step?: number;
+  min?: number;
+  max?: number;
 };
 
 type FieldGroupName = "layout" | "spacing" | "typography" | "appearance";
@@ -114,14 +128,18 @@ const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon; lab
   mobile: { width: 390, icon: Smartphone, label: "Mobile" },
 };
 
+const lengthUnits = ["px", "%", "rem", "em", "vw", "vh", "vmin", "vmax", "ch"];
+const textLengthUnits = ["px", "rem", "em", "%", "vw", "vh"];
+const lineHeightUnits = ["", "px", "rem", "em", "%"];
+
 const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   layout: [
     { property: "display", label: "Display", options: ["block", "flex", "grid", "inline-flex", "none"] },
     { property: "position", label: "Position", options: ["static", "relative", "absolute", "fixed", "sticky"] },
-    { property: "width", label: "Width", placeholder: "100%" },
-    { property: "maxWidth", label: "Max width", placeholder: "720px" },
-    { property: "height", label: "Height", placeholder: "auto" },
-    { property: "gap", label: "Gap", placeholder: "16px" },
+    { property: "width", label: "Width", placeholder: "100%", unit: "px", units: lengthUnits },
+    { property: "maxWidth", label: "Max width", placeholder: "720px", unit: "px", units: lengthUnits },
+    { property: "height", label: "Height", placeholder: "auto", unit: "px", units: lengthUnits },
+    { property: "gap", label: "Gap", placeholder: "16px", unit: "px", units: lengthUnits },
     { property: "alignItems", label: "Align", options: ["stretch", "flex-start", "center", "flex-end", "baseline"] },
     { property: "justifyContent", label: "Justify", options: ["flex-start", "center", "flex-end", "space-between", "space-around"] },
   ],
@@ -130,17 +148,17 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
     { property: "padding", label: "Padding", placeholder: "16px 24px" },
   ],
   typography: [
-    { property: "fontSize", label: "Size", placeholder: "16px" },
-    { property: "lineHeight", label: "Line height", placeholder: "1.4" },
-    { property: "letterSpacing", label: "Tracking", placeholder: "0" },
+    { property: "fontSize", label: "Size", placeholder: "16px", unit: "px", units: textLengthUnits },
+    { property: "lineHeight", label: "Line height", placeholder: "1.4", unit: "", units: lineHeightUnits, step: 0.05, min: 0 },
+    { property: "letterSpacing", label: "Tracking", placeholder: "0px", unit: "px", units: textLengthUnits, step: 0.1 },
     { property: "fontWeight", label: "Weight", options: ["300", "400", "500", "600", "700", "800"] },
     { property: "textAlign", label: "Align", options: ["left", "center", "right", "justify"] },
     { property: "color", label: "Color", placeholder: "#111111" },
   ],
   appearance: [
     { property: "backgroundColor", label: "Background", placeholder: "#ffffff" },
-    { property: "borderRadius", label: "Radius", placeholder: "8px" },
-    { property: "opacity", label: "Opacity", placeholder: "1" },
+    { property: "borderRadius", label: "Radius", placeholder: "8px", unit: "px", units: textLengthUnits },
+    { property: "opacity", label: "Opacity", placeholder: "1", unit: "", step: 0.05, min: 0, max: 1 },
   ],
 };
 
@@ -257,6 +275,42 @@ function collectionItemLabel(route: MirrorRoute) {
   return route.collection?.itemLabel || route.label || route.path;
 }
 
+const numericCssPattern = /^\s*(-?(?:\d+|\d*\.\d+))(?:\s*([a-z%]+))?\s*$/i;
+const unitlessSelectValue = "__unitless__";
+
+function parseNumericCssValue(value: string) {
+  const match = value.match(numericCssPattern);
+  if (!match) return null;
+  const numberText = match[1];
+  const numberValue = Number(numberText);
+  if (!Number.isFinite(numberValue)) return null;
+  return {
+    numberText,
+    numberValue,
+    unit: match[2] ?? "",
+  };
+}
+
+function clampNumber(value: number, min?: number, max?: number) {
+  if (typeof min === "number" && value < min) return min;
+  if (typeof max === "number" && value > max) return max;
+  return value;
+}
+
+function formatCssNumber(value: number) {
+  return Number(value.toFixed(3)).toString();
+}
+
+function unitLabel(unit: string) {
+  return unit || "unitless";
+}
+
+function normalizeCssUnit(unit: string, supportedUnits: string[]) {
+  const normalized = unit.toLowerCase();
+  if (supportedUnits.includes(normalized)) return normalized;
+  return null;
+}
+
 function StyleField({
   config,
   value,
@@ -269,6 +323,7 @@ function StyleField({
   onChange: (value: string) => void;
 }) {
   const fieldId = `editor-style-${config.property}`;
+  const canUseNumericControl = typeof config.unit === "string" && (!value || Boolean(parseNumericCssValue(value)));
 
   return (
     <Field className="gap-1.5" data-disabled={disabled ? true : undefined}>
@@ -279,6 +334,20 @@ function StyleField({
           disabled={disabled}
           value={value}
           options={config.options}
+          onChange={onChange}
+        />
+      ) : canUseNumericControl ? (
+        <NumericStyleInput
+          id={fieldId}
+          label={config.label}
+          disabled={disabled}
+          value={value}
+          placeholder={config.placeholder ?? "value"}
+          defaultUnit={config.unit ?? ""}
+          units={config.units ?? [config.unit ?? ""]}
+          step={config.step ?? 1}
+          min={config.min}
+          max={config.max}
           onChange={onChange}
         />
       ) : (
@@ -294,6 +363,247 @@ function StyleField({
         />
       )}
     </Field>
+  );
+}
+
+function NumericStyleInput({
+  id,
+  label,
+  value,
+  placeholder,
+  defaultUnit,
+  units,
+  step,
+  min,
+  max,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  defaultUnit: string;
+  units: string[];
+  step: number;
+  min?: number;
+  max?: number;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draftNumber, setDraftNumber] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const parsedValue = parseNumericCssValue(value);
+  const parsedPlaceholder = parseNumericCssValue(placeholder);
+  const supportedUnits = units.length > 0 ? units : [defaultUnit];
+  const unit = parsedValue?.unit ?? parsedPlaceholder?.unit ?? defaultUnit;
+  const displayNumber = focused || dragging ? draftNumber : parsedValue?.numberText ?? "";
+  const dragRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startValue: number;
+    lastSteps: number;
+    active: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!focused && !dragging) {
+      setDraftNumber(parsedValue?.numberText ?? "");
+    }
+  }, [dragging, focused, parsedValue?.numberText]);
+
+  function commitNumber(nextValue: number, nextUnit = unit) {
+    const clamped = clampNumber(nextValue, min, max);
+    const nextText = formatCssNumber(clamped);
+    setDraftNumber(nextText);
+    onChange(`${nextText}${nextUnit}`);
+  }
+
+  function updateByStep(direction: 1 | -1, multiplier = 1) {
+    const baseValue = Number(draftNumber || parsedValue?.numberText || 0);
+    commitNumber(baseValue + direction * step * multiplier);
+  }
+
+  function commitParsedInput(parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>) {
+    const typedUnit = parsed.unit ? normalizeCssUnit(parsed.unit, supportedUnits) : unit;
+    if (parsed.unit && typedUnit === null) {
+      setDraftNumber(parsed.numberText);
+      return;
+    }
+
+    const clamped = clampNumber(parsed.numberValue, min, max);
+    const nextNumberText = clamped === parsed.numberValue ? parsed.numberText : formatCssNumber(clamped);
+    setDraftNumber(nextNumberText);
+    onChange(`${nextNumberText}${typedUnit}`);
+  }
+
+  function handleInputChange(nextValue: string) {
+    const parsedInput = parseNumericCssValue(nextValue);
+
+    if (parsedInput) {
+      commitParsedInput(parsedInput);
+      return;
+    }
+
+    setDraftNumber(nextValue);
+
+    if (!nextValue.trim()) {
+      onChange("");
+      return;
+    }
+  }
+
+  function updateUnit(nextUnit: string) {
+    const selectedUnit = nextUnit === unitlessSelectValue ? "" : nextUnit;
+    const baseValue = Number(draftNumber || parsedValue?.numberText || parsedPlaceholder?.numberText || 0);
+    if (Number.isFinite(baseValue)) {
+      commitNumber(baseValue, selectedUnit);
+    }
+  }
+
+  function handleFocus(event: React.FocusEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    setFocused(true);
+    setDraftNumber(parsedValue?.numberText ?? "");
+    window.requestAnimationFrame(() => input.select());
+  }
+
+  function handleBlur() {
+    setFocused(false);
+    if (!draftNumber.trim()) {
+      onChange("");
+      return;
+    }
+    const parsedDraft = parseNumericCssValue(draftNumber);
+    if (parsedDraft) {
+      commitParsedInput(parsedDraft);
+      return;
+    }
+    setDraftNumber(parsedValue?.numberText ?? "");
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (disabled || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest("button, select, option")) return;
+
+    const startValue = Number(draftNumber || parsedValue?.numberText || 0);
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startValue,
+      lastSteps: 0,
+      active: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const deltaY = drag.startY - event.clientY;
+    if (!drag.active && Math.abs(deltaY) < 4) return;
+
+    drag.active = true;
+    setDragging(true);
+    event.preventDefault();
+
+    const multiplier = event.shiftKey ? 10 : event.altKey ? 0.1 : 1;
+    const steps = Math.trunc(deltaY / 4);
+    if (steps === drag.lastSteps) return;
+    drag.lastSteps = steps;
+    commitNumber(drag.startValue + steps * step * multiplier);
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    dragRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setDragging(false);
+
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }
+
+  return (
+    <InputGroup
+      className={styles.numericValueGroup}
+      data-dragging={dragging ? true : undefined}
+      data-disabled={disabled ? true : undefined}
+      title="Drag up or down to adjust. Hold Shift for larger steps or Option for finer steps."
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      <InputGroupInput
+        ref={inputRef}
+        id={id}
+        disabled={disabled}
+        value={displayNumber}
+        placeholder={parseNumericCssValue(placeholder)?.numberText ?? placeholder}
+        className={styles.numericValueInput}
+        inputMode="decimal"
+        autoComplete="off"
+        spellCheck={false}
+        aria-label={`${label} value`}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          updateByStep(event.key === "ArrowUp" ? 1 : -1, event.shiftKey ? 10 : event.altKey ? 0.1 : 1);
+        }}
+        onChange={(event) => handleInputChange(event.target.value)}
+      />
+      <InputGroupAddon align="inline-end" className={styles.numericValueAddon}>
+        {supportedUnits.length > 1 ? (
+          <select
+            disabled={disabled}
+            className={styles.numericUnitSelect}
+            aria-label={`${label} unit`}
+            value={unit || unitlessSelectValue}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+            onChange={(event) => updateUnit(event.target.value)}
+          >
+            {supportedUnits.map((supportedUnit) => (
+              <option value={supportedUnit || unitlessSelectValue} key={supportedUnit || unitlessSelectValue}>
+                {unitLabel(supportedUnit)}
+              </option>
+            ))}
+          </select>
+        ) : unit ? (
+          <InputGroupText className={styles.numericUnit}>{unit}</InputGroupText>
+        ) : null}
+        <div className={styles.numericStepper} aria-hidden={disabled ? true : undefined}>
+          <InputGroupButton
+            size="icon-xs"
+            variant="ghost"
+            disabled={disabled}
+            className={styles.numericStepButton}
+            aria-label={`Increase ${label}`}
+            onClick={() => updateByStep(1)}
+          >
+            <ChevronUp />
+          </InputGroupButton>
+          <InputGroupButton
+            size="icon-xs"
+            variant="ghost"
+            disabled={disabled}
+            className={styles.numericStepButton}
+            aria-label={`Decrease ${label}`}
+            onClick={() => updateByStep(-1)}
+          >
+            <ChevronDown />
+          </InputGroupButton>
+        </div>
+      </InputGroupAddon>
+    </InputGroup>
   );
 }
 
@@ -372,6 +682,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [route, setRoute] = useState(normalizedInitialPath);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectorEnabled, setSelectorEnabled] = useState(true);
   const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
@@ -427,10 +738,10 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "editor:set-enabled", enabled: sidebarOpen },
+      { type: "editor:set-enabled", enabled: selectorEnabled },
       window.location.origin,
     );
-  }, [sidebarOpen, iframeSrc]);
+  }, [selectorEnabled, iframeSrc]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -721,6 +1032,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           </div>
 
           <div className={styles.toolbarActions}>
+            <ToolbarButton
+              label={selectorEnabled ? "Disable element selector" : "Enable element selector"}
+              active={selectorEnabled}
+              onClick={() => setSelectorEnabled((enabled) => !enabled)}
+            >
+              <MousePointer2 />
+            </ToolbarButton>
+
             <ToggleGroup
               type="single"
               variant="outline"
@@ -769,7 +1088,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                   src={iframeSrc}
                   onLoad={() =>
                     iframeRef.current?.contentWindow?.postMessage(
-                      { type: "editor:set-enabled", enabled: sidebarOpen },
+                      { type: "editor:set-enabled", enabled: selectorEnabled },
                       window.location.origin,
                     )
                   }
@@ -951,7 +1270,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         </ResizablePanelGroup>
 
         <Sheet open={routesOpen} onOpenChange={setRoutesOpen}>
-          <SheetContent side="left" className="w-[min(440px,calc(100vw-24px))] gap-0 p-0" showCloseButton>
+          <SheetContent
+            side="left"
+            className={`${styles.editorOverlay} w-[min(440px,calc(100vw-24px))] gap-0 p-0`}
+            showCloseButton
+          >
             <SheetHeader>
               <SheetTitle>Routes</SheetTitle>
               <SheetDescription>Switch the preview without leaving the editor.</SheetDescription>

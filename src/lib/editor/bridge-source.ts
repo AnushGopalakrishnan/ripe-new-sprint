@@ -4,20 +4,61 @@ export const bridgeScript = String.raw`
   window.__RIPE_EDITOR_BRIDGE__ = true;
 
   let enabled = true;
+  let hoverTarget = null;
+  let selectedTarget = null;
+  let redrawFrame = 0;
   const previews = new Map();
   const hoverBox = document.createElement("div");
   const selectBox = document.createElement("div");
 
-  function mountBox(box, color, zIndex) {
+  const selectionPurple = "#7c3aed";
+
+  function mountBox(box, variant, zIndex) {
+    const selected = variant === "selected";
     Object.assign(box.style, {
       position: "fixed",
       pointerEvents: "none",
-      border: "1.5px solid " + color,
-      boxShadow: "0 0 0 1px rgba(255,255,255,0.8), 0 0 0 4px rgba(20,20,20,0.12)",
+      background: selected ? "transparent" : "rgba(124,58,237,0.045)",
+      border: selected ? "1.5px solid " + selectionPurple : "1px dashed rgba(124,58,237,0.86)",
+      borderRadius: "2px",
+      boxShadow: selected
+        ? "0 0 0 1px rgba(255,255,255,0.96), 0 0 0 4px rgba(124,58,237,0.14)"
+        : "0 0 0 1px rgba(255,255,255,0.86), 0 0 0 3px rgba(124,58,237,0.08)",
+      boxSizing: "border-box",
       zIndex,
       display: "none",
-      transition: "top 80ms ease, left 80ms ease, width 80ms ease, height 80ms ease",
+      transition: "none",
     });
+
+    if (selected) {
+      const handles = [
+        { left: "0%", top: "0%", transform: "translate(-50%, -50%)" },
+        { left: "50%", top: "0%", transform: "translate(-50%, -50%)" },
+        { left: "100%", top: "0%", transform: "translate(-50%, -50%)" },
+        { left: "100%", top: "50%", transform: "translate(-50%, -50%)" },
+        { left: "100%", top: "100%", transform: "translate(-50%, -50%)" },
+        { left: "50%", top: "100%", transform: "translate(-50%, -50%)" },
+        { left: "0%", top: "100%", transform: "translate(-50%, -50%)" },
+        { left: "0%", top: "50%", transform: "translate(-50%, -50%)" },
+      ];
+
+      for (const position of handles) {
+        const handle = document.createElement("span");
+        Object.assign(handle.style, {
+          position: "absolute",
+          width: "7px",
+          height: "7px",
+          background: "#ffffff",
+          border: "1.5px solid " + selectionPurple,
+          borderRadius: "2px",
+          boxShadow: "0 1px 2px rgba(20,16,38,0.18)",
+          boxSizing: "border-box",
+          ...position,
+        });
+        box.appendChild(handle);
+      }
+    }
+
     document.documentElement.appendChild(box);
   }
 
@@ -141,6 +182,21 @@ export const bridgeScript = String.raw`
     });
   }
 
+  function drawTarget(box, target) {
+    draw(box, findByTarget(target));
+  }
+
+  function redrawBoxes() {
+    redrawFrame = 0;
+    drawTarget(hoverBox, hoverTarget);
+    drawTarget(selectBox, selectedTarget);
+  }
+
+  function scheduleRedraw() {
+    if (redrawFrame) return;
+    redrawFrame = window.requestAnimationFrame(redrawBoxes);
+  }
+
   function selectionFor(element) {
     const computed = window.getComputedStyle(element);
     const props = [
@@ -185,8 +241,9 @@ export const bridgeScript = String.raw`
     if (!enabled) return;
     const element = selectableElementFrom(event.target);
     if (!element) return;
+    hoverTarget = targetFor(element);
     draw(hoverBox, element);
-    post({ type: "editor:hover", target: targetFor(element) });
+    post({ type: "editor:hover", target: hoverTarget });
   }
 
   function onPointerDown(event) {
@@ -194,6 +251,7 @@ export const bridgeScript = String.raw`
     const element = selectableElementFrom(event.target);
     if (!element || !inspectableControlFor(element)) return;
     stopPageAction(event);
+    selectedTarget = targetFor(element);
     draw(selectBox, element);
     post({ type: "editor:select", selection: selectionFor(element) });
   }
@@ -203,6 +261,7 @@ export const bridgeScript = String.raw`
     const element = selectableElementFrom(event.target);
     if (!element) return;
     stopPageAction(event);
+    selectedTarget = targetFor(element);
     draw(selectBox, element);
     post({ type: "editor:select", selection: selectionFor(element) });
   }
@@ -236,6 +295,7 @@ export const bridgeScript = String.raw`
       element.removeAttribute("srcset");
     }
     draw(selectBox, element);
+    scheduleRedraw();
   }
 
   function clearPreview(target) {
@@ -262,6 +322,8 @@ export const bridgeScript = String.raw`
       if (!enabled) {
         hoverBox.style.display = "none";
         selectBox.style.display = "none";
+      } else {
+        scheduleRedraw();
       }
     }
     if (message.type === "editor:request-dom") {
@@ -269,10 +331,14 @@ export const bridgeScript = String.raw`
     }
   });
 
-  mountBox(hoverBox, "#111111", "2147483645");
-  mountBox(selectBox, "#e23d28", "2147483646");
+  mountBox(hoverBox, "hover", "2147483645");
+  mountBox(selectBox, "selected", "2147483646");
   document.addEventListener("pointermove", onPointerMove, true);
   document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("click", onClick, true);
+  document.addEventListener("scroll", scheduleRedraw, true);
+  window.addEventListener("resize", scheduleRedraw);
+  window.visualViewport?.addEventListener("scroll", scheduleRedraw);
+  window.visualViewport?.addEventListener("resize", scheduleRedraw);
 })();
 `;

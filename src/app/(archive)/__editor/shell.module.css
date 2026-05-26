@@ -1,4 +1,9 @@
 .editor {
+  --editor-control-bg: var(--background);
+  --editor-control-border: var(--border);
+  --editor-control-height: 32px;
+  --editor-control-radius: 8px;
+  --editor-control-ring: color-mix(in oklch, var(--ring) 28%, transparent);
   background: #f5f5f3;
   color: var(--foreground);
   display: flex;
@@ -7,6 +12,66 @@
   letter-spacing: 0;
   min-height: 100vh;
   overflow: hidden;
+}
+
+.editorOverlay {
+  --editor-control-bg: var(--background);
+  --editor-control-border: var(--border);
+  --editor-control-height: 32px;
+  --editor-control-radius: 8px;
+  --editor-control-ring: color-mix(in oklch, var(--ring) 28%, transparent);
+}
+
+.editor :global([data-slot="input"]),
+.editor :global([data-slot="textarea"]),
+.editor :global([data-slot="select-trigger"]),
+.editor :global([data-slot="input-group"]),
+.editorOverlay :global([data-slot="input"]),
+.editorOverlay :global([data-slot="textarea"]),
+.editorOverlay :global([data-slot="select-trigger"]),
+.editorOverlay :global([data-slot="input-group"]) {
+  background: var(--editor-control-bg);
+  border-color: var(--editor-control-border);
+  border-radius: var(--editor-control-radius) !important;
+}
+
+.editor :global([data-slot="input"]),
+.editor :global([data-slot="select-trigger"]),
+.editor :global([data-slot="input-group"]),
+.editorOverlay :global([data-slot="input"]),
+.editorOverlay :global([data-slot="select-trigger"]),
+.editorOverlay :global([data-slot="input-group"]) {
+  height: var(--editor-control-height);
+  min-height: var(--editor-control-height);
+}
+
+.editor :global([data-slot="input"]:focus-visible),
+.editor :global([data-slot="textarea"]:focus-visible),
+.editor :global([data-slot="select-trigger"]:focus-visible),
+.editor :global([data-slot="input-group"]:focus-within),
+.editorOverlay :global([data-slot="input"]:focus-visible),
+.editorOverlay :global([data-slot="textarea"]:focus-visible),
+.editorOverlay :global([data-slot="select-trigger"]:focus-visible),
+.editorOverlay :global([data-slot="input-group"]:focus-within) {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+}
+
+.editor :global([data-slot="input-group-control"]),
+.editorOverlay :global([data-slot="input-group-control"]) {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.editor :global([data-slot="button"][data-size="sm"]),
+.editor :global([data-slot="button"][data-size="xs"]),
+.editor :global([data-slot="button"][data-size="icon-xs"]),
+.editor :global([data-slot="button"][data-size="icon-sm"]),
+.editorOverlay :global([data-slot="button"][data-size="sm"]),
+.editorOverlay :global([data-slot="button"][data-size="xs"]),
+.editorOverlay :global([data-slot="button"][data-size="icon-xs"]),
+.editorOverlay :global([data-slot="button"][data-size="icon-sm"]) {
+  border-radius: var(--editor-control-radius);
 }
 
 .topbar {
@@ -178,6 +243,73 @@
 .valueSelectTrigger {
   min-height: 32px;
   width: 100%;
+}
+
+.numericValueGroup {
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.numericValueGroup[data-dragging="true"] {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 28%, transparent);
+}
+
+.numericValueInput {
+  cursor: text;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.numericValueAddon {
+  cursor: ns-resize;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.numericUnit {
+  color: color-mix(in oklch, var(--muted-foreground) 78%, transparent);
+  font-size: 11px;
+  min-width: 12px;
+}
+
+.numericUnitSelect {
+  appearance: none;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: color-mix(in oklch, var(--muted-foreground) 86%, transparent);
+  cursor: pointer;
+  font-size: 11px;
+  height: 22px !important;
+  min-height: 22px !important;
+  min-width: 42px;
+  outline: none;
+  padding: 0 3px 0 6px;
+}
+
+.numericUnitSelect:focus-visible {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--editor-control-ring) !important;
+}
+
+.numericStepper {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.numericStepButton {
+  height: 13px;
+  min-height: 13px;
+  width: 18px;
+}
+
+.numericStepButton svg {
+  height: 11px;
+  width: 11px;
 }
 
 .contentTextarea {
