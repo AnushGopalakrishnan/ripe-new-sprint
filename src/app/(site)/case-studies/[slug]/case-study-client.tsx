@@ -24,6 +24,8 @@ type CaseStudyMedia = {
 
 type CaseStudyLayoutCell = {
   width: number;
+  rowSpan?: number;
+  hiddenByRowSpan?: boolean;
   media: CaseStudyMedia;
 };
 
@@ -106,8 +108,30 @@ type DragState = {
 const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
+const CELL_WIDTH_MATCH_TOLERANCE = 0.5;
 const INFORMATION_COLLAPSED_LINES = 10;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
+
+type SpanningLayoutItem = {
+  cell: CaseStudyLayoutCell;
+  cellAspectRatio: number;
+  columnStart: number;
+  columnSpan: number;
+  rowIndex: number;
+  rowSpan: number;
+};
+
+type SpanningLayoutDefinition =
+  | {
+      kind: "unsupported";
+    }
+  | {
+      columnTemplate: string;
+      items: SpanningLayoutItem[];
+      kind: "supported";
+      rowTemplate: string;
+      totalHeight: number;
+    };
 
 function parsePathname(src: string) {
   try {
@@ -128,6 +152,76 @@ function getMediaKind(src: string, kind: MediaKind = "auto") {
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
+}
+
+function buildSpanningLayoutDefinition(layout: CaseStudyLayoutBlock, rowGap: number, designInnerWidth: number): SpanningLayoutDefinition {
+  const rows = layout.rows;
+  if (rows.length === 0) return { kind: "unsupported" };
+
+  const firstRowCells = rows[0]?.cells ?? [];
+  if (firstRowCells.length === 0) return { kind: "unsupported" };
+
+  const baseWidths = firstRowCells.map((cell) => Math.max(cell.width || 0, 0));
+  const hasUniformRowStructure = rows.every((row) => {
+    if (row.cells.length !== baseWidths.length) return false;
+    return row.cells.every((cell, index) => Math.abs(Math.max(cell.width || 0, 0) - baseWidths[index]) <= CELL_WIDTH_MATCH_TOLERANCE);
+  });
+
+  if (!hasUniformRowStructure) return { kind: "unsupported" };
+
+  const coveredSlots = new Set<string>();
+  const items: SpanningLayoutItem[] = [];
+  const totalRows = rows.length;
+
+  for (let rowIndex = 0; rowIndex < totalRows; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const rowHeight = Math.max(row.height ?? 0, 1);
+    const cellCount = Math.max(row.cells.length, 1);
+    const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
+    const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
+    const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
+
+    for (let cellIndex = 0; cellIndex < row.cells.length; cellIndex += 1) {
+      const cell = row.cells[cellIndex];
+      const slotId = `${rowIndex}:${cellIndex}`;
+      if (coveredSlots.has(slotId) || cell.hiddenByRowSpan) continue;
+
+      const rawSpan = typeof cell.rowSpan === "number" ? Math.floor(cell.rowSpan) : 1;
+      const maxRowSpan = Math.max(totalRows - rowIndex, 1);
+      const rowSpan = Math.max(1, Math.min(rawSpan || 1, maxRowSpan));
+      if (rowSpan > 1) {
+        for (let offset = 1; offset < rowSpan; offset += 1) {
+          coveredSlots.add(`${rowIndex + offset}:${cellIndex}`);
+        }
+      }
+
+      const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
+      const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
+      const spannedHeight = rowHeight * rowSpan + rowGap * (rowSpan - 1);
+      const cellAspectRatio = spannedHeight > 0 ? cellTargetWidthPx / spannedHeight : 16 / 9;
+
+      items.push({
+        cell,
+        columnStart: cellIndex + 1,
+        columnSpan: 1,
+        rowIndex,
+        rowSpan,
+        cellAspectRatio,
+      });
+    }
+  }
+
+  const columnTemplate = baseWidths.map((width) => `${Math.max(width, 1)}fr`).join(" ");
+  const rowTemplate = rows.map((row) => `${Math.max(row.height ?? 0, 1)}fr`).join(" ");
+  const totalHeight = rows.reduce((sum, row) => sum + Math.max(row.height ?? 0, 1), 0) + rowGap * Math.max(rows.length - 1, 0);
+
+  return {
+    kind: "supported",
+    columnTemplate,
+    rowTemplate,
+    totalHeight: Math.max(totalHeight, 1),
+    items,
+  };
 }
 
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
@@ -796,57 +890,93 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
               {reference.layouts.map((layout) => {
                 const rowGap = layout.gap ?? DESIGN_CELL_GAP_PX;
-                const designWidth = DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
+                const designWidth = layout.designWidth ?? DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
                 const designInnerWidth = Math.max(designWidth - DESIGN_SIDE_PADDING_PX * 2, 1);
+                const hasRowSpan = layout.rows.some((row) => row.cells.some((cell) => (cell.rowSpan ?? 1) > 1));
+                const spanningLayout = hasRowSpan ? buildSpanningLayoutDefinition(layout, rowGap, designInnerWidth) : null;
+                const canRenderSpanningLayout = spanningLayout?.kind === "supported";
 
                 return (
                   <section
                     key={layout.id}
                     className={styles.formaLayoutBlock}
                     data-layout-preset={layout.preset}
-                    style={{ "--layout-gap": `${rowGap}px` } as CSSProperties}
+                    data-layout-has-span={canRenderSpanningLayout ? "true" : "false"}
+                    style={
+                      canRenderSpanningLayout
+                        ? ({
+                            "--layout-gap": `${rowGap}px`,
+                            gridTemplateColumns: spanningLayout.columnTemplate,
+                            gridTemplateRows: spanningLayout.rowTemplate,
+                            aspectRatio: `${designInnerWidth} / ${spanningLayout.totalHeight}`,
+                          } as CSSProperties)
+                        : ({ "--layout-gap": `${rowGap}px` } as CSSProperties)
+                    }
                   >
-                    {layout.rows.map((row, rowIndex) => {
-                      const cellCount = Math.max(row.cells.length, 1);
-                      const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
-                      const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
-                      const rowHeight = row.height ?? 0;
-                      const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
+                    {canRenderSpanningLayout
+                      ? spanningLayout.items.map((item, itemIndex) => (
+                          <div
+                            key={`${layout.id}-span-cell-${item.rowIndex}-${item.columnStart}-${itemIndex}`}
+                            className={styles.formaLayoutCell}
+                            style={
+                              {
+                                "--layout-cell-ratio": `${item.cellAspectRatio}`,
+                                gridColumn: `${item.columnStart} / span ${item.columnSpan}`,
+                                gridRow: `${item.rowIndex + 1} / span ${item.rowSpan}`,
+                              } as CSSProperties
+                            }
+                          >
+                            <CommentableMedia
+                              sectionId={`${layout.id}-${item.rowIndex}-${item.columnStart - 1}`}
+                              media={item.cell.media}
+                              mediaClassName={styles.formaLayoutMedia}
+                              fitMode="cover"
+                              imageSizes="(max-width: 900px) 100vw, 95vw"
+                              commentsVisible={commentsVisible}
+                            />
+                          </div>
+                        ))
+                      : layout.rows.map((row, rowIndex) => {
+                          const cellCount = Math.max(row.cells.length, 1);
+                          const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
+                          const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
+                          const rowHeight = row.height ?? 0;
+                          const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
 
-                      return (
-                        <div
-                          key={`${layout.id}-row-${rowIndex}`}
-                          className={styles.formaLayoutRow}
-                          style={{
-                            gridTemplateColumns: row.cells.map((cell) => `${Math.max(cell.width || 1, 1)}fr`).join(" "),
-                            aspectRatio: rowHeight > 0 ? `${designInnerWidth} / ${rowHeight}` : undefined,
-                          }}
-                        >
-                          {row.cells.map((cell, cellIndex) => {
-                            const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
-                            const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
-                            const cellAspectRatio = rowHeight > 0 ? cellTargetWidthPx / rowHeight : 16 / 9;
+                          return (
+                            <div
+                              key={`${layout.id}-row-${rowIndex}`}
+                              className={styles.formaLayoutRow}
+                              style={{
+                                gridTemplateColumns: row.cells.map((cell) => `${Math.max(cell.width || 1, 1)}fr`).join(" "),
+                                aspectRatio: rowHeight > 0 ? `${designInnerWidth} / ${rowHeight}` : undefined,
+                              }}
+                            >
+                              {row.cells.map((cell, cellIndex) => {
+                                const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
+                                const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
+                                const cellAspectRatio = rowHeight > 0 ? cellTargetWidthPx / rowHeight : 16 / 9;
 
-                            return (
-                              <div
-                                key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
-                                className={styles.formaLayoutCell}
-                                style={{ "--layout-cell-ratio": `${cellAspectRatio}` } as CSSProperties}
-                              >
-                                <CommentableMedia
-                                  sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
-                                  media={cell.media}
-                                  mediaClassName={styles.formaLayoutMedia}
-                                  fitMode="cover"
-                                  imageSizes="(max-width: 900px) 100vw, 95vw"
-                                  commentsVisible={commentsVisible}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
+                                return (
+                                  <div
+                                    key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
+                                    className={styles.formaLayoutCell}
+                                    style={{ "--layout-cell-ratio": `${cellAspectRatio}` } as CSSProperties}
+                                  >
+                                    <CommentableMedia
+                                      sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
+                                      media={cell.media}
+                                      mediaClassName={styles.formaLayoutMedia}
+                                      fitMode="cover"
+                                      imageSizes="(max-width: 900px) 100vw, 95vw"
+                                      commentsVisible={commentsVisible}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
                   </section>
                 );
               })}

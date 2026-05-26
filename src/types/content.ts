@@ -52,6 +52,7 @@ export type CommentableMedia = {
 export type DetailLayoutCell = {
   _key?: string;
   width?: number;
+  rowSpan?: number;
   content?: CommentableMedia;
 };
 

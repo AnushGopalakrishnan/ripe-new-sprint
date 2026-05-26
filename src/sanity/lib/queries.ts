@@ -125,6 +125,7 @@ const CASE_STUDY_FIELDS = `
       cells[]{
         _key,
         width,
+        rowSpan,
         content{
           media{
 ${CASE_STUDY_MEDIA_FIELDS}
@@ -149,7 +150,8 @@ ${CASE_STUDY_COMMENT_FIELDS}
         height,
         cells[]{
           _key,
-          width
+          width,
+          rowSpan
         }
       }
     },
