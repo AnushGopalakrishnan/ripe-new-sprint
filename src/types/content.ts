@@ -214,3 +214,11 @@ export type TeamMember = {
     slug?: string;
   }>;
 };
+
+export type JobPosting = {
+  title: string;
+  location: string;
+  contractType: string;
+  externalUrl: string;
+  order?: number;
+};

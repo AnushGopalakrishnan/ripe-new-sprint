@@ -545,22 +545,18 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
 }
 
-.rolesCopy p {
+.rolesCopy :global(.text) {
   font-family: var(--ripe-font-serif);
   font-size: 1rem;
   line-height: 1.4;
-  margin: 0 0 1rem;
-}
-
-.rolesCopy p:last-child {
-  margin-bottom: 0;
+  margin: 0;
 }
 
 .rolesCopy a {
   color: inherit;
 }
 
-.rolesListWrap h3 {
+.rolesHeading {
   border-bottom: 1px solid #d7d0ca;
   font-family: var(--ripe-font-serif);
   font-size: 32px;
@@ -569,31 +565,42 @@
   padding-bottom: 0.8rem;
 }
 
-.rolesListWrap ul {
-  list-style: none;
+.rolesListWrap :global(.jobs-list) {
   margin: 14px 0 0;
   padding: 0;
 }
 
-.rolesListWrap li {
+.rolesListWrap :global(.jobs_row-link) {
   align-items: center;
-  border-bottom: 1px solid #ddd7d1;
   column-gap: 1rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  padding: 14px 0;
 }
 
-.rolesListWrap span {
+.peopleSection :global(.join_us-section),
+.peopleSection :global(.join_us-wrap),
+.peopleSection :global(.join_us) {
+  background: transparent !important;
+}
+
+.rolesListWrap :global(.directional-list__item) {
+  border-bottom: 1px solid #ddd7d1;
+  padding-bottom: 14px !important;
+  padding-top: 14px !important;
+}
+
+.roleTitle {
   font-family: var(--ripe-font-serif);
   font-size: 14px;
+  margin: 0;
 }
 
-.rolesListWrap small {
+.roleMeta {
   color: rgba(58, 31, 19, 0.6);
   font-family: var(--ripe-font-mono);
   font-size: 0.76rem;
   letter-spacing: 0.05em;
+  margin: 0;
   text-transform: uppercase;
 }
 
@@ -735,7 +742,7 @@
     gap: 1.875rem;
   }
 
-  .rolesListWrap li {
+  .rolesListWrap :global(.jobs_row-link) {
     grid-template-columns: 1fr;
     row-gap: 0.4rem;
   }

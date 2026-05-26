@@ -389,3 +389,18 @@ export const TEAM_MEMBER_SLUGS_QUERY = defineQuery(`
     "slug": slug.current
   }
 `);
+
+const JOB_POSTING_FIELDS = `
+  title,
+  location,
+  contractType,
+  externalUrl,
+  order
+`;
+
+export const JOB_POSTINGS_QUERY = defineQuery(`
+  *[_type == "jobPosting" && defined(title) && defined(location) && defined(contractType) && defined(externalUrl)]
+  | order(order asc, _createdAt asc){
+    ${JOB_POSTING_FIELDS}
+  }
+`);
