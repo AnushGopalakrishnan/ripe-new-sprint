@@ -245,6 +245,51 @@
   width: 100%;
 }
 
+.cssValueControl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cssValueInput {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.cssValueInput[aria-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+.cssValuePresets {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cssValuePreset {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--secondary-foreground);
+  font-size: 10px;
+  height: 24px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cssValuePreset:focus-visible,
+.cssValuePreset:hover {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--editor-control-ring);
+  outline: none;
+}
+
 .numericValueGroup {
   cursor: ns-resize;
   touch-action: none;
@@ -260,12 +305,21 @@
   cursor: text;
   font-variant-numeric: tabular-nums;
   min-width: 0;
+  padding-left: 6px !important;
+  padding-right: 4px !important;
 }
 
 .numericValueAddon {
   cursor: ns-resize;
   gap: 4px;
   padding-right: 4px;
+}
+
+.numericLeadingIcon {
+  cursor: ns-resize;
+  flex: 0 0 auto;
+  padding-left: 8px;
+  padding-right: 2px;
 }
 
 .numericUnit {
@@ -294,52 +348,467 @@
   box-shadow: 0 0 0 2px var(--editor-control-ring) !important;
 }
 
-.numericStepper {
-  align-items: center;
+.boxSpacingInput {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-.numericStepButton {
-  height: 13px;
-  min-height: 13px;
-  width: 18px;
-}
-
-.numericStepButton svg {
-  height: 11px;
-  width: 11px;
-}
-
-.boxSpacingInput {
-  display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   min-width: 0;
   width: 100%;
 }
 
-.boxSpacingSide {
+.boxSpacingRow {
   align-items: center;
   display: grid;
-  gap: 4px;
-  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 32px;
   min-width: 0;
 }
 
+.boxSpacingPairs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.boxSpacingExpandedGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.boxSpacingSide {
+  min-width: 0;
+}
+
+.boxSpacingToggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--editor-control-radius);
+  color: var(--muted-foreground);
+  display: flex;
+  height: var(--editor-control-height);
+  justify-content: center;
+  width: 32px;
+}
+
+.boxSpacingToggle:hover,
+.boxSpacingToggle:focus-visible,
+.boxSpacingToggle[aria-expanded="true"] {
+  background: var(--secondary);
+  border-color: var(--editor-control-border);
+  color: var(--foreground);
+  outline: none;
+}
+
+.boxSpacingToggle:focus-visible {
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+}
+
+.boxSpacingToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.boxSpacingToggle svg {
+  height: 16px;
+  width: 16px;
+}
+
 .boxSpacingSideLabel {
-  color: color-mix(in oklch, var(--muted-foreground) 78%, transparent);
+  align-items: center;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  color: color-mix(in oklch, var(--muted-foreground) 82%, transparent);
+  display: flex;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
+  height: 20px;
+  justify-content: center;
   line-height: 1;
-  text-align: center;
+  text-transform: uppercase;
+  width: 20px;
+}
+
+.spacingAxisIcon {
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  color: color-mix(in oklch, var(--muted-foreground) 82%, transparent);
+  display: block;
+  height: 20px;
+  position: relative;
+  width: 20px;
+}
+
+.spacingAxisIcon::before,
+.spacingAxisIcon::after {
+  background: currentColor;
+  content: "";
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.spacingAxisIcon[data-axis="horizontal"]::before {
+  height: 10px;
+  width: 1.5px;
+}
+
+.spacingAxisIcon[data-axis="horizontal"]::after {
+  box-shadow: 7px 0 0 currentColor;
+  height: 10px;
+  transform: translate(calc(-50% - 7px), -50%);
+  width: 1.5px;
+}
+
+.spacingAxisIcon[data-axis="vertical"]::before {
+  height: 1.5px;
+  width: 10px;
+}
+
+.spacingAxisIcon[data-axis="vertical"]::after {
+  box-shadow: 0 7px 0 currentColor;
+  height: 1.5px;
+  transform: translate(-50%, calc(-50% - 7px));
+  width: 10px;
+}
+
+.fontSwitcher {
+  position: relative;
+  width: 100%;
+}
+
+.fontSwitcherTrigger {
+  align-items: center;
+  background: var(--editor-control-bg);
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  color: var(--foreground);
+  display: flex;
+  gap: 8px;
+  height: var(--editor-control-height);
+  justify-content: space-between;
+  min-height: var(--editor-control-height);
+  padding: 0 10px;
+  width: 100%;
+}
+
+.fontSwitcherTrigger:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+  outline: none;
+}
+
+.fontSwitcherTrigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.fontSwitcherValue {
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fontMenu {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(19, 18, 21, 0.16);
+  left: 0;
+  max-height: min(360px, calc(100vh - 220px));
+  overflow-y: auto;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+}
+
+.fontMenuStatus {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 6px 8px 8px;
+}
+
+.fontOption {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--foreground);
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.fontOption:hover,
+.fontOption:focus-visible,
+.fontOption[aria-selected="true"] {
+  background: var(--accent);
+  outline: none;
+}
+
+.fontOptionName {
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fontOptionMeta {
+  color: var(--muted-foreground);
+  flex: 0 0 auto;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 10px;
   text-transform: uppercase;
 }
 
-.contentTextarea {
+.colorControl {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: var(--editor-control-height) minmax(0, 1fr);
+  position: relative;
+  width: 100%;
+}
+
+.colorSwatchButton {
+  align-items: center;
+  background:
+    linear-gradient(45deg, color-mix(in oklch, var(--muted-foreground) 20%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in oklch, var(--muted-foreground) 20%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in oklch, var(--muted-foreground) 20%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in oklch, var(--muted-foreground) 20%, transparent) 75%);
+  background-color: var(--background);
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-size: 12px 12px;
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  display: flex;
+  height: var(--editor-control-height);
+  justify-content: center;
+  min-height: var(--editor-control-height);
+  padding: 3px;
+  width: var(--editor-control-height);
+}
+
+.colorSwatchButton:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+  outline: none;
+}
+
+.colorSwatchButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.colorSwatch {
+  border: 1px solid color-mix(in oklch, var(--foreground) 16%, transparent);
+  border-radius: 5px;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.colorTextInput {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.colorTextInput[aria-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+.colorPopover {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(19, 18, 21, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  left: 0;
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+}
+
+.colorPickerRow {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.nativeColorPicker {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  height: 48px;
+  padding: 3px;
+  width: 64px;
+}
+
+.nativeColorPicker:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+  outline: none;
+}
+
+.colorPickerMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.colorPickerMeta span:first-child {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+
+.colorPickerMeta span:last-child {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+}
+
+.colorPresetGrid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.colorPreset {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: 24px;
+  min-width: 0;
+}
+
+.colorPreset:focus-visible,
+.colorPreset:hover,
+.colorPreset[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  outline: none;
+}
+
+.smartTextareaControl {
+  background: var(--editor-control-bg);
+  border: 1px solid var(--editor-control-border);
+  border-radius: var(--editor-control-radius);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.smartTextareaControl:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--editor-control-ring);
+}
+
+.smartTextarea {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   min-height: 96px;
   resize: vertical;
+}
+
+.smartTextarea:focus-visible {
+  box-shadow: none;
+}
+
+.smartTextareaMeta {
+  align-items: center;
+  border-top: 1px solid var(--editor-control-border);
+  color: var(--muted-foreground);
+  display: flex;
+  gap: 8px;
+  min-height: 28px;
+  overflow: hidden;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.smartTextareaMeta span {
+  font-size: 10px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.smartTextareaMeta span:last-child {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assetSourceControl {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.assetPreview {
+  align-items: center;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+  display: flex;
+  height: 44px;
+  justify-content: center;
+  overflow: hidden;
+  width: 44px;
+}
+
+.assetPreview img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.assetPreview svg {
+  height: 18px;
+  width: 18px;
+}
+
+.assetSourceGroup[data-invalid="true"] {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+.assetSourceInput {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  min-width: 0;
+}
+
+.assetSourceActions {
+  gap: 2px;
+  padding-right: 4px;
 }
 
 .selectionCard {
@@ -360,6 +829,69 @@
   width: 36px;
 }
 
+.elementActions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.elementActions button {
+  min-width: 0;
+}
+
+.inspectorSection {
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 16px;
+}
+
+.inspectorSectionHeader {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.inspectorSectionIcon {
+  align-items: center;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted-foreground);
+  display: flex;
+  flex: 0 0 auto;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.inspectorSectionIcon svg {
+  height: 15px;
+  width: 15px;
+}
+
+.inspectorSectionTitle {
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.inspectorSectionDescription {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  margin: 2px 0 0;
+}
+
+.inspectorSectionBody {
+  min-width: 0;
+}
+
 .patchList {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -373,10 +905,173 @@
 }
 
 .patchRow {
-  gap: 12px;
-  justify-content: space-between;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 10px;
   min-height: 56px;
   padding: 10px 12px;
+}
+
+.patchRow:hover,
+.patchRow:focus-visible,
+.patchRow[data-expanded="true"] {
+  background: color-mix(in oklch, var(--secondary) 42%, transparent);
+  outline: none;
+}
+
+.patchRow:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--ring), inset 0 0 0 4px var(--editor-control-ring);
+}
+
+.patchRowTop {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.patchChevron {
+  align-items: center;
+  color: var(--muted-foreground);
+  display: flex;
+  flex: 0 0 auto;
+  height: 18px;
+  justify-content: center;
+  transform: rotate(-90deg);
+  transition: transform 120ms ease;
+  width: 18px;
+}
+
+.patchRow[data-expanded="true"] .patchChevron {
+  transform: rotate(0deg);
+}
+
+.patchChevron svg {
+  height: 14px;
+  width: 14px;
+}
+
+.patchMeta {
+  min-width: 0;
+}
+
+.patchTitleRow {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.patchSummary {
+  color: var(--muted-foreground);
+  flex: 1 1 auto;
+  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patchSelector {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patchActions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.patchDeleteButton {
+  color: var(--muted-foreground);
+  height: 28px;
+  min-height: 28px;
+  width: 28px;
+}
+
+.patchDeleteButton:hover,
+.patchDeleteButton:focus-visible {
+  color: var(--destructive);
+}
+
+.patchDeleteButton svg {
+  height: 14px;
+  width: 14px;
+}
+
+.patchDetails {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  width: 100%;
+}
+
+.patchDetailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.patchDetailRow + .patchDetailRow {
+  border-top: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  padding-top: 8px;
+}
+
+.patchDetailHeading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.patchDetailHeading span {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.patchDetailValues {
+  align-items: center;
+  color: var(--muted-foreground);
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.patchDetailValues code,
+.patchDetailNote,
+.patchDetailEmpty {
+  background: var(--secondary);
+  border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  line-height: 1.4;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patchDetailNote,
+.patchDetailEmpty {
+  color: var(--muted-foreground);
+  white-space: normal;
 }
 
 .patchRow + .patchRow {

@@ -5,11 +5,11 @@ export const bridgeScript = String.raw`
 
   let enabled = true;
   let hoverTarget = null;
-  let selectedTarget = null;
+  let selectedSelections = [];
   let redrawFrame = 0;
   const previews = new Map();
   const hoverBox = document.createElement("div");
-  const selectBox = document.createElement("div");
+  const selectBoxes = new Map();
 
   const selectionPurple = "#7c3aed";
 
@@ -30,6 +30,7 @@ export const bridgeScript = String.raw`
       transition: "none",
     });
 
+    box.dataset.ripeEditorBox = "true";
     document.documentElement.appendChild(box);
   }
 
@@ -44,7 +45,7 @@ export const bridgeScript = String.raw`
 
   function isEditableControl(element) {
     return Boolean(
-      element.closest("input, textarea, select, option, [contenteditable='true'], [contenteditable='']")
+      element && element.closest("input, textarea, select, option, [contenteditable='true'], [contenteditable='']")
     );
   }
 
@@ -54,7 +55,7 @@ export const bridgeScript = String.raw`
 
   function selectableElementFrom(target) {
     const element = target instanceof Element ? target : null;
-    if (!element || element === hoverBox || element === selectBox || isEditableControl(element)) return null;
+    if (!element || element.closest("[data-ripe-editor-box]") || isEditableControl(element)) return null;
 
     const control = inspectableControlFor(element);
     if (control && control !== document.body && control !== document.documentElement) return control;
@@ -130,6 +131,47 @@ export const bridgeScript = String.raw`
     return null;
   }
 
+  function elementForSelection(selection) {
+    return findByTarget(selection && selection.target);
+  }
+
+  function isSelectableCandidate(element) {
+    return Boolean(
+      element &&
+        element instanceof Element &&
+        element !== document.body &&
+        element !== document.documentElement &&
+        !element.closest("[data-ripe-editor-box]") &&
+        !isEditableControl(element)
+    );
+  }
+
+  function immediateSelectableChildren(element) {
+    if (!element) return [];
+    return Array.from(element.children).filter(isSelectableCandidate);
+  }
+
+  function immediateSelectableParent(element) {
+    const parent = element && element.parentElement;
+    return isSelectableCandidate(parent) ? parent : null;
+  }
+
+  function dedupeElementsInDomOrder(elements) {
+    const seen = new Set();
+    const unique = [];
+    for (const element of elements) {
+      const selector = selectorFor(element);
+      if (seen.has(selector)) continue;
+      seen.add(selector);
+      unique.push(element);
+    }
+    return unique.sort((left, right) => {
+      if (left === right) return 0;
+      const position = left.compareDocumentPosition(right);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+  }
+
   function toCssProperty(property) {
     return String(property).replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase());
   }
@@ -157,10 +199,37 @@ export const bridgeScript = String.raw`
     draw(box, findByTarget(target));
   }
 
+  function sameTarget(left, right) {
+    return Boolean(left && right && left.selector === right.selector && left.route === right.route);
+  }
+
+  function ensureSelectBox(key) {
+    const existing = selectBoxes.get(key);
+    if (existing) return existing;
+    const box = document.createElement("div");
+    mountBox(box, "selected", "2147483646");
+    selectBoxes.set(key, box);
+    return box;
+  }
+
+  function syncSelectBoxes() {
+    const activeKeys = new Set(selectedSelections.map((selection) => selection.target.selector));
+
+    for (const [key, box] of selectBoxes.entries()) {
+      if (activeKeys.has(key)) continue;
+      box.remove();
+      selectBoxes.delete(key);
+    }
+
+    for (const selection of selectedSelections) {
+      drawTarget(ensureSelectBox(selection.target.selector), selection.target);
+    }
+  }
+
   function redrawBoxes() {
     redrawFrame = 0;
     drawTarget(hoverBox, hoverTarget);
-    drawTarget(selectBox, selectedTarget);
+    syncSelectBoxes();
   }
 
   function scheduleRedraw() {
@@ -181,6 +250,7 @@ export const bridgeScript = String.raw`
       "justifyContent",
       "margin",
       "padding",
+      "fontFamily",
       "fontSize",
       "lineHeight",
       "letterSpacing",
@@ -217,14 +287,60 @@ export const bridgeScript = String.raw`
     post({ type: "editor:hover", target: hoverTarget });
   }
 
+  function updateSelection(element, additive) {
+    const nextSelection = selectionFor(element);
+    if (additive) {
+      const exists = selectedSelections.some((selection) => sameTarget(selection.target, nextSelection.target));
+      selectedSelections = exists
+        ? selectedSelections.filter((selection) => !sameTarget(selection.target, nextSelection.target))
+        : [...selectedSelections, nextSelection];
+      if (selectedSelections.length === 0) selectedSelections = [nextSelection];
+    } else {
+      selectedSelections = [nextSelection];
+    }
+
+    syncSelectBoxes();
+    post({
+      type: "editor:select",
+      selection: selectedSelections[0],
+      selections: selectedSelections,
+    });
+  }
+
+  function replaceSelection(elements) {
+    const nextElements = dedupeElementsInDomOrder(elements);
+    if (nextElements.length === 0) return;
+
+    selectedSelections = nextElements.map(selectionFor);
+    syncSelectBoxes();
+    post({
+      type: "editor:select",
+      selection: selectedSelections[0],
+      selections: selectedSelections,
+    });
+  }
+
+  function navigateSelectionHierarchy(direction) {
+    if (selectedSelections.length === 0) return false;
+
+    const currentElements = selectedSelections.map(elementForSelection).filter(Boolean);
+    const nextElements =
+      direction === "children"
+        ? currentElements.flatMap(immediateSelectableChildren)
+        : currentElements.map(immediateSelectableParent).filter(Boolean);
+
+    const uniqueElements = dedupeElementsInDomOrder(nextElements);
+    if (uniqueElements.length === 0) return false;
+    replaceSelection(uniqueElements);
+    return true;
+  }
+
   function onPointerDown(event) {
     if (!enabled) return;
     const element = selectableElementFrom(event.target);
     if (!element || !inspectableControlFor(element)) return;
     stopPageAction(event);
-    selectedTarget = targetFor(element);
-    draw(selectBox, element);
-    post({ type: "editor:select", selection: selectionFor(element) });
+    updateSelection(element, event.shiftKey || event.metaKey || event.ctrlKey);
   }
 
   function onClick(event) {
@@ -232,20 +348,47 @@ export const bridgeScript = String.raw`
     const element = selectableElementFrom(event.target);
     if (!element) return;
     stopPageAction(event);
-    selectedTarget = targetFor(element);
-    draw(selectBox, element);
-    post({ type: "editor:select", selection: selectionFor(element) });
+    updateSelection(element, event.shiftKey || event.metaKey || event.ctrlKey);
+  }
+
+  function onKeyDown(event) {
+    if (
+      event.key === "Enter" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !isEditableControl(event.target instanceof Element ? event.target : null)
+    ) {
+      const handled = navigateSelectionHierarchy(event.shiftKey ? "parent" : "children");
+      if (handled) stopPageAction(event);
+      return;
+    }
+
+    if (!(event.metaKey || event.ctrlKey)) return;
+    const key = String(event.key || "").toLowerCase();
+    if (key !== "z" && key !== "y") return;
+
+    stopPageAction(event);
+    if (key === "z" && event.shiftKey) post({ type: "editor:redo" });
+    else if (key === "z") post({ type: "editor:undo" });
+    else post({ type: "editor:redo" });
   }
 
   function applyPreview(payload) {
     const element = findByTarget(payload && payload.target);
     if (!element) return;
-    const previous = previews.get(payload.target.selector) || {
+    const existingPreview = previews.get(payload.target.selector);
+    const previous = existingPreview || {
       style: element.getAttribute("style"),
       html: element instanceof HTMLImageElement ? null : element.innerHTML,
       src: element instanceof HTMLImageElement ? element.getAttribute("src") : null,
+      srcset: element instanceof HTMLImageElement ? element.getAttribute("srcset") : null,
     };
     previews.set(payload.target.selector, previous);
+
+    if (existingPreview) {
+      restorePreviewElement(element, previous);
+    }
 
     if (payload.styles) {
       for (const [property, value] of Object.entries(payload.styles)) {
@@ -256,7 +399,15 @@ export const bridgeScript = String.raw`
     }
     if (typeof payload.hidden === "boolean") {
       if (payload.hidden) element.style.setProperty("visibility", "hidden", "important");
-      else element.style.removeProperty("visibility");
+      else if (!payload.styles || !Object.prototype.hasOwnProperty.call(payload.styles, "visibility")) {
+        element.style.removeProperty("visibility");
+      }
+    }
+    if (typeof payload.deleted === "boolean") {
+      if (payload.deleted) element.style.setProperty("display", "none", "important");
+      else if (!payload.styles || !Object.prototype.hasOwnProperty.call(payload.styles, "display")) {
+        element.style.removeProperty("display");
+      }
     }
     if (typeof payload.text === "string" && !(element instanceof HTMLImageElement)) {
       element.textContent = payload.text;
@@ -265,8 +416,19 @@ export const bridgeScript = String.raw`
       element.setAttribute("src", payload.imageSrc);
       element.removeAttribute("srcset");
     }
-    draw(selectBox, element);
     scheduleRedraw();
+  }
+
+  function restorePreviewElement(element, previous) {
+    if (previous.style === null) element.removeAttribute("style");
+    else element.setAttribute("style", previous.style);
+    if (previous.html !== null && !(element instanceof HTMLImageElement)) element.innerHTML = previous.html;
+    if (element instanceof HTMLImageElement) {
+      if (previous.src === null) element.removeAttribute("src");
+      else element.setAttribute("src", previous.src);
+      if (previous.srcset === null) element.removeAttribute("srcset");
+      else element.setAttribute("srcset", previous.srcset);
+    }
   }
 
   function clearPreview(target) {
@@ -275,10 +437,7 @@ export const bridgeScript = String.raw`
       if (!previous) continue;
       const element = findByTarget({ selector });
       if (!element) continue;
-      if (previous.style === null) element.removeAttribute("style");
-      else element.setAttribute("style", previous.style);
-      if (previous.html !== null && !(element instanceof HTMLImageElement)) element.innerHTML = previous.html;
-      if (previous.src !== null && element instanceof HTMLImageElement) element.setAttribute("src", previous.src);
+      restorePreviewElement(element, previous);
       previews.delete(selector);
     }
   }
@@ -292,7 +451,7 @@ export const bridgeScript = String.raw`
       enabled = Boolean(message.enabled);
       if (!enabled) {
         hoverBox.style.display = "none";
-        selectBox.style.display = "none";
+        for (const box of selectBoxes.values()) box.style.display = "none";
       } else {
         scheduleRedraw();
       }
@@ -303,10 +462,11 @@ export const bridgeScript = String.raw`
   });
 
   mountBox(hoverBox, "hover", "2147483645");
-  mountBox(selectBox, "selected", "2147483646");
   document.addEventListener("pointermove", onPointerMove, true);
   document.addEventListener("pointerdown", onPointerDown, true);
   document.addEventListener("click", onClick, true);
+  document.addEventListener("keydown", onKeyDown, true);
+  window.addEventListener("keydown", onKeyDown, true);
   document.addEventListener("scroll", scheduleRedraw, true);
   window.addEventListener("resize", scheduleRedraw);
   window.visualViewport?.addEventListener("scroll", scheduleRedraw);

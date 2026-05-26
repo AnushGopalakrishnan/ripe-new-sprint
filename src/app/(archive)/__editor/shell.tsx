@@ -3,7 +3,6 @@
 import {
   Box,
   ChevronDown,
-  ChevronUp,
   Clipboard,
   CopyCheck,
   Eye,
@@ -11,6 +10,8 @@ import {
   FileText,
   Image as ImageIcon,
   Layers,
+  Maximize2,
+  Minimize2,
   Monitor,
   MousePointer2,
   PanelRightClose,
@@ -21,8 +22,11 @@ import {
   SlidersHorizontal,
   Smartphone,
   Tablet,
+  Trash2,
   Type,
+  Undo2,
   type LucideIcon,
+  Redo2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -72,12 +76,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/editor-ui/sheet";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/editor-ui/tabs";
 import { Textarea } from "@/components/editor-ui/textarea";
 import {
   ToggleGroup,
@@ -93,6 +91,7 @@ import { Toaster } from "@/components/editor-ui/sonner";
 import { createClipboardSpec, formatClipboardSpec } from "@/lib/editor/clipboard";
 import type {
   ContentChange,
+  ElementChange,
   EditorChange,
   EditorPatch,
   ElementTarget,
@@ -120,6 +119,45 @@ type FieldConfig = {
   max?: number;
 };
 
+type FontAccessState = "idle" | "loading" | "loaded" | "unavailable" | "denied";
+
+type FontOption = {
+  family: string;
+  source: "fallback" | "system";
+};
+
+type NumericUnitConversion = {
+  property: string;
+  value: string;
+  nextUnit: string;
+};
+
+type EditorHistorySnapshot = {
+  patches: EditorPatch[];
+  selection: SelectionMetadata | null;
+  selections: SelectionMetadata[];
+  baseStyles: Record<string, string>;
+  styleValues: Record<string, string>;
+  textValue: string;
+  imageValue: string;
+  hidden: boolean;
+  deleted: boolean;
+  notes: string;
+};
+
+type LocalFontData = {
+  family: string;
+  fullName?: string;
+  postscriptName?: string;
+  style?: string;
+};
+
+declare global {
+  interface Window {
+    queryLocalFonts?: () => Promise<LocalFontData[]>;
+  }
+}
+
 type FieldGroupName = "layout" | "spacing" | "typography" | "appearance";
 
 const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon; label: string }> = {
@@ -131,6 +169,40 @@ const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon; lab
 const lengthUnits = ["px", "%", "rem", "em", "vw", "vh", "vmin", "vmax", "ch"];
 const textLengthUnits = ["px", "rem", "em", "%", "vw", "vh"];
 const lineHeightUnits = ["", "px", "rem", "em", "%"];
+const genericFontFamilies = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"]);
+const textOnlyStyleProperties = new Set(["fontFamily", "fontSize", "lineHeight", "letterSpacing", "fontWeight", "textAlign", "color"]);
+const nonTextTargetTags = new Set(["img", "picture", "video", "source", "canvas", "svg", "path"]);
+const fallbackFontFamilies = [
+  "Graphik",
+  "Plantin MT Pro",
+  "Arial",
+  "Helvetica Neue",
+  "Helvetica",
+  "Times New Roman",
+  "Georgia",
+  "Courier New",
+  "Menlo",
+  "Monaco",
+  "system-ui",
+  "sans-serif",
+  "serif",
+  "monospace",
+];
+const fallbackFontOptions = fallbackFontFamilies.map<FontOption>((family) => ({ family, source: "fallback" }));
+const colorPresets = [
+  "#000000",
+  "#ffffff",
+  "#f5f5f5",
+  "#d9d9d9",
+  "#7c3aed",
+  "#2563eb",
+  "#16a34a",
+  "#f97316",
+  "#ef4444",
+  "#facc15",
+  "#ec4899",
+  "#0f172a",
+];
 
 const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   layout: [
@@ -148,6 +220,7 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
     { property: "padding", label: "Padding", placeholder: "0px", unit: "px", units: lengthUnits },
   ],
   typography: [
+    { property: "fontFamily", label: "Font", placeholder: "System font" },
     { property: "fontSize", label: "Size", placeholder: "16px", unit: "px", units: textLengthUnits },
     { property: "lineHeight", label: "Line height", placeholder: "1.4", unit: "", units: lineHeightUnits, step: 0.05, min: 0 },
     { property: "letterSpacing", label: "Tracking", placeholder: "0px", unit: "px", units: textLengthUnits, step: 0.1 },
@@ -244,10 +317,163 @@ function changedStyles(
     }));
 }
 
+function changedStyleProperties(base: Record<string, string>, values: Record<string, string>) {
+  return Object.entries(values)
+    .filter(([property, value]) => value !== (base[property] ?? ""))
+    .map(([property]) => property);
+}
+
 function upsertPatch(patches: EditorPatch[], patch: EditorPatch) {
   const index = patches.findIndex((candidate) => sameTarget(candidate.target, patch.target));
   if (index === -1) return [...patches, patch];
   return patches.map((candidate, candidateIndex) => (candidateIndex === index ? patch : candidate));
+}
+
+function previewPayloadForPatch(patch: EditorPatch) {
+  const styles: Record<string, string> = {};
+  let text: string | undefined;
+  let imageSrc: string | undefined;
+  let hidden: boolean | undefined;
+  let deleted: boolean | undefined;
+
+  for (const change of patch.changes) {
+    if (change.kind === "style") {
+      styles[change.property] = change.after;
+    } else if (change.kind === "content") {
+      if (change.field === "text") text = change.after;
+      if (change.field === "imageSrc") imageSrc = change.after;
+    } else if (change.action === "hide") {
+      hidden = change.after;
+    } else if (change.action === "delete") {
+      deleted = change.after;
+    }
+  }
+
+  return {
+    target: patch.target,
+    styles,
+    text,
+    imageSrc,
+    hidden,
+    deleted,
+  };
+}
+
+function elementActionValue(patch: EditorPatch | undefined, action: ElementChange["action"]) {
+  const change = patch?.changes.find((candidate): candidate is ElementChange => (
+    candidate.kind === "element" && candidate.action === action
+  ));
+  return change?.after ?? false;
+}
+
+function isTextCompatibleSelection(selection: SelectionMetadata) {
+  return !nonTextTargetTags.has(selection.target.tag);
+}
+
+function isImageSelection(selection: SelectionMetadata) {
+  return selection.target.tag === "img";
+}
+
+function commonComputedStyles(selections: SelectionMetadata[]) {
+  const [firstSelection] = selections;
+  if (!firstSelection) return {};
+
+  const styles: Record<string, string> = {};
+  for (const property of Object.keys(firstSelection.computedStyles)) {
+    const firstValue = firstSelection.computedStyles[property] ?? "";
+    styles[property] = selections.every((selection) => (selection.computedStyles[property] ?? "") === firstValue)
+      ? firstValue
+      : "";
+  }
+  return styles;
+}
+
+function fieldVisibleForSelections(field: FieldConfig, selections: SelectionMetadata[]) {
+  if (selections.length === 0) return true;
+  if (!textOnlyStyleProperties.has(field.property)) return true;
+  return selections.every(isTextCompatibleSelection);
+}
+
+const patchPropertyLabels: Record<string, string> = {
+  alignItems: "Align",
+  backgroundColor: "Background",
+  borderRadius: "Radius",
+  color: "Color",
+  display: "Display",
+  fontFamily: "Font",
+  fontSize: "Size",
+  fontWeight: "Weight",
+  gap: "Gap",
+  height: "Height",
+  imageSrc: "Image",
+  justifyContent: "Justify",
+  letterSpacing: "Tracking",
+  lineHeight: "Line height",
+  margin: "Margin",
+  maxWidth: "Max width",
+  opacity: "Opacity",
+  padding: "Padding",
+  position: "Position",
+  text: "Text",
+  textAlign: "Text align",
+  visibility: "Visibility",
+  width: "Width",
+};
+
+function patchChangeLabel(change: EditorChange) {
+  if (change.kind === "style") return patchPropertyLabels[change.property] ?? change.property;
+  if (change.kind === "content") return patchPropertyLabels[change.field] ?? change.field;
+  return change.action === "hide" ? "Hide" : "Delete";
+}
+
+function formatPatchBoolean(value: boolean) {
+  return value ? "on" : "off";
+}
+
+function truncatePatchValue(value: string, maxLength = 76) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized || "empty";
+  return `${normalized.slice(0, maxLength - 1)}...`;
+}
+
+function formatPatchValue(value: string | boolean) {
+  if (typeof value === "boolean") return formatPatchBoolean(value);
+  return `"${truncatePatchValue(value)}"`;
+}
+
+function formatPatchChange(change: EditorChange) {
+  if (change.kind === "style") {
+    return {
+      label: patchChangeLabel(change),
+      before: formatPatchValue(change.before),
+      after: formatPatchValue(change.after),
+      meta: change.viewport,
+    };
+  }
+
+  if (change.kind === "content") {
+    return {
+      label: patchChangeLabel(change),
+      before: formatPatchValue(change.before),
+      after: formatPatchValue(change.after),
+      meta: "content",
+    };
+  }
+
+  return {
+    label: patchChangeLabel(change),
+    before: formatPatchBoolean(change.before),
+    after: formatPatchBoolean(change.after),
+    meta: "element",
+  };
+}
+
+function summarizePatchChanges(changes: EditorChange[]) {
+  if (changes.length === 0) return "Note only";
+  const labels = Array.from(new Set(changes.map(patchChangeLabel)));
+  const visibleLabels = labels.slice(0, 3).join(", ");
+  const remainingCount = labels.length - 3;
+  return remainingCount > 0 ? `${visibleLabels}, +${remainingCount} more` : visibleLabels;
 }
 
 function previewSourceLabel(iframeSrc: string) {
@@ -298,7 +524,7 @@ function clampNumber(value: number, min?: number, max?: number) {
 }
 
 function formatCssNumber(value: number) {
-  return Number(value.toFixed(3)).toString();
+  return Number(value.toFixed(2)).toString();
 }
 
 function unitLabel(unit: string) {
@@ -311,11 +537,198 @@ function normalizeCssUnit(unit: string, supportedUnits: string[]) {
   return null;
 }
 
+function cssNumericValue(numberValue: number, unit: string) {
+  return `${formatCssNumber(numberValue)}${unit}`;
+}
+
+function toCssPropertyName(property: string) {
+  return property.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase());
+}
+
+function percentageBasisPx(element: Element, property: string) {
+  const ownerWindow = element.ownerDocument.defaultView;
+  const cssProperty = toCssPropertyName(property);
+
+  if (cssProperty === "font-size") {
+    const parent = element.parentElement;
+    const parentFontSize = parent ? Number.parseFloat(ownerWindow?.getComputedStyle(parent).fontSize ?? "") : NaN;
+    if (Number.isFinite(parentFontSize) && parentFontSize > 0) return parentFontSize;
+  }
+
+  if (cssProperty === "line-height") {
+    const fontSize = Number.parseFloat(ownerWindow?.getComputedStyle(element).fontSize ?? "");
+    if (Number.isFinite(fontSize) && fontSize > 0) return fontSize;
+  }
+
+  if (cssProperty.includes("radius")) {
+    const width = element.getBoundingClientRect().width;
+    if (Number.isFinite(width) && width > 0) return width;
+  }
+
+  const parentWidth = element.parentElement?.getBoundingClientRect().width;
+  if (parentWidth && Number.isFinite(parentWidth) && parentWidth > 0) return parentWidth;
+
+  const viewportWidth = ownerWindow?.innerWidth;
+  if (viewportWidth && Number.isFinite(viewportWidth) && viewportWidth > 0) return viewportWidth;
+
+  return null;
+}
+
+function computedCssNumberPx(element: Element, property: string) {
+  const ownerWindow = element.ownerDocument.defaultView;
+  if (!ownerWindow) return null;
+
+  const cssProperty = toCssPropertyName(property);
+  const computedStyle = ownerWindow.getComputedStyle(element);
+  const computedValue =
+    cssProperty === "border-radius"
+      ? computedStyle.getPropertyValue("border-top-left-radius")
+      : computedStyle.getPropertyValue(cssProperty);
+  const parsed = parseNumericCssValue(computedValue);
+  if (!parsed) return null;
+
+  if (parsed.unit === "%") {
+    const basis = percentageBasisPx(element, property);
+    return basis === null ? null : (parsed.numberValue / 100) * basis;
+  }
+
+  if (parsed.unit && parsed.unit !== "px") return null;
+  return parsed.numberValue;
+}
+
+function measureCssValuePx(element: HTMLElement, property: string, value: string) {
+  const cssProperty = toCssPropertyName(property);
+  const previousValue = element.style.getPropertyValue(cssProperty);
+  const previousPriority = element.style.getPropertyPriority(cssProperty);
+
+  element.style.setProperty(cssProperty, value);
+
+  try {
+    return computedCssNumberPx(element, property);
+  } finally {
+    if (previousValue) {
+      element.style.setProperty(cssProperty, previousValue, previousPriority);
+    } else {
+      element.style.removeProperty(cssProperty);
+    }
+  }
+}
+
+function convertCssUnitForElement(element: HTMLElement, property: string, value: string, nextUnit: string) {
+  const parsedValue = parseNumericCssValue(value);
+  if (!parsedValue) return null;
+
+  const currentUnit = parsedValue.unit;
+  if (currentUnit === nextUnit) return cssNumericValue(parsedValue.numberValue, nextUnit);
+  if (parsedValue.numberValue === 0) return cssNumericValue(0, nextUnit);
+
+  const currentPx = measureCssValuePx(element, property, cssNumericValue(parsedValue.numberValue, currentUnit));
+  const oneNextUnitPx = measureCssValuePx(element, property, cssNumericValue(1, nextUnit));
+  if (
+    currentPx === null ||
+    oneNextUnitPx === null ||
+    !Number.isFinite(currentPx) ||
+    !Number.isFinite(oneNextUnitPx) ||
+    oneNextUnitPx === 0
+  ) {
+    return null;
+  }
+
+  return cssNumericValue(currentPx / oneNextUnitPx, nextUnit);
+}
+
+function cleanFontFamilyName(value: string) {
+  return value.trim().replace(/^["']|["']$/g, "");
+}
+
+function firstFontFamily(value: string) {
+  return cleanFontFamilyName(value.split(",")[0] ?? "");
+}
+
+function toCssFontFamily(family: string) {
+  const cleanFamily = cleanFontFamilyName(family);
+  if (!cleanFamily) return "";
+  if (genericFontFamilies.has(cleanFamily.toLowerCase())) return cleanFamily;
+  return `"${cleanFamily.replace(/"/g, '\\"')}"`;
+}
+
+function mergeFontOptions(systemFonts: string[]) {
+  const seen = new Set<string>();
+  const options: FontOption[] = [];
+
+  for (const option of fallbackFontOptions) {
+    const key = option.family.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    options.push(option);
+  }
+
+  for (const family of systemFonts) {
+    const cleanFamily = cleanFontFamilyName(family);
+    const key = cleanFamily.toLowerCase();
+    if (!cleanFamily || seen.has(key)) continue;
+    seen.add(key);
+    options.push({ family: cleanFamily, source: "system" });
+  }
+
+  return options;
+}
+
+function isValidCssColor(value: string) {
+  if (!value.trim()) return true;
+  if (typeof window === "undefined" || !window.CSS?.supports) return true;
+  return window.CSS.supports("color", value.trim());
+}
+
+function rgbChannelToHex(channel: string) {
+  const value = Math.max(0, Math.min(255, Math.round(Number(channel))));
+  return value.toString(16).padStart(2, "0");
+}
+
+function cssColorToHex(value: string) {
+  const cleanValue = value.trim();
+  const hex = cleanValue.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const [, hexValue] = hex;
+    if (hexValue.length === 3) {
+      return `#${hexValue.split("").map((part) => part + part).join("")}`.toLowerCase();
+    }
+    return `#${hexValue.toLowerCase()}`;
+  }
+
+  const rgb = cleanValue.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+[\d.]+%?)?\s*\)$/i);
+  if (!rgb) return null;
+  return `#${rgbChannelToHex(rgb[1])}${rgbChannelToHex(rgb[2])}${rgbChannelToHex(rgb[3])}`;
+}
+
+function colorInputText(value: string) {
+  return cssColorToHex(value) ?? value;
+}
+
+function isValidCssDeclaration(property: string, value: string) {
+  if (!value.trim()) return true;
+  if (typeof window === "undefined" || !window.CSS?.supports) return true;
+  return window.CSS.supports(toCssPropertyName(property), value.trim());
+}
+
+function isLikelyAssetSource(value: string) {
+  const cleanValue = value.trim();
+  return (
+    !cleanValue ||
+    cleanValue.startsWith("/") ||
+    cleanValue.startsWith("./") ||
+    cleanValue.startsWith("../") ||
+    cleanValue.startsWith("data:image/") ||
+    cleanValue.startsWith("blob:") ||
+    /^https?:\/\//i.test(cleanValue)
+  );
+}
+
 const boxSides = [
-  { key: "top", label: "T" },
-  { key: "right", label: "R" },
-  { key: "bottom", label: "B" },
-  { key: "left", label: "L" },
+  { key: "top", label: "T", propertySuffix: "Top" },
+  { key: "right", label: "R", propertySuffix: "Right" },
+  { key: "bottom", label: "B", propertySuffix: "Bottom" },
+  { key: "left", label: "L", propertySuffix: "Left" },
 ] as const;
 
 function splitCssBoxValue(value: string) {
@@ -343,11 +756,23 @@ function StyleField({
   config,
   value,
   disabled,
+  fontOptions,
+  fontAccessState,
+  onLoadSystemFonts,
+  onPreviewStyle,
+  onRestorePreview,
+  onConvertUnit,
   onChange,
 }: {
   config: FieldConfig;
   value: string;
   disabled: boolean;
+  fontOptions?: FontOption[];
+  fontAccessState?: FontAccessState;
+  onLoadSystemFonts?: () => void;
+  onPreviewStyle?: (property: string, value: string) => void;
+  onRestorePreview?: () => void;
+  onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
   onChange: (value: string) => void;
 }) {
   const fieldId = `editor-style-${config.property}`;
@@ -368,9 +793,31 @@ function StyleField({
           options={config.options}
           onChange={onChange}
         />
+      ) : config.property === "fontFamily" ? (
+        <FontFamilyInput
+          id={fieldId}
+          disabled={disabled}
+          value={value}
+          fontOptions={fontOptions ?? fallbackFontOptions}
+          fontAccessState={fontAccessState ?? "idle"}
+          onLoadSystemFonts={onLoadSystemFonts ?? (() => {})}
+          onPreview={(fontFamily) => onPreviewStyle?.("fontFamily", fontFamily)}
+          onRestorePreview={onRestorePreview ?? (() => {})}
+          onChange={onChange}
+        />
+      ) : config.property === "color" || config.property === "backgroundColor" ? (
+        <ColorStyleInput
+          id={fieldId}
+          label={config.label}
+          disabled={disabled}
+          value={value}
+          placeholder={config.placeholder ?? "#000000"}
+          onChange={onChange}
+        />
       ) : canUseBoxControl ? (
         <BoxSpacingInput
           id={fieldId}
+          property={config.property}
           label={config.label}
           disabled={disabled}
           value={value}
@@ -380,11 +827,13 @@ function StyleField({
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
+          onConvertUnit={onConvertUnit}
           onChange={onChange}
         />
       ) : canUseNumericControl ? (
         <NumericStyleInput
           id={fieldId}
+          property={config.property}
           label={config.label}
           disabled={disabled}
           value={value}
@@ -394,26 +843,340 @@ function StyleField({
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
+          onConvertUnit={onConvertUnit}
           onChange={onChange}
         />
       ) : (
-        <Input
+        <CssValueInput
           id={fieldId}
+          property={config.property}
+          label={config.label}
           disabled={disabled}
           value={value}
           placeholder={config.placeholder ?? "value"}
-          className={styles.valueInput}
-          autoComplete="off"
-          spellCheck={false}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={onChange}
         />
       )}
     </Field>
   );
 }
 
+function CssValueInput({
+  id,
+  property,
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  property: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [draftValue, setDraftValue] = useState(value);
+  const invalid = Boolean(draftValue.trim()) && !isValidCssDeclaration(property, draftValue);
+  const presets = ["unset", "inherit", "initial", "auto"];
+
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
+  function commitValue(nextValue: string) {
+    setDraftValue(nextValue);
+    if (isValidCssDeclaration(property, nextValue)) onChange(nextValue.trim());
+  }
+
+  return (
+    <div className={styles.cssValueControl}>
+      <Input
+        id={id}
+        disabled={disabled}
+        value={draftValue}
+        placeholder={placeholder}
+        className={styles.cssValueInput}
+        autoComplete="off"
+        spellCheck={false}
+        aria-invalid={invalid}
+        aria-label={`${label} CSS value`}
+        onFocus={(event) => event.currentTarget.select()}
+        onBlur={() => {
+          if (isValidCssDeclaration(property, draftValue)) onChange(draftValue.trim());
+          else setDraftValue(value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== "Escape") return;
+          event.preventDefault();
+          if (event.key === "Escape") {
+            setDraftValue(value);
+            event.currentTarget.blur();
+            return;
+          }
+          if (isValidCssDeclaration(property, draftValue)) {
+            onChange(draftValue.trim());
+            event.currentTarget.blur();
+          }
+        }}
+        onChange={(event) => commitValue(event.target.value)}
+      />
+      <div className={styles.cssValuePresets} aria-label={`${label} CSS presets`}>
+        {presets.map((preset) => (
+          <button
+            type="button"
+            disabled={disabled}
+            className={styles.cssValuePreset}
+            key={preset}
+            onClick={() => commitValue(preset)}
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FontFamilyInput({
+  id,
+  value,
+  disabled,
+  fontOptions,
+  fontAccessState,
+  onLoadSystemFonts,
+  onPreview,
+  onRestorePreview,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  fontOptions: FontOption[];
+  fontAccessState: FontAccessState;
+  onLoadSystemFonts: () => void;
+  onPreview: (fontFamily: string) => void;
+  onRestorePreview: () => void;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedFamily = firstFontFamily(value);
+  const displayFamily = selectedFamily || "Unset";
+
+  function openFontList() {
+    if (disabled) return;
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen && fontAccessState === "idle") onLoadSystemFonts();
+    if (!nextOpen) onRestorePreview();
+  }
+
+  function closeFontList() {
+    setOpen(false);
+    onRestorePreview();
+  }
+
+  function selectFont(family: string) {
+    onChange(toCssFontFamily(family));
+    setOpen(false);
+  }
+
+  return (
+    <div className={styles.fontSwitcher}>
+      <button
+        id={id}
+        type="button"
+        disabled={disabled}
+        className={styles.fontSwitcherTrigger}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={openFontList}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          closeFontList();
+        }}
+      >
+        <span className={styles.fontSwitcherValue} style={{ fontFamily: value || undefined }}>
+          {displayFamily}
+        </span>
+        <ChevronDown className="size-3.5" />
+      </button>
+      {open ? (
+        <div
+          className={styles.fontMenu}
+          role="listbox"
+          aria-label="Fonts"
+          onMouseLeave={onRestorePreview}
+        >
+          <div className={styles.fontMenuStatus}>
+            {fontAccessState === "loading"
+              ? "Loading system fonts..."
+              : fontAccessState === "loaded"
+                ? "System fonts"
+                : fontAccessState === "denied"
+                  ? "System font access denied. Showing fallback fonts."
+                  : fontAccessState === "unavailable"
+                    ? "System font access is not supported in this browser. Showing fallback fonts."
+                    : "Click a font to apply. Hover to preview."}
+          </div>
+          <button
+            type="button"
+            className={styles.fontOption}
+            role="option"
+            aria-selected={!value}
+            onMouseEnter={() => onPreview("")}
+            onFocus={() => onPreview("")}
+            onClick={() => selectFont("")}
+          >
+            <span className={styles.fontOptionName}>Unset</span>
+            <span className={styles.fontOptionMeta}>default</span>
+          </button>
+          {fontOptions.map((option) => {
+            const cssFontFamily = toCssFontFamily(option.family);
+            const selected = cleanFontFamilyName(selectedFamily).toLowerCase() === option.family.toLowerCase();
+            return (
+              <button
+                type="button"
+                className={styles.fontOption}
+                role="option"
+                aria-selected={selected}
+                key={`${option.source}-${option.family}`}
+                style={{ fontFamily: cssFontFamily }}
+                onMouseEnter={() => onPreview(cssFontFamily)}
+                onFocus={() => onPreview(cssFontFamily)}
+                onClick={() => selectFont(option.family)}
+              >
+                <span className={styles.fontOptionName}>{option.family}</span>
+                <span className={styles.fontOptionMeta}>{option.source}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ColorStyleInput({
+  id,
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draftValue, setDraftValue] = useState(colorInputText(value));
+  const pickerValue = cssColorToHex(value) ?? cssColorToHex(placeholder) ?? "#000000";
+  const swatchColor = value && isValidCssColor(value) ? value : "transparent";
+  const invalid = Boolean(draftValue.trim()) && !isValidCssColor(draftValue);
+
+  useEffect(() => {
+    setDraftValue(colorInputText(value));
+  }, [value]);
+
+  function commitColor(nextValue: string) {
+    setDraftValue(nextValue);
+    if (!nextValue.trim() || isValidCssColor(nextValue)) {
+      onChange(nextValue.trim());
+    }
+  }
+
+  function commitPickerColor(nextValue: string) {
+    setDraftValue(nextValue);
+    onChange(nextValue);
+  }
+
+  return (
+    <div className={styles.colorControl}>
+      <button
+        type="button"
+        disabled={disabled}
+        className={styles.colorSwatchButton}
+        aria-label={`Open ${label} color picker`}
+        aria-expanded={open}
+        onClick={() => setOpen((nextOpen) => !nextOpen)}
+      >
+        <span className={styles.colorSwatch} style={{ backgroundColor: swatchColor }} />
+      </button>
+      <Input
+        id={id}
+        disabled={disabled}
+        value={draftValue}
+        placeholder={placeholder}
+        className={styles.colorTextInput}
+        autoComplete="off"
+        spellCheck={false}
+        aria-invalid={invalid}
+        onFocus={(event) => event.currentTarget.select()}
+        onBlur={() => {
+          if (!draftValue.trim()) onChange("");
+          else if (isValidCssColor(draftValue)) onChange(draftValue.trim());
+          else setDraftValue(colorInputText(value));
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== "Escape") return;
+          event.preventDefault();
+          if (event.key === "Escape") {
+            setDraftValue(colorInputText(value));
+            event.currentTarget.blur();
+            return;
+          }
+          if (!draftValue.trim() || isValidCssColor(draftValue)) {
+            onChange(draftValue.trim());
+            event.currentTarget.blur();
+          }
+        }}
+        onChange={(event) => commitColor(event.target.value)}
+      />
+      {open ? (
+        <div className={styles.colorPopover}>
+          <div className={styles.colorPickerRow}>
+            <input
+              type="color"
+              className={styles.nativeColorPicker}
+              disabled={disabled}
+              value={pickerValue}
+              aria-label={`${label} color`}
+              onChange={(event) => commitPickerColor(event.target.value)}
+            />
+            <div className={styles.colorPickerMeta}>
+              <span>{label}</span>
+              <span>{pickerValue}</span>
+            </div>
+          </div>
+          <div className={styles.colorPresetGrid} aria-label={`${label} color presets`}>
+            {colorPresets.map((preset) => (
+              <button
+                type="button"
+                className={styles.colorPreset}
+                style={{ backgroundColor: preset }}
+                aria-label={`Set ${label} to ${preset}`}
+                aria-pressed={pickerValue.toLowerCase() === preset}
+                key={preset}
+                onClick={() => commitPickerColor(preset)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function BoxSpacingInput({
   id,
+  property,
   label,
   value,
   placeholder,
@@ -423,9 +1186,11 @@ function BoxSpacingInput({
   min,
   max,
   disabled,
+  onConvertUnit,
   onChange,
 }: {
   id: string;
+  property: string;
   label: string;
   value: string;
   placeholder: string;
@@ -435,10 +1200,18 @@ function BoxSpacingInput({
   min?: number;
   max?: number;
   disabled: boolean;
+  onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
   onChange: (value: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const expandedValue = expandCssBoxValue(value) ?? ["", "", "", ""];
   const expandedPlaceholder = expandCssBoxValue(placeholder) ?? [placeholder, placeholder, placeholder, placeholder];
+  const verticalValue = expandedValue[0] === expandedValue[2] ? expandedValue[0] : "";
+  const horizontalValue = expandedValue[1] === expandedValue[3] ? expandedValue[1] : "";
+  const verticalPlaceholder =
+    expandedPlaceholder[0] === expandedPlaceholder[2] ? expandedPlaceholder[0] : expandedPlaceholder[0] || placeholder;
+  const horizontalPlaceholder =
+    expandedPlaceholder[1] === expandedPlaceholder[3] ? expandedPlaceholder[1] : expandedPlaceholder[1] || placeholder;
 
   function updateSide(index: number, nextValue: string) {
     const nextValues = [...expandedValue];
@@ -457,32 +1230,102 @@ function BoxSpacingInput({
     onChange(compactCssBoxValue(normalizedValues));
   }
 
+  function updatePair(indexes: number[], nextValue: string) {
+    const nextValues = [...expandedValue];
+    for (const index of indexes) nextValues[index] = nextValue;
+
+    if (nextValues.every((sideValue) => !sideValue.trim())) {
+      onChange("");
+      return;
+    }
+
+    const normalizedValues = nextValues.map((sideValue, sideIndex) => {
+      if (sideValue.trim()) return sideValue;
+      return expandedPlaceholder[sideIndex] || `0${defaultUnit}`;
+    });
+
+    onChange(compactCssBoxValue(normalizedValues));
+  }
+
   return (
     <div className={styles.boxSpacingInput} id={id}>
-      {boxSides.map((side, index) => (
-        <div className={styles.boxSpacingSide} key={side.key}>
-          <span className={styles.boxSpacingSideLabel}>{side.label}</span>
+      <div className={styles.boxSpacingRow}>
+        <div className={styles.boxSpacingPairs}>
           <NumericStyleInput
-            id={`${id}-${side.key}`}
-            label={`${label} ${side.key}`}
+            id={`${id}-horizontal`}
+            property={`${property}Left`}
+            label={`${label} horizontal`}
             disabled={disabled}
-            value={expandedValue[index] ?? ""}
-            placeholder={expandedPlaceholder[index] ?? placeholder}
+            value={horizontalValue}
+            placeholder={horizontalPlaceholder}
             defaultUnit={defaultUnit}
             units={units}
             step={step}
             min={min}
             max={max}
-            onChange={(nextValue) => updateSide(index, nextValue)}
+            leadingIcon={<span className={styles.spacingAxisIcon} data-axis="horizontal" aria-hidden="true" />}
+            onConvertUnit={onConvertUnit}
+            onChange={(nextValue) => updatePair([1, 3], nextValue)}
+          />
+          <NumericStyleInput
+            id={`${id}-vertical`}
+            property={`${property}Top`}
+            label={`${label} vertical`}
+            disabled={disabled}
+            value={verticalValue}
+            placeholder={verticalPlaceholder}
+            defaultUnit={defaultUnit}
+            units={units}
+            step={step}
+            min={min}
+            max={max}
+            leadingIcon={<span className={styles.spacingAxisIcon} data-axis="vertical" aria-hidden="true" />}
+            onConvertUnit={onConvertUnit}
+            onChange={(nextValue) => updatePair([0, 2], nextValue)}
           />
         </div>
-      ))}
+        <button
+          type="button"
+          className={styles.boxSpacingToggle}
+          disabled={disabled}
+          aria-label={expanded ? `Collapse ${label} sides` : `Expand ${label} sides`}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((nextExpanded) => !nextExpanded)}
+        >
+          {expanded ? <Minimize2 /> : <Maximize2 />}
+        </button>
+      </div>
+      {expanded ? (
+        <div className={styles.boxSpacingExpandedGrid}>
+          {boxSides.map((side, index) => (
+            <div className={styles.boxSpacingSide} data-side={side.key} key={side.key}>
+              <NumericStyleInput
+                id={`${id}-${side.key}`}
+                property={`${property}${side.propertySuffix}`}
+                label={`${label} ${side.key}`}
+                disabled={disabled}
+                value={expandedValue[index] ?? ""}
+                placeholder={expandedPlaceholder[index] ?? placeholder}
+                defaultUnit={defaultUnit}
+                units={units}
+                step={step}
+                min={min}
+                max={max}
+                leadingIcon={<span className={styles.boxSpacingSideLabel}>{side.label}</span>}
+                onConvertUnit={onConvertUnit}
+                onChange={(nextValue) => updateSide(index, nextValue)}
+              />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function NumericStyleInput({
   id,
+  property,
   label,
   value,
   placeholder,
@@ -492,9 +1335,12 @@ function NumericStyleInput({
   min,
   max,
   disabled,
+  leadingIcon,
+  onConvertUnit,
   onChange,
 }: {
   id: string;
+  property: string;
   label: string;
   value: string;
   placeholder: string;
@@ -504,6 +1350,8 @@ function NumericStyleInput({
   min?: number;
   max?: number;
   disabled: boolean;
+  leadingIcon?: React.ReactNode;
+  onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
   onChange: (value: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -549,7 +1397,7 @@ function NumericStyleInput({
     }
 
     const clamped = clampNumber(parsed.numberValue, min, max);
-    const nextNumberText = clamped === parsed.numberValue ? parsed.numberText : formatCssNumber(clamped);
+    const nextNumberText = formatCssNumber(clamped);
     setDraftNumber(nextNumberText);
     onChange(`${nextNumberText}${typedUnit}`);
   }
@@ -572,7 +1420,27 @@ function NumericStyleInput({
 
   function updateUnit(nextUnit: string) {
     const selectedUnit = nextUnit === unitlessSelectValue ? "" : nextUnit;
+    if (selectedUnit === unit) return;
+
     const baseValue = Number(draftNumber || parsedValue?.numberText || parsedPlaceholder?.numberText || 0);
+    const convertedValue = Number.isFinite(baseValue)
+      ? onConvertUnit?.({
+          property,
+          value: cssNumericValue(baseValue, unit),
+          nextUnit: selectedUnit,
+        })
+      : null;
+
+    const parsedConvertedValue = convertedValue ? parseNumericCssValue(convertedValue) : null;
+    if (parsedConvertedValue) {
+      const clamped = clampNumber(parsedConvertedValue.numberValue, min, max);
+      const nextNumberText =
+        clamped === parsedConvertedValue.numberValue ? parsedConvertedValue.numberText : formatCssNumber(clamped);
+      setDraftNumber(nextNumberText);
+      onChange(`${nextNumberText}${parsedConvertedValue.unit}`);
+      return;
+    }
+
     if (Number.isFinite(baseValue)) {
       commitNumber(baseValue, selectedUnit);
     }
@@ -655,6 +1523,11 @@ function NumericStyleInput({
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
+      {leadingIcon ? (
+        <InputGroupAddon align="inline-start" className={styles.numericLeadingIcon}>
+          {leadingIcon}
+        </InputGroupAddon>
+      ) : null}
       <InputGroupInput
         ref={inputRef}
         id={id}
@@ -695,28 +1568,6 @@ function NumericStyleInput({
         ) : unit ? (
           <InputGroupText className={styles.numericUnit}>{unit}</InputGroupText>
         ) : null}
-        <div className={styles.numericStepper} aria-hidden={disabled ? true : undefined}>
-          <InputGroupButton
-            size="icon-xs"
-            variant="ghost"
-            disabled={disabled}
-            className={styles.numericStepButton}
-            aria-label={`Increase ${label}`}
-            onClick={() => updateByStep(1)}
-          >
-            <ChevronUp />
-          </InputGroupButton>
-          <InputGroupButton
-            size="icon-xs"
-            variant="ghost"
-            disabled={disabled}
-            className={styles.numericStepButton}
-            aria-label={`Decrease ${label}`}
-            onClick={() => updateByStep(-1)}
-          >
-            <ChevronDown />
-          </InputGroupButton>
-        </div>
       </InputGroupAddon>
     </InputGroup>
   );
@@ -760,6 +1611,140 @@ function OptionSelect({
   );
 }
 
+function AssetSourceInput({
+  id,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [draftValue, setDraftValue] = useState(value);
+  const invalid = Boolean(draftValue.trim()) && !isLikelyAssetSource(draftValue);
+  const canPreview = Boolean(value.trim()) && isLikelyAssetSource(value);
+
+  useEffect(() => {
+    setDraftValue(value);
+  }, [value]);
+
+  function commitValue(nextValue: string) {
+    setDraftValue(nextValue);
+    if (isLikelyAssetSource(nextValue)) onChange(nextValue.trim());
+  }
+
+  return (
+    <div className={styles.assetSourceControl}>
+      <div className={styles.assetPreview} aria-hidden="true">
+        {canPreview ? (
+          <img src={value} alt="" onError={(event) => event.currentTarget.replaceChildren()} />
+        ) : (
+          <ImageIcon />
+        )}
+      </div>
+      <InputGroup className={styles.assetSourceGroup} data-invalid={invalid ? true : undefined}>
+        <InputGroupInput
+          id={id}
+          disabled={disabled}
+          value={draftValue}
+          placeholder="https://... or /asset.jpg"
+          className={styles.assetSourceInput}
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={invalid}
+          aria-label="Image source"
+          onFocus={(event) => event.currentTarget.select()}
+          onBlur={() => {
+            if (isLikelyAssetSource(draftValue)) onChange(draftValue.trim());
+            else setDraftValue(value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== "Escape") return;
+            event.preventDefault();
+            if (event.key === "Escape") {
+              setDraftValue(value);
+              event.currentTarget.blur();
+              return;
+            }
+            if (isLikelyAssetSource(draftValue)) {
+              onChange(draftValue.trim());
+              event.currentTarget.blur();
+            }
+          }}
+          onChange={(event) => commitValue(event.target.value)}
+        />
+        <InputGroupAddon align="inline-end" className={styles.assetSourceActions}>
+          <InputGroupButton
+            size="icon-xs"
+            variant="ghost"
+            disabled={disabled || !value.trim()}
+            aria-label="Open image source"
+            onClick={() => {
+              if (value.trim()) window.open(value, "_blank", "noopener,noreferrer");
+            }}
+          >
+            <Eye />
+          </InputGroupButton>
+          <InputGroupButton
+            size="icon-xs"
+            variant="ghost"
+            disabled={disabled || !value.trim()}
+            aria-label="Clear image source"
+            onClick={() => commitValue("")}
+          >
+            <RotateCcw />
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+    </div>
+  );
+}
+
+function SmartTextarea({
+  id,
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const lineCount = value.length ? value.split(/\r\n|\r|\n/).length : 0;
+  const describedBy = `${id}-meta`;
+
+  return (
+    <div className={styles.smartTextareaControl}>
+      <Textarea
+        id={id}
+        disabled={disabled}
+        value={value}
+        placeholder={placeholder}
+        className={styles.smartTextarea}
+        aria-describedby={describedBy}
+        spellCheck
+        onKeyDown={(event) => {
+          if (event.key === "Escape") event.currentTarget.blur();
+          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") event.currentTarget.blur();
+        }}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div className={styles.smartTextareaMeta} id={describedBy}>
+        <span>{value.length} chars</span>
+        <span>{lineCount} lines</span>
+        <span>{label}</span>
+      </div>
+    </div>
+  );
+}
+
 function ToolbarButton({
   label,
   children,
@@ -792,6 +1777,33 @@ function ToolbarButton({
   );
 }
 
+function InspectorSection({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={styles.inspectorSection}>
+      <div className={styles.inspectorSectionHeader}>
+        <div className={styles.inspectorSectionIcon} aria-hidden="true">
+          <Icon />
+        </div>
+        <div className="min-w-0">
+          <h3 className={styles.inspectorSectionTitle}>{title}</h3>
+          {description ? <p className={styles.inspectorSectionDescription}>{description}</p> : null}
+        </div>
+      </div>
+      <div className={styles.inspectorSectionBody}>{children}</div>
+    </section>
+  );
+}
+
 export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const normalizedInitialPath = normalizePath(initialPath);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -801,21 +1813,34 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
+  const [selections, setSelections] = useState<SelectionMetadata[]>([]);
   const [baseStyles, setBaseStyles] = useState<Record<string, string>>({});
   const [styleValues, setStyleValues] = useState<Record<string, string>>({});
   const [textValue, setTextValue] = useState("");
   const [imageValue, setImageValue] = useState("");
   const [hidden, setHidden] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
+  const [expandedPatchIds, setExpandedPatchIds] = useState<Set<string>>(() => new Set());
+  const [systemFontFamilies, setSystemFontFamilies] = useState<string[]>([]);
+  const [fontAccessState, setFontAccessState] = useState<FontAccessState>("idle");
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
   const previewSource = useMemo(() => previewSourceLabel(iframeSrc), [iframeSrc]);
+  const fontOptions = useMemo(() => mergeFontOptions(systemFontFamilies), [systemFontFamilies]);
   const selectionLabel = selection
-    ? selection.target.textSnippet || selection.target.selector
+    ? selections.length > 1
+      ? `${selections.length} elements selected`
+      : selection.target.textSnippet || selection.target.selector
     : "Select an element in the preview";
+  const canEditContent = selections.length === 1;
+  const canEditTextContent = canEditContent && selections.every(isTextCompatibleSelection);
+  const canEditImageContent = canEditContent && selections.every(isImageSelection);
 
   const routeOptions = useMemo(() => {
     if (routes.some((candidate) => candidate.path === route)) return routes;
@@ -829,6 +1854,74 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }, [currentCollectionKey, routeOptions]);
   const currentCollectionIndex = collectionRoutes.findIndex((candidate) => candidate.path === route);
 
+  function snapshotEditorState(): EditorHistorySnapshot {
+    return {
+      patches,
+      selection,
+      selections,
+      baseStyles,
+      styleValues,
+      textValue,
+      imageValue,
+      hidden,
+      deleted,
+      notes,
+    };
+  }
+
+  function pushUndoSnapshot() {
+    const snapshot = snapshotEditorState();
+    setUndoStack((current) => [...current.slice(-79), snapshot]);
+    setRedoStack([]);
+  }
+
+  function reapplyPreviewPatches(nextPatches: EditorPatch[]) {
+    const previewWindow = iframeRef.current?.contentWindow;
+    if (!previewWindow) return;
+
+    previewWindow.postMessage({ type: "editor:clear-preview" }, window.location.origin);
+    for (const patch of nextPatches) {
+      previewWindow.postMessage(
+        {
+          type: "editor:apply-preview",
+          patch: previewPayloadForPatch(patch),
+        },
+        window.location.origin,
+      );
+    }
+  }
+
+  function applyHistorySnapshot(snapshot: EditorHistorySnapshot) {
+    setPatches(snapshot.patches);
+    persistPatches(snapshot.patches);
+    setSelection(snapshot.selection);
+    setSelections(snapshot.selections);
+    setBaseStyles(snapshot.baseStyles);
+    setStyleValues(snapshot.styleValues);
+    setTextValue(snapshot.textValue);
+    setImageValue(snapshot.imageValue);
+    setHidden(snapshot.hidden);
+    setDeleted(snapshot.deleted);
+    setNotes(snapshot.notes);
+    reapplyPreviewPatches(snapshot.patches);
+  }
+
+  function undoEditorChange() {
+    const previous = undoStack.at(-1);
+    if (!previous) return;
+    setRedoStack((currentRedoStack) => [...currentRedoStack.slice(-79), snapshotEditorState()]);
+    setUndoStack((currentUndoStack) => currentUndoStack.slice(0, -1));
+    applyHistorySnapshot(previous);
+  }
+
+  function redoEditorChange() {
+    const next = redoStack.at(-1);
+    if (!next) return;
+    setUndoStack((currentUndoStack) => [...currentUndoStack.slice(-79), snapshotEditorState()]);
+    setRedoStack((currentRedoStack) => currentRedoStack.slice(0, -1));
+    applyHistorySnapshot(next);
+  }
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -838,11 +1931,30 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       if (event.key === "`" && !isTyping) {
         event.preventDefault();
         setSidebarOpen((open) => !open);
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        if (event.shiftKey) redoEditorChange();
+        else undoEditorChange();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        redoEditorChange();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    window.addEventListener("keydown", handleKeyDown, true);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
     const draftLoad = window.setTimeout(() => {
@@ -861,58 +1973,161 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const message = event.data as { type?: string; selection?: SelectionMetadata };
+      const message = event.data as { type?: string; selection?: SelectionMetadata; selections?: SelectionMetadata[] };
+      if (message.type === "editor:undo") {
+        undoEditorChange();
+        return;
+      }
+      if (message.type === "editor:redo") {
+        redoEditorChange();
+        return;
+      }
       if (message.type !== "editor:select" || !message.selection) return;
 
+      const nextSelections = message.selections?.length ? message.selections : [message.selection];
+      const primarySelection = nextSelections[0];
+      const nextBaseStyles = commonComputedStyles(nextSelections);
+      const selectedPatches = nextSelections
+        .map((candidate) => patches.find((patch) => sameTarget(patch.target, candidate.target)))
+        .filter(Boolean);
       setSidebarOpen(true);
-      setSelection(message.selection);
-      setBaseStyles(message.selection.computedStyles);
-      setStyleValues(message.selection.computedStyles);
-      setTextValue(message.selection.text);
-      setImageValue(message.selection.imageSrc);
-      setHidden(false);
+      setSelection(primarySelection);
+      setSelections(nextSelections);
+      setBaseStyles(nextBaseStyles);
+      setStyleValues(nextBaseStyles);
+      setTextValue(nextSelections.length === 1 ? primarySelection.text : "");
+      setImageValue(nextSelections.length === 1 ? primarySelection.imageSrc : "");
 
-      const existing = patches.find((patch) => sameTarget(patch.target, message.selection?.target));
-      setNotes(existing?.notes ?? "");
+      setHidden(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide")));
+      setDeleted(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete")));
+      setNotes(nextSelections.length === 1 ? selectedPatches[0]?.notes ?? "" : "");
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [patches]);
+  }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
-    if (!selection) return;
+    if (selections.length === 0) return;
 
     const stylesPayload = Object.fromEntries(
       Object.entries(styleValues).filter(([property, value]) => value !== (baseStyles[property] ?? "")),
     );
 
-    iframeRef.current?.contentWindow?.postMessage(
-      {
-        type: "editor:apply-preview",
-        patch: {
-          target: selection.target,
-          styles: stylesPayload,
-          text: textValue !== selection.text ? textValue : undefined,
-          imageSrc: imageValue !== selection.imageSrc ? imageValue : undefined,
-          hidden,
+    for (const selected of selections) {
+      iframeRef.current?.contentWindow?.postMessage(
+        {
+          type: "editor:apply-preview",
+          patch: {
+            target: selected.target,
+            styles: stylesPayload,
+            text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
+            imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
+            hidden,
+            deleted,
+          },
         },
-      },
-      window.location.origin,
-    );
-  }, [baseStyles, hidden, imageValue, selection, styleValues, textValue]);
+        window.location.origin,
+      );
+    }
+  }, [baseStyles, deleted, hidden, imageValue, selections, styleValues, textValue]);
+
+  async function loadSystemFonts() {
+    if (fontAccessState === "loading" || fontAccessState === "loaded") return;
+
+    if (typeof window.queryLocalFonts !== "function") {
+      setFontAccessState("unavailable");
+      return;
+    }
+
+    setFontAccessState("loading");
+    try {
+      const localFonts = await window.queryLocalFonts();
+      const families = Array.from(new Set(localFonts.map((font) => cleanFontFamilyName(font.family)).filter(Boolean)))
+        .sort((left, right) => left.localeCompare(right));
+      setSystemFontFamilies(families);
+      setFontAccessState("loaded");
+    } catch {
+      setFontAccessState("denied");
+    }
+  }
+
+  function previewStylesPayload(nextStyleValues = styleValues, forcedStyles: Record<string, string> = {}) {
+    return {
+      ...Object.fromEntries(
+        Object.entries(nextStyleValues).filter(([property, value]) => value !== (baseStyles[property] ?? "")),
+      ),
+      ...forcedStyles,
+    };
+  }
+
+  function postPreviewPatch(nextStyleValues = styleValues, forcedStyles: Record<string, string> = {}) {
+    if (selections.length === 0) return;
+
+    for (const selected of selections) {
+      iframeRef.current?.contentWindow?.postMessage(
+        {
+          type: "editor:apply-preview",
+          patch: {
+            target: selected.target,
+            styles: previewStylesPayload(nextStyleValues, forcedStyles),
+            text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
+            imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
+            hidden,
+            deleted,
+          },
+        },
+        window.location.origin,
+      );
+    }
+  }
+
+  function previewStyle(property: string, value: string) {
+    postPreviewPatch(styleValues, { [property]: value });
+  }
+
+  function restorePreview() {
+    if (selections.length === 0) return;
+    for (const selected of selections) {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "editor:clear-preview", target: selected.target },
+        window.location.origin,
+      );
+    }
+    postPreviewPatch();
+  }
+
+  function convertSelectedUnit({ property, value, nextUnit }: NumericUnitConversion) {
+    if (!selection) return null;
+
+    const previewDocument = iframeRef.current?.contentDocument;
+    if (!previewDocument) return null;
+
+    try {
+      const target = previewDocument.querySelector(selection.target.selector);
+      const previewWindow = previewDocument.defaultView;
+      if (!previewWindow || !(target instanceof previewWindow.HTMLElement)) return null;
+      return convertCssUnitForElement(target, property, value, nextUnit);
+    } catch {
+      return null;
+    }
+  }
 
   function setRouteAndUrl(nextRoute: string) {
     const normalized = normalizePath(nextRoute);
     setRoute(normalized);
     setPatches(readDrafts(normalized));
     setSelection(null);
+    setSelections([]);
     setBaseStyles({});
     setStyleValues({});
     setTextValue("");
     setImageValue("");
     setHidden(false);
+    setDeleted(false);
     setNotes("");
+    setUndoStack([]);
+    setRedoStack([]);
     const params = new URLSearchParams({ path: normalized });
     window.history.replaceState(null, "", `/__editor?${params.toString()}`);
   }
@@ -936,6 +2151,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     nextTextValue = textValue,
     nextImageValue = imageValue,
     nextHidden = hidden,
+    nextDeleted = deleted,
     nextNotes = notes,
     nextViewport = viewport,
   }: {
@@ -943,120 +2159,232 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     nextTextValue?: string;
     nextImageValue?: string;
     nextHidden?: boolean;
+    nextDeleted?: boolean;
     nextNotes?: string;
     nextViewport?: ViewportName;
   }) {
-    if (!selection) return null;
+    if (selections.length === 0) return null;
 
-    const changes: EditorChange[] = [
-      ...changedStyles(baseStyles, nextStyleValues, nextViewport),
-      ...(nextTextValue !== selection.text
-        ? [
-            {
-              kind: "content",
-              field: "text",
-              before: selection.text,
-              after: nextTextValue,
-            } satisfies ContentChange,
-          ]
-        : []),
-      ...(nextImageValue !== selection.imageSrc
-        ? [
-            {
-              kind: "content",
-              field: "imageSrc",
-              before: selection.imageSrc,
-              after: nextImageValue,
-            } satisfies ContentChange,
-          ]
-        : []),
-      ...(nextHidden
-        ? [
-            {
-              kind: "style",
-              property: "visibility",
-              before: baseStyles.visibility ?? "",
-              after: "hidden",
-              viewport: nextViewport,
-            } satisfies StyleChange,
-          ]
-        : []),
-    ];
+    const changedProperties = changedStyleProperties(baseStyles, nextStyleValues);
 
-    return {
-      changes,
-      notes: nextNotes,
-      target: selection.target,
-    };
+    return selections.map((selected) => {
+      const changes: EditorChange[] = [
+        ...changedProperties.map<StyleChange>((property) => ({
+          kind: "style",
+          property,
+          before: selected.computedStyles[property] ?? "",
+          after: nextStyleValues[property] ?? "",
+          viewport: nextViewport,
+        })),
+        ...(selections.length === 1 && nextTextValue !== selected.text
+          ? [
+              {
+                kind: "content",
+                field: "text",
+                before: selected.text,
+                after: nextTextValue,
+              } satisfies ContentChange,
+            ]
+          : []),
+        ...(selections.length === 1 && nextImageValue !== selected.imageSrc
+          ? [
+              {
+                kind: "content",
+                field: "imageSrc",
+                before: selected.imageSrc,
+                after: nextImageValue,
+              } satisfies ContentChange,
+            ]
+          : []),
+        ...(nextHidden
+          ? [
+              {
+                kind: "element",
+                action: "hide",
+                before: false,
+                after: true,
+              } satisfies ElementChange,
+            ]
+          : []),
+        ...(nextDeleted
+          ? [
+              {
+                kind: "element",
+                action: "delete",
+                before: false,
+                after: true,
+              } satisfies ElementChange,
+            ]
+          : []),
+      ];
+
+      return {
+        changes,
+        notes: selections.length === 1 ? nextNotes : "",
+        target: selected.target,
+      };
+    });
   }
 
   function commitDraft(overrides: Parameters<typeof changesForDraft>[0] = {}) {
-    const draft = changesForDraft(overrides);
-    if (!draft) return;
+    const drafts = changesForDraft(overrides);
+    if (!drafts) return;
 
     updatePatches((current) => {
-      if (draft.changes.length === 0 && !draft.notes.trim()) {
-        return current.filter((patch) => !sameTarget(patch.target, draft.target));
+      let nextPatches = current;
+
+      for (const draft of drafts) {
+        if (draft.changes.length === 0 && !draft.notes.trim()) {
+          nextPatches = nextPatches.filter((patch) => !sameTarget(patch.target, draft.target));
+          continue;
+        }
+
+        const existing = nextPatches.find((patch) => sameTarget(patch.target, draft.target));
+        nextPatches = upsertPatch(nextPatches, {
+          id: existing?.id ?? `${draft.target.route}:${draft.target.selector}`,
+          route,
+          target: draft.target,
+          changes: draft.changes,
+          notes: draft.notes,
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      const existing = current.find((patch) => sameTarget(patch.target, draft.target));
-      return upsertPatch(current, {
-        id: existing?.id ?? `${draft.target.route}:${draft.target.selector}`,
-        route,
-        target: draft.target,
-        changes: draft.changes,
-        notes: draft.notes,
-        timestamp: new Date().toISOString(),
-      });
+      return nextPatches;
     });
   }
 
   function setViewportAndCommit(nextViewport: ViewportName) {
+    pushUndoSnapshot();
     setViewport(nextViewport);
     commitDraft({ nextViewport });
   }
 
   function updateStyle(property: string, value: string) {
+    if (styleValues[property] === value) return;
+    pushUndoSnapshot();
     const nextStyleValues = { ...styleValues, [property]: value };
     setStyleValues(nextStyleValues);
     commitDraft({ nextStyleValues });
   }
 
   function updateText(value: string) {
+    if (textValue === value) return;
+    pushUndoSnapshot();
     setTextValue(value);
     commitDraft({ nextTextValue: value });
   }
 
   function updateImage(value: string) {
+    if (imageValue === value) return;
+    pushUndoSnapshot();
     setImageValue(value);
     commitDraft({ nextImageValue: value });
   }
 
   function updateHidden(value: boolean) {
+    if (hidden === value) return;
+    pushUndoSnapshot();
     setHidden(value);
     commitDraft({ nextHidden: value });
   }
 
+  function updateDeleted(value: boolean) {
+    if (deleted === value) return;
+    pushUndoSnapshot();
+    setDeleted(value);
+    commitDraft({ nextDeleted: value });
+  }
+
   function updateNotes(value: string) {
+    if (notes === value) return;
+    pushUndoSnapshot();
     setNotes(value);
     commitDraft({ nextNotes: value });
   }
 
   function resetSelectedPreview() {
-    if (!selection) {
+    if (selections.length === 0) {
       toast.info("Select an element first");
       return;
     }
+    pushUndoSnapshot();
+    for (const selected of selections) {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "editor:clear-preview", target: selected.target },
+        window.location.origin,
+      );
+    }
+    setStyleValues(baseStyles);
+    setTextValue(selections.length === 1 ? selections[0].text : "");
+    setImageValue(selections.length === 1 ? selections[0].imageSrc : "");
+    setHidden(false);
+    setDeleted(false);
+    updatePatches((current) => current.filter((patch) => !selections.some((selected) => sameTarget(patch.target, selected.target))));
+    toast.success("Selection reset");
+  }
+
+  function resetAllPreviews() {
+    if (patches.length === 0) {
+      toast.info("No draft changes to reset");
+      return;
+    }
+
+    pushUndoSnapshot();
+    setPatches([]);
+    persistPatches([]);
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "editor:clear-preview", target: selection.target },
+      { type: "editor:clear-preview" },
       window.location.origin,
     );
-    setStyleValues(baseStyles);
-    setTextValue(selection.text);
-    setImageValue(selection.imageSrc);
+
+    if (selection) {
+      setStyleValues(baseStyles);
+      setTextValue(selections.length === 1 ? selection.text : "");
+      setImageValue(selections.length === 1 ? selection.imageSrc : "");
+    }
     setHidden(false);
-    updatePatches((current) => current.filter((patch) => !sameTarget(patch.target, selection.target)));
-    toast.success("Selection reset");
+    setDeleted(false);
+    setNotes("");
+    toast.success("All draft changes reset");
+  }
+
+  function deletePatch(patch: EditorPatch) {
+    pushUndoSnapshot();
+
+    const nextPatches = patches.filter((candidate) => !sameTarget(candidate.target, patch.target));
+    setPatches(nextPatches);
+    setExpandedPatchIds((current) => {
+      const next = new Set(current);
+      next.delete(patch.id);
+      return next;
+    });
+    persistPatches(nextPatches);
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:clear-preview", target: patch.target },
+      window.location.origin,
+    );
+    reapplyPreviewPatches(nextPatches);
+
+    if (sameTarget(selection?.target, patch.target)) {
+      setStyleValues(baseStyles);
+      setTextValue(selection?.text ?? "");
+      setImageValue(selection?.imageSrc ?? "");
+      setHidden(false);
+      setDeleted(false);
+      setNotes("");
+    }
+
+    toast.success("Draft patch deleted");
+  }
+
+  function togglePatchExpanded(patchId: string) {
+    setExpandedPatchIds((current) => {
+      const next = new Set(current);
+      if (next.has(patchId)) next.delete(patchId);
+      else next.add(patchId);
+      return next;
+    });
   }
 
   async function copyStyles() {
@@ -1148,6 +2476,21 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
           <div className={styles.toolbarActions}>
             <ToolbarButton
+              label="Undo"
+              disabled={undoStack.length === 0}
+              onClick={undoEditorChange}
+            >
+              <Undo2 />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Redo"
+              disabled={redoStack.length === 0}
+              onClick={redoEditorChange}
+            >
+              <Redo2 />
+            </ToolbarButton>
+
+            <ToolbarButton
               label={selectorEnabled ? "Disable element selector" : "Enable element selector"}
               active={selectorEnabled}
               onClick={() => setSelectorEnabled((enabled) => !enabled)}
@@ -1201,12 +2544,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                   className={styles.canvas}
                   title="Ripe site editor preview"
                   src={iframeSrc}
-                  onLoad={() =>
+                  onLoad={() => {
                     iframeRef.current?.contentWindow?.postMessage(
                       { type: "editor:set-enabled", enabled: selectorEnabled },
                       window.location.origin,
-                    )
-                  }
+                    );
+                    reapplyPreviewPatches(patches);
+                  }}
                 />
               </div>
             </main>
@@ -1234,6 +2578,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      <ToolbarButton label="Reset all changes" disabled={patches.length === 0} onClick={resetAllPreviews}>
+                        <RotateCcw />
+                      </ToolbarButton>
                       <ToolbarButton label="Reset selected" disabled={!selection} onClick={resetSelectedPreview}>
                         <RotateCcw />
                       </ToolbarButton>
@@ -1257,96 +2604,101 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs text-muted-foreground">
-                            {selection ? selection.target.tag : "No element selected"}
+                            {selection ? selections.length > 1 ? "Multiple elements" : selection.target.tag : "No element selected"}
                           </p>
                           <p className="mt-1 truncate text-sm font-medium">{selectionLabel}</p>
                         </div>
                       </section>
 
-                      <Tabs defaultValue="layout" className="flex flex-col gap-4">
-                        <TabsList className="grid h-auto w-full grid-cols-5">
-                          {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
-                            const Icon = groupMeta[group].icon;
-                            return (
-                              <TabsTrigger value={group} key={group} aria-label={groupMeta[group].label}>
-                                <Icon />
-                                <span className="sr-only">{groupMeta[group].label}</span>
-                              </TabsTrigger>
-                            );
-                          })}
-                          <TabsTrigger value="content" aria-label="Content">
-                            <ImageIcon />
-                            <span className="sr-only">Content</span>
-                          </TabsTrigger>
-                        </TabsList>
+                      <section className={styles.elementActions} aria-label="Element actions">
+                        <Button
+                          type="button"
+                          variant={hidden ? "secondary" : "outline"}
+                          disabled={!selection || deleted}
+                          onClick={() => updateHidden(!hidden)}
+                        >
+                          {hidden ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
+                          {hidden ? "Show element" : "Hide element"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={deleted ? "secondary" : "outline"}
+                          disabled={!selection}
+                          onClick={() => updateDeleted(!deleted)}
+                        >
+                          <Trash2 data-icon="inline-start" />
+                          {deleted ? "Restore element" : "Delete element"}
+                        </Button>
+                      </section>
 
-                        {Object.entries(fieldGroups).map(([group, fields]) => (
-                          <TabsContent value={group} key={group}>
-                            <FieldGroup className="grid grid-cols-2 gap-3">
-                              {fields.map((field) => (
+                      {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
+                        const visibleFields = fieldGroups[group].filter((field) => fieldVisibleForSelections(field, selections));
+                        if (visibleFields.length === 0) return null;
+
+                        return (
+                          <InspectorSection
+                            key={group}
+                            icon={groupMeta[group].icon}
+                            title={groupMeta[group].label}
+                          >
+                            <FieldGroup className={group === "spacing" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
+                              {visibleFields.map((field) => (
                                 <StyleField
                                   config={field}
                                   key={field.property}
                                   disabled={!selection}
                                   value={styleValues[field.property] ?? ""}
+                                  fontOptions={fontOptions}
+                                  fontAccessState={fontAccessState}
+                                  onLoadSystemFonts={loadSystemFonts}
+                                  onPreviewStyle={previewStyle}
+                                  onRestorePreview={restorePreview}
+                                  onConvertUnit={convertSelectedUnit}
                                   onChange={(value) => updateStyle(field.property, value)}
                                 />
                               ))}
                             </FieldGroup>
-                          </TabsContent>
-                        ))}
+                          </InspectorSection>
+                        );
+                      })}
 
-                        <TabsContent value="content">
-                          <FieldGroup>
-                            <Field data-disabled={!selection ? true : undefined}>
-                              <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
-                              <Textarea
-                                id="editor-content-text"
-                                disabled={!selection}
-                                value={textValue}
-                                placeholder="Edit selected text"
-                                className={styles.contentTextarea}
-                                onChange={(event) => updateText(event.target.value)}
-                              />
-                            </Field>
-                            <Field data-disabled={!selection ? true : undefined}>
-                              <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
-                              <Input
-                                id="editor-content-image-src"
-                                disabled={!selection}
-                                value={imageValue}
-                                placeholder="https://... or /asset.jpg"
-                                className={styles.valueInput}
-                                autoComplete="off"
-                                spellCheck={false}
-                                onChange={(event) => updateImage(event.target.value)}
-                              />
-                            </Field>
-                            <Button
-                              type="button"
-                              variant={hidden ? "destructive" : "outline"}
-                              disabled={!selection}
-                              onClick={() => updateHidden(!hidden)}
-                            >
-                              {hidden ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
-                              {hidden ? "Hidden in preview" : "Visible in preview"}
-                            </Button>
-                          </FieldGroup>
-                        </TabsContent>
-                      </Tabs>
+                      <InspectorSection icon={groupMeta.content.icon} title="Content">
+                        <FieldGroup>
+                          <Field data-disabled={!selection ? true : undefined}>
+                            <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
+                            <SmartTextarea
+                              id="editor-content-text"
+                              label="Selected text"
+                              disabled={!selection || !canEditTextContent}
+                              value={textValue}
+                              placeholder={selections.length > 1 ? "Text editing is single-selection only" : "Edit selected text"}
+                              onChange={updateText}
+                            />
+                          </Field>
+                          <Field data-disabled={!selection ? true : undefined}>
+                            <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
+                            <AssetSourceInput
+                              id="editor-content-image-src"
+                              disabled={!selection || !canEditImageContent}
+                              value={imageValue}
+                              onChange={updateImage}
+                            />
+                          </Field>
+                        </FieldGroup>
+                      </InspectorSection>
 
                       <Separator />
 
                       <FieldGroup>
                         <Field data-disabled={!selection ? true : undefined}>
                           <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
-                          <Textarea
+                          <SmartTextarea
                             id="editor-handoff-note"
-                            disabled={!selection}
+                            label="Handoff note"
+                            disabled={!selection || selections.length > 1}
                             value={notes}
-                            placeholder="Add reviewer context for this target"
-                            className={styles.contentTextarea}
-                            onChange={(event) => updateNotes(event.target.value)}
+                            placeholder={selections.length > 1 ? "Notes are single-selection only" : "Add reviewer context for this target"}
+                            onChange={updateNotes}
                           />
                         </Field>
                       </FieldGroup>
@@ -1360,15 +2712,87 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                           {patches.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No local drafts for this route.</p>
                           ) : (
-                            patches.map((patch) => (
-                              <div className={styles.patchRow} key={patch.id}>
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium">{patch.target.tag}</p>
-                                  <p className="truncate text-xs text-muted-foreground">{patch.target.selector}</p>
+                            patches.map((patch) => {
+                              const expanded = expandedPatchIds.has(patch.id);
+                              const formattedChanges = patch.changes.map(formatPatchChange);
+                              const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+                              return (
+                                <div
+                                  className={styles.patchRow}
+                                  data-expanded={expanded ? true : undefined}
+                                  data-patch-row=""
+                                  key={patch.id}
+                                  tabIndex={0}
+                                  aria-expanded={expanded}
+                                  aria-controls={detailsId}
+                                  onClick={() => togglePatchExpanded(patch.id)}
+                                  onKeyDown={(event) => {
+                                    if (event.key !== "Enter" && event.key !== " ") return;
+                                    event.preventDefault();
+                                    togglePatchExpanded(patch.id);
+                                  }}
+                                >
+                                  <div className={styles.patchRowTop}>
+                                    <div className={styles.patchChevron} aria-hidden="true">
+                                      <ChevronDown />
+                                    </div>
+                                    <div className={styles.patchMeta}>
+                                      <div className={styles.patchTitleRow}>
+                                        <p className="truncate text-sm font-medium">{patch.target.tag}</p>
+                                        <span className={styles.patchSummary}>{summarizePatchChanges(patch.changes)}</span>
+                                      </div>
+                                      <p className={styles.patchSelector}>{patch.target.selector}</p>
+                                    </div>
+                                    <div className={styles.patchActions}>
+                                      <Badge variant="outline">{patch.changes.length} changes</Badge>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className={styles.patchDeleteButton}
+                                        aria-label={`Delete draft patch for ${patch.target.tag}`}
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          deletePatch(patch);
+                                        }}
+                                      >
+                                        <Trash2 />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  {expanded ? (
+                                    <div className={styles.patchDetails} id={detailsId}>
+                                      {formattedChanges.length === 0 ? (
+                                        <p className={styles.patchDetailEmpty}>No style/content changes; note only.</p>
+                                      ) : (
+                                        formattedChanges.map((change, index) => (
+                                          <div className={styles.patchDetailRow} key={`${change.label}-${index}`}>
+                                            <div className={styles.patchDetailHeading}>
+                                              <span>{change.label}</span>
+                                              <Badge variant="outline">{change.meta}</Badge>
+                                            </div>
+                                            <div className={styles.patchDetailValues}>
+                                              <code title={change.before}>{change.before}</code>
+                                              <span aria-hidden="true">→</span>
+                                              <code title={change.after}>{change.after}</code>
+                                            </div>
+                                          </div>
+                                        ))
+                                      )}
+                                      {patch.notes.trim() ? (
+                                        <div className={styles.patchDetailRow}>
+                                          <div className={styles.patchDetailHeading}>
+                                            <span>Note</span>
+                                            <Badge variant="outline">handoff</Badge>
+                                          </div>
+                                          <p className={styles.patchDetailNote}>{truncatePatchValue(patch.notes, 140)}</p>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
                                 </div>
-                                <Badge variant="outline">{patch.changes.length} changes</Badge>
-                              </div>
-                            ))
+                              );
+                            })
                           )}
                         </div>
                         <Button type="button" onClick={copyStyles} disabled={patches.length === 0}>

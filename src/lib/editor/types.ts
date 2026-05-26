@@ -36,7 +36,14 @@ export type ContentChange = {
   after: string;
 };
 
-export type EditorChange = StyleChange | ContentChange;
+export type ElementChange = {
+  kind: "element";
+  action: "hide" | "delete";
+  before: boolean;
+  after: boolean;
+};
+
+export type EditorChange = StyleChange | ContentChange | ElementChange;
 
 export type EditorPatch = {
   id: string;
@@ -62,7 +69,9 @@ export type SelectionMetadata = {
 
 export type EditorMessage =
   | { type: "editor:hover"; target: ElementTarget | null }
-  | { type: "editor:select"; selection: SelectionMetadata }
+  | { type: "editor:select"; selection: SelectionMetadata; selections?: SelectionMetadata[] }
+  | { type: "editor:undo" }
+  | { type: "editor:redo" }
   | {
       type: "editor:apply-preview";
       patch: {
@@ -71,6 +80,7 @@ export type EditorMessage =
         text?: string;
         imageSrc?: string;
         hidden?: boolean;
+        deleted?: boolean;
       };
     }
   | { type: "editor:clear-preview"; target?: ElementTarget }
