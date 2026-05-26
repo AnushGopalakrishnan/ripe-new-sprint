@@ -1191,6 +1191,78 @@ test("visual editor layout width preview overrides image max-width constraints",
   });
 });
 
+test("visual editor numeric drag creates one undo step", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: {
+          type: "editor:select",
+          selection: {
+            route: "/case-studies/zetachain",
+            target: {
+              route: "/case-studies/zetachain",
+              tag: "body",
+              selector: "body",
+              textSnippet: "Editor drag undo target",
+            },
+            text: "Editor drag undo target",
+            imageSrc: "",
+            computedStyles: {
+              alignItems: "normal",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              borderRadius: "0px",
+              color: "rgb(0, 0, 0)",
+              display: "block",
+              fontFamily: "Arial",
+              fontSize: "16px",
+              fontWeight: "400",
+              gap: "0px",
+              height: "100px",
+              justifyContent: "normal",
+              letterSpacing: "0px",
+              lineHeight: "20px",
+              margin: "0px",
+              maxWidth: "none",
+              opacity: "1",
+              padding: "0px",
+              position: "static",
+              textAlign: "left",
+              visibility: "visible",
+              width: "100px",
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  const widthInput = page.getByRole("textbox", { name: "Width value", exact: true });
+  await expect(widthInput).toHaveValue("100");
+  const box = await widthInput.boundingBox();
+  expect(box).toBeTruthy();
+  if (!box) return;
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 8 });
+  await page.mouse.up();
+  await expect(widthInput).not.toHaveValue("100");
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(widthInput).toHaveValue("100");
+  await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("");
+});
+
 test("visual editor font switcher closes when clicking outside", async ({ page }) => {
   await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
   const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);

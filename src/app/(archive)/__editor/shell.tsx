@@ -147,6 +147,12 @@ type EditorHistorySnapshot = {
   notes: string;
 };
 
+type StyleValueChangeOptions = {
+  undo?: "push" | "skip";
+};
+
+type StyleValueChange = (value: string, options?: StyleValueChangeOptions) => void;
+
 type LocalFontData = {
   family: string;
   fullName?: string;
@@ -775,7 +781,7 @@ function StyleField({
   onPreviewStyle?: (property: string, value: string) => void;
   onRestorePreview?: () => void;
   onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const fieldId = `editor-style-${config.property}`;
   const canUseNumericControl = typeof config.unit === "string" && (!value || Boolean(parseNumericCssValue(value)));
@@ -878,7 +884,7 @@ function CssValueInput({
   value: string;
   placeholder: string;
   disabled: boolean;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const [draftValue, setDraftValue] = useState(value);
   const invalid = Boolean(draftValue.trim()) && !isValidCssDeclaration(property, draftValue);
@@ -961,7 +967,7 @@ function FontFamilyInput({
   onLoadSystemFonts: () => void;
   onPreview: (fontFamily: string) => void;
   onRestorePreview: () => void;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
@@ -1096,7 +1102,7 @@ function ColorStyleInput({
   value: string;
   placeholder: string;
   disabled: boolean;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(colorInputText(value));
@@ -1224,7 +1230,7 @@ function BoxSpacingInput({
   max?: number;
   disabled: boolean;
   onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const [expanded, setExpanded] = useState(false);
   const expandedValue = expandCssBoxValue(value) ?? ["", "", "", ""];
@@ -1236,12 +1242,12 @@ function BoxSpacingInput({
   const horizontalPlaceholder =
     expandedPlaceholder[1] === expandedPlaceholder[3] ? expandedPlaceholder[1] : expandedPlaceholder[1] || placeholder;
 
-  function updateSide(index: number, nextValue: string) {
+  function updateSide(index: number, nextValue: string, options?: StyleValueChangeOptions) {
     const nextValues = [...expandedValue];
     nextValues[index] = nextValue;
 
     if (nextValues.every((sideValue) => !sideValue.trim())) {
-      onChange("");
+      onChange("", options);
       return;
     }
 
@@ -1250,15 +1256,15 @@ function BoxSpacingInput({
       return expandedPlaceholder[sideIndex] || `0${defaultUnit}`;
     });
 
-    onChange(compactCssBoxValue(normalizedValues));
+    onChange(compactCssBoxValue(normalizedValues), options);
   }
 
-  function updatePair(indexes: number[], nextValue: string) {
+  function updatePair(indexes: number[], nextValue: string, options?: StyleValueChangeOptions) {
     const nextValues = [...expandedValue];
     for (const index of indexes) nextValues[index] = nextValue;
 
     if (nextValues.every((sideValue) => !sideValue.trim())) {
-      onChange("");
+      onChange("", options);
       return;
     }
 
@@ -1267,7 +1273,7 @@ function BoxSpacingInput({
       return expandedPlaceholder[sideIndex] || `0${defaultUnit}`;
     });
 
-    onChange(compactCssBoxValue(normalizedValues));
+    onChange(compactCssBoxValue(normalizedValues), options);
   }
 
   return (
@@ -1288,7 +1294,7 @@ function BoxSpacingInput({
             max={max}
             leadingIcon={<MoveHorizontal aria-hidden="true" />}
             onConvertUnit={onConvertUnit}
-            onChange={(nextValue) => updatePair([1, 3], nextValue)}
+            onChange={(nextValue, options) => updatePair([1, 3], nextValue, options)}
           />
           <NumericStyleInput
             id={`${id}-vertical`}
@@ -1304,7 +1310,7 @@ function BoxSpacingInput({
             max={max}
             leadingIcon={<MoveVertical aria-hidden="true" />}
             onConvertUnit={onConvertUnit}
-            onChange={(nextValue) => updatePair([0, 2], nextValue)}
+            onChange={(nextValue, options) => updatePair([0, 2], nextValue, options)}
           />
         </div>
         <button
@@ -1336,7 +1342,7 @@ function BoxSpacingInput({
                 max={max}
                 leadingIcon={<span className={styles.boxSpacingSideLabel}>{side.label}</span>}
                 onConvertUnit={onConvertUnit}
-                onChange={(nextValue) => updateSide(index, nextValue)}
+                onChange={(nextValue, options) => updateSide(index, nextValue, options)}
               />
             </div>
           ))}
@@ -1375,12 +1381,13 @@ function NumericStyleInput({
   disabled: boolean;
   leadingIcon?: React.ReactNode;
   onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
-  onChange: (value: string) => void;
+  onChange: StyleValueChange;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [draftNumber, setDraftNumber] = useState("");
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const skipNextBlurCommitRef = useRef(false);
   const parsedValue = parseNumericCssValue(value);
   const parsedPlaceholder = parseNumericCssValue(placeholder);
   const supportedUnits = units.length > 0 ? units : [defaultUnit];
@@ -1392,6 +1399,7 @@ function NumericStyleInput({
     startValue: number;
     lastSteps: number;
     active: boolean;
+    undoCaptured: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -1400,11 +1408,11 @@ function NumericStyleInput({
     }
   }, [dragging, focused, parsedValue?.numberText]);
 
-  function commitNumber(nextValue: number, nextUnit = unit) {
+  function commitNumber(nextValue: number, nextUnit = unit, options?: StyleValueChangeOptions) {
     const clamped = clampNumber(nextValue, min, max);
     const nextText = formatCssNumber(clamped);
     setDraftNumber(nextText);
-    onChange(`${nextText}${nextUnit}`);
+    onChange(`${nextText}${nextUnit}`, options);
   }
 
   function updateByStep(direction: 1 | -1, multiplier = 1) {
@@ -1426,6 +1434,7 @@ function NumericStyleInput({
   }
 
   function handleInputChange(nextValue: string) {
+    skipNextBlurCommitRef.current = false;
     const parsedInput = parseNumericCssValue(nextValue);
 
     if (parsedInput) {
@@ -1477,6 +1486,11 @@ function NumericStyleInput({
 
   function handleBlur() {
     setFocused(false);
+    if (skipNextBlurCommitRef.current) {
+      skipNextBlurCommitRef.current = false;
+      setDraftNumber(parsedValue?.numberText ?? draftNumber);
+      return;
+    }
     if (!draftNumber.trim()) {
       onChange("");
       return;
@@ -1493,6 +1507,7 @@ function NumericStyleInput({
     if (disabled || event.button !== 0) return;
     if ((event.target as HTMLElement).closest("button, select, option")) return;
 
+    skipNextBlurCommitRef.current = false;
     const startValue = Number(draftNumber || parsedValue?.numberText || 0);
     dragRef.current = {
       pointerId: event.pointerId,
@@ -1500,6 +1515,7 @@ function NumericStyleInput({
       startValue,
       lastSteps: 0,
       active: false,
+      undoCaptured: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -1519,7 +1535,9 @@ function NumericStyleInput({
     const steps = Math.trunc(deltaY / 4);
     if (steps === drag.lastSteps) return;
     drag.lastSteps = steps;
-    commitNumber(drag.startValue + steps * step * multiplier);
+    const undo = drag.undoCaptured ? "skip" : "push";
+    drag.undoCaptured = true;
+    commitNumber(drag.startValue + steps * step * multiplier, unit, { undo });
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
@@ -1529,6 +1547,7 @@ function NumericStyleInput({
     dragRef.current = null;
     event.currentTarget.releasePointerCapture(event.pointerId);
     setDragging(false);
+    if (drag.undoCaptured) skipNextBlurCommitRef.current = true;
 
     inputRef.current?.focus();
     inputRef.current?.select();
@@ -2282,9 +2301,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     commitDraft({ nextViewport });
   }
 
-  function updateStyle(property: string, value: string) {
+  function updateStyle(property: string, value: string, options?: StyleValueChangeOptions) {
     if (styleValues[property] === value) return;
-    pushUndoSnapshot();
+    if (options?.undo !== "skip") pushUndoSnapshot();
     const nextStyleValues = { ...styleValues, [property]: value };
     setStyleValues(nextStyleValues);
     commitDraft({ nextStyleValues });
@@ -2676,7 +2695,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   onPreviewStyle={previewStyle}
                                   onRestorePreview={restorePreview}
                                   onConvertUnit={convertSelectedUnit}
-                                  onChange={(value) => updateStyle(field.property, value)}
+                                  onChange={(value, options) => updateStyle(field.property, value, options)}
                                 />
                               ))}
                             </FieldGroup>
