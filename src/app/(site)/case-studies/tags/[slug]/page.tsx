@@ -1,19 +1,10 @@
-import parse from "html-react-parser";
 import { notFound } from "next/navigation";
-import { NativeRouteRuntime } from "@/components/native-route-runtime";
+import { RipeNativeShell } from "@/components/ripe-native-shell";
 import { WorkJournalSection } from "@/components/work-journal-section";
-import { getCaseStudies } from "@/lib/content";
 import { mergeCaseStudiesAsJournalItems } from "@/lib/case-studies-journal";
+import { getCaseStudies } from "@/lib/content";
 import { createExactTitleMetadata } from "@/lib/metadata";
-import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
-import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
-import { prepareStaticMirrorDocument } from "@/lib/static-mirror-document";
 import { parseWorkJournalUrlState, type WorkJournalSearchParams } from "@/lib/work-journal-url-state";
-
-const sourceRoute = "/archive/work";
-const title = "Case Studies";
-const mainMarker = '<section class="main">';
-const footerMarker = '<section class="footer-wrap">';
 
 type CaseStudyTagPageProps = {
   params: Promise<{ slug: string }>;
@@ -68,33 +59,8 @@ export default async function CaseStudyTagPage({ params, searchParams }: CaseStu
     ? initialState.initialFilters
     : [...initialState.initialFilters, activeTag];
 
-  const sourceDocument = await loadNativeMirrorDocument(sourceRoute);
-  const document = prepareStaticMirrorDocument(withRipeLoaderStyles({ ...sourceDocument, title }));
-  const split = splitWorkShell(document);
-
-  if (!split) {
-    return (
-      <WorkJournalSection
-        filters={filters}
-        items={items}
-        layout="alternating"
-        initialFilters={initialFilters}
-        initialViewMode={initialState.initialViewMode}
-      />
-    );
-  }
-
   return (
-    <>
-      <NativeRouteRuntime
-        bodyAttributes={document.bodyAttributes}
-        executeScripts={false}
-        htmlAttributes={document.htmlAttributes}
-        sourceRoute={document.sourceRoute}
-        webflowRuntime={false}
-      />
-      {parse(document.headMarkup)}
-      {parse(split.beforeMain)}
+    <RipeNativeShell>
       <main className="main">
         <WorkJournalSection
           filters={filters}
@@ -104,19 +70,6 @@ export default async function CaseStudyTagPage({ params, searchParams }: CaseStu
           initialViewMode={initialState.initialViewMode}
         />
       </main>
-      {parse(split.footerAndScripts)}
-    </>
+    </RipeNativeShell>
   );
-}
-
-function splitWorkShell(document: NativeMirrorDocument) {
-  const mainStart = document.bodyMarkup.indexOf(mainMarker);
-  const footerStart = document.bodyMarkup.indexOf(footerMarker);
-
-  if (mainStart === -1 || footerStart === -1 || footerStart <= mainStart) return null;
-
-  return {
-    beforeMain: document.bodyMarkup.slice(0, mainStart),
-    footerAndScripts: document.bodyMarkup.slice(footerStart),
-  };
 }

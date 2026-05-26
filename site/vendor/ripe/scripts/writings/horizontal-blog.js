@@ -1025,10 +1025,9 @@
 
   Promise.all([
     preloadImages(allBlocks),
-    import('https://esm.sh/@chenglou/pretext').catch(function () { return null; })
+    Promise.resolve(null)
   ]).then(function (results) {
     cachedPretextMod = results[1];
-    if (!cachedPretextMod) console.warn('[HBlog] pretext failed to load, using DOM measurement');
     runLayout(cachedPretextMod, allBlocks);
     setupScroll();
     window.addEventListener('resize', handleResize);
