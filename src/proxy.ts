@@ -59,9 +59,10 @@ export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
 
   if (url.searchParams.has("editor") && shouldOpenEditorFromPage(url.pathname)) {
-    url.pathname = "/__editor";
-    url.search = `?path=${encodeURI(request.nextUrl.pathname)}`;
-    return NextResponse.redirect(url, 307);
+    url.pathname = "/visual-editor";
+    url.search = "";
+    url.searchParams.set("path", request.nextUrl.pathname);
+    return NextResponse.rewrite(url);
   }
 
   if (url.pathname === "/__editor" || url.pathname.startsWith("/__editor/")) {

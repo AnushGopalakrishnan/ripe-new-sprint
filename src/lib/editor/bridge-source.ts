@@ -396,6 +396,13 @@ export const bridgeScript = String.raw`
         if (value) element.style.setProperty(cssProperty, value, "important");
         else element.style.removeProperty(cssProperty);
       }
+      if (
+        Object.prototype.hasOwnProperty.call(payload.styles, "width") &&
+        payload.styles.width &&
+        !Object.prototype.hasOwnProperty.call(payload.styles, "maxWidth")
+      ) {
+        element.style.setProperty("max-width", "none", "important");
+      }
     }
     if (typeof payload.hidden === "boolean") {
       if (payload.hidden) element.style.setProperty("visibility", "hidden", "important");

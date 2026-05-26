@@ -1118,6 +1118,44 @@ test("mirror editor exposes the home new feed duplicate", async ({ page }) => {
   await expect(frame.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
 });
 
+test("public editor shortcut keeps the page URL visible", async ({ page }) => {
+  await gotoAppPage(page, "/case-studies/zetachain?editor");
+  await expect(page).toHaveURL(/\/case-studies\/zetachain\?editor$/);
+  await expect(page.getByRole("heading", { name: "Visual edits" })).toBeVisible();
+  await expect(page.locator(`iframe[title='${editorFrameTitle}']`)).toHaveAttribute(
+    "src",
+    "/case-studies/zetachain?__editor=1",
+  );
+});
+
+test("visual editor layout width preview overrides image max-width constraints", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await frame.locator('section[aria-label="Case study layouts"] img').first().click({ force: true });
+  await page.getByRole("textbox", { name: "Width value", exact: true }).fill("500");
+
+  await expect.poll(async () => frame.evaluate(() => {
+    const image = document.querySelector('section[aria-label="Case study layouts"] img');
+    if (!(image instanceof HTMLElement)) return null;
+    const styles = getComputedStyle(image);
+    return {
+      maxWidth: styles.maxWidth,
+      rectWidth: Math.round(image.getBoundingClientRect().width),
+      width: styles.width,
+    };
+  })).toEqual({
+    maxWidth: "none",
+    rectWidth: 500,
+    width: "500px",
+  });
+});
+
 test("visual editor font switcher closes when clicking outside", async ({ page }) => {
   await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
   const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
