@@ -1,5 +1,5 @@
 import { TeamPageClient } from "@/components/team-page-client";
-import { getTeamMembers } from "@/lib/content";
+import { getJobPostings, getTeamMembers } from "@/lib/content";
 import { createExactTitleMetadata } from "@/lib/metadata";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function generateMetadata() {
 }
 
 export default async function TeamPage() {
-  const members = await getTeamMembers();
+  const [members, roles] = await Promise.all([getTeamMembers(), getJobPostings()]);
 
-  return <TeamPageClient members={members} />;
+  return <TeamPageClient members={members} roles={roles} />;
 }

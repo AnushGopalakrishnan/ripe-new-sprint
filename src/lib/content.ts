@@ -10,6 +10,7 @@ import { client } from "@/sanity/lib/client";
 import type {
   CaseStudy,
   HomePage,
+  JobPosting,
   MediaAsset,
   SiteSettings,
   TeamMember,
@@ -21,6 +22,7 @@ import {
   CASE_STUDY_SLUGS_QUERY,
   CASE_STUDY_QUERY,
   HOME_PAGE_QUERY,
+  JOB_POSTINGS_QUERY,
   SITE_SETTINGS_QUERY,
   TEAM_MEMBER_QUERY,
   TEAM_MEMBER_SLUGS_QUERY,
@@ -35,6 +37,37 @@ const fallbackCaseStudyMedia: MediaAsset = {
   src: "/case-detail-media/hero.jpg",
   alt: "Case study media",
 };
+
+const fallbackJobPostings: JobPosting[] = [
+  {
+    title: "UX Designer",
+    location: "Chicago",
+    contractType: "Full Time",
+    externalUrl: "/job-listings/ux-designer-chicago",
+    order: 0,
+  },
+  {
+    title: "Project Manager",
+    location: "Remote",
+    contractType: "Full Time",
+    externalUrl: "/job-listings/project-manager-boston",
+    order: 1,
+  },
+  {
+    title: "Data Analyst",
+    location: "San Francisco",
+    contractType: "Full Time",
+    externalUrl: "/job-listings/data-analyst-sf",
+    order: 2,
+  },
+  {
+    title: "Marketing Manager",
+    location: "Los Angeles",
+    contractType: "Contract",
+    externalUrl: "/job-listings/marketing-manager-la",
+    order: 3,
+  },
+];
 
 function normalizeMediaPoster(media: MediaAsset): MediaAsset {
   const resolvedPoster = resolveVideoPoster({
@@ -387,6 +420,60 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     );
 
   return draftMembers?.filter((member) => Boolean(member.slug && member.name)) ?? [];
+}
+
+export async function getJobPostings(): Promise<JobPosting[]> {
+  if (!hasSanityConfig) {
+    return fallbackJobPostings;
+  }
+
+  const { data } = await sanityFetch<JobPosting[] | null>({
+    query: JOB_POSTINGS_QUERY,
+    revalidate: 0,
+    tags: [],
+  });
+
+  const publishedJobs =
+    data?.filter(
+      (job) =>
+        Boolean(
+          job?.title?.trim() &&
+            job?.location?.trim() &&
+            job?.contractType?.trim() &&
+            job?.externalUrl?.trim(),
+        ),
+    ) ?? [];
+  if (publishedJobs.length > 0) return publishedJobs;
+  if (!sanityEnv.readToken) return publishedJobs.length > 0 ? publishedJobs : fallbackJobPostings;
+
+  const draftJobs = await client
+    .withConfig({
+      useCdn: false,
+      stega: false,
+    })
+    .fetch<JobPosting[]>(
+      JOB_POSTINGS_QUERY,
+      {},
+      {
+        perspective: "drafts",
+        token: sanityEnv.readToken,
+        next: { revalidate: 0, tags: [] },
+      },
+    );
+
+  const safeDraftJobs =
+    draftJobs?.filter(
+      (job) =>
+        Boolean(
+          job?.title?.trim() &&
+            job?.location?.trim() &&
+            job?.contractType?.trim() &&
+            job?.externalUrl?.trim(),
+        ),
+    ) ?? [];
+
+  if (safeDraftJobs.length > 0) return safeDraftJobs;
+  return fallbackJobPostings;
 }
 
 export async function getTeamMemberBySlug(slug: string): Promise<TeamMember | null> {

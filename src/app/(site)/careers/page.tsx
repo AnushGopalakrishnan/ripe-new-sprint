@@ -1,4 +1,6 @@
 import { createExactTitleMetadata } from "@/lib/metadata";
+import CareersOpenRoles from "@/components/careers-open-roles";
+import { getJobPostings, getTeamMembers } from "@/lib/content";
 import styles from "./page.module.css";
 import CareersMosaic from "./careers-mosaic";
 
@@ -6,12 +8,6 @@ type Pillar = {
   title: string;
   body: string;
   featured?: boolean;
-};
-
-type Role = {
-  title: string;
-  commitment: string;
-  mode: string;
 };
 
 const filmstripMedia = [
@@ -61,7 +57,7 @@ const pillars: Pillar[] = [
   },
 ];
 
-const founders = [
+const fallbackFounders = [
   {
     name: "Rahul Kashyap",
     role: "Founder, CEO",
@@ -76,13 +72,6 @@ const founders = [
   },
 ];
 
-const roles: Role[] = [
-  { title: "Brand Designer", commitment: "Contract", mode: "FTE" },
-  { title: "Web Designer", commitment: "Contract", mode: "FTE" },
-  { title: "Motion Designer", commitment: "Contract", mode: "Remote" },
-  { title: "Accountant", commitment: "Full Time", mode: "Remote" },
-];
-
 export async function generateMetadata() {
   return createExactTitleMetadata({
     title: "Careers",
@@ -90,7 +79,19 @@ export async function generateMetadata() {
   });
 }
 
-export default function CareersPage() {
+export default async function CareersPage() {
+  const [roles, members] = await Promise.all([getJobPostings(), getTeamMembers()]);
+  const leadershipFounders = members
+    .filter((member) => member.group?.trim().toLowerCase() === "leadership")
+    .filter((member) => Boolean(member.avatar?.src))
+    .slice(0, 2)
+    .map((member) => ({
+      name: member.name,
+      role: member.role || "Leadership",
+      photo: member.avatar?.src || "",
+    }));
+  const founders = [...leadershipFounders, ...fallbackFounders].slice(0, 2);
+
   return (
     <main className={styles.page}>
       <section className={styles.heroSection}>
@@ -210,35 +211,7 @@ export default function CareersPage() {
           />
         </figure>
 
-        <div className={styles.rolesBlock}>
-          <div className={styles.rolesCopy}>
-            <p>
-              All our roles are remote and flexible, keeping with our studio policy.
-            </p>
-            <p>Aliqua quis magna eu ipsum consectetur. Esse cupidatat consectetur do sint esse aliquip.</p><br/>
-            <p>
-              If you don&apos;t see a open role here that fits you, but you still think you&apos;d be a good fit at Ripe,
-              feel free to drop a line at <a href="mailto:careers@ripe.studio">careers@ripe.studio</a>!
-            </p><br/>
-            <p>
-              We&apos;re always on the lookout for talent, and if we find the right people, we will make it work for
-              you!
-            </p>
-          </div>
-
-          <div className={styles.rolesListWrap} id="open-roles">
-            <h3>Open Roles</h3>
-            <ul>
-              {roles.map((role) => (
-                <li key={role.title}>
-                  <span>{role.title}</span>
-                  <small>{role.commitment}</small>
-                  <small>{role.mode}</small>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <CareersOpenRoles roles={roles} />
       </section>
     </main>
   );

@@ -3,28 +3,16 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
-import type { TeamMember } from "@/types/content";
+import type { JobPosting, TeamMember } from "@/types/content";
 import styles from "@/components/team-page-client.module.css";
 
 type TeamPageClientProps = {
   members: TeamMember[];
-};
-
-type JobRole = {
-  title: string;
-  type: string;
-  href: string;
+  roles: JobPosting[];
 };
 
 const PLACEHOLDER_IMAGE = "https://cdn.prod.website-files.com/plugins/Basic/assets/placeholder.60f9b1840c.svg";
 const GROUP_ORDER = ["Leadership", "Brand", "Motion", "Web", "Operations"];
-
-const OPEN_ROLES: JobRole[] = [
-  { title: "UX Designer - Chicago", type: "Full Time", href: "/job-listings/ux-designer-chicago" },
-  { title: "Project Manager - Remote", type: "Full Time", href: "/job-listings/project-manager-boston" },
-  { title: "Data Analyst - San Francisco", type: "Full Time", href: "/job-listings/data-analyst-sf" },
-  { title: "Marketing Manager - Los Angeles", type: "Contract", href: "/job-listings/marketing-manager-la" },
-];
 
 function normalizeGroup(value: string | undefined) {
   const trimmed = value?.trim();
@@ -35,7 +23,7 @@ function normalizeGroup(value: string | undefined) {
     .join(" ");
 }
 
-function DirectionalRoleItem({ role }: { role: JobRole }) {
+function DirectionalRoleItem({ role }: { role: JobPosting }) {
   const tileRef = useRef<HTMLDivElement | null>(null);
 
   const getDirection = (event: MouseEvent<HTMLElement>, element: HTMLElement) => {
@@ -91,7 +79,7 @@ function DirectionalRoleItem({ role }: { role: JobRole }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <a href={role.href} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
+      <a href={role.externalUrl} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
         <div
           ref={tileRef}
           data-directional-hover-tile=""
@@ -99,17 +87,19 @@ function DirectionalRoleItem({ role }: { role: JobRole }) {
         />
         <div className="directional-list__border is--item" />
         <div className="directional-list__col-award">
-          <p className="direcitonal-list__p">{role.title}</p>
+          <p className="direcitonal-list__p">
+            {role.title} - {role.location}
+          </p>
         </div>
         <div className="directional-list__col-year">
-          <p className="direcitonal-list__p">{role.type}</p>
+          <p className="direcitonal-list__p">{role.contractType}</p>
         </div>
       </a>
     </div>
   );
 }
 
-export function TeamPageClient({ members }: TeamPageClientProps) {
+export function TeamPageClient({ members, roles }: TeamPageClientProps) {
   const groupedMembers = useMemo(() => {
     const groupMap = new Map<string, TeamMember[]>();
 
@@ -297,8 +287,8 @@ export function TeamPageClient({ members }: TeamPageClientProps) {
 
                 <div data-type="all" data-directional-hover="" className={`jobs-list-wrapper w-dyn-list ${styles.directionalWrap}`}>
                   <div role="list" className="jobs-list w-dyn-items">
-                    {OPEN_ROLES.map((role) => (
-                      <DirectionalRoleItem key={role.title} role={role} />
+                    {roles.map((role) => (
+                      <DirectionalRoleItem key={`${role.title}-${role.location}-${role.contractType}`} role={role} />
                     ))}
                   </div>
                 </div>
