@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { resolveVideoPoster } from "@/lib/video-poster";
 import styles from "./home-feed.module.css";
 
 const images = {
@@ -206,6 +207,7 @@ function VideoCard({
   const articleRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
+  const [hasFrame, setHasFrame] = useState(false);
 
   useEffect(() => {
     const article = articleRef.current;
@@ -237,10 +239,17 @@ function VideoCard({
     });
   }, [shouldLoad]);
 
+  useEffect(() => {
+    setHasFrame(false);
+  }, [src]);
+
+  const resolvedPoster = resolveVideoPoster({ poster, src });
+
   return (
     <article
       ref={articleRef}
       className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles.square}`}
+      data-video-ready={hasFrame || resolvedPoster ? "true" : "false"}
       onFocusCapture={() => setShouldLoad(true)}
       onPointerEnter={() => setShouldLoad(true)}
     >
@@ -248,13 +257,18 @@ function VideoCard({
         ref={videoRef}
         className={styles.media}
         src={shouldLoad ? src : undefined}
-        poster={poster}
+        poster={resolvedPoster}
         autoPlay
         muted
         loop
         playsInline
         preload={shouldLoad ? "metadata" : "none"}
         aria-hidden="true"
+        onLoadedMetadata={() => setHasFrame(true)}
+        onLoadedData={() => setHasFrame(true)}
+        onCanPlay={() => setHasFrame(true)}
+        onPlay={() => setHasFrame(true)}
+        onError={() => setHasFrame(true)}
       />
       <div className={styles.overlay} />
       <Pill action={href ? action : undefined}>{label}</Pill>

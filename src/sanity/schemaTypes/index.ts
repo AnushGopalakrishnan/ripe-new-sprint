@@ -19,6 +19,7 @@ import {
 import { feedPostType } from "@/sanity/schemaTypes/feedPost";
 import { feedTagType } from "@/sanity/schemaTypes/feedTag";
 import { homePageType } from "@/sanity/schemaTypes/homePage";
+import { jobPostingType } from "@/sanity/schemaTypes/jobPosting";
 import { mediaAssetType } from "@/sanity/schemaTypes/mediaAsset";
 import { siteSettingsType } from "@/sanity/schemaTypes/siteSettings";
 import { teamMemberType } from "@/sanity/schemaTypes/teamMember";
@@ -49,5 +50,6 @@ export const schemaTypes = [
   teamMemberType,
   feedTagType,
   feedPostType,
+  jobPostingType,
   mediaAssetType,
 ];

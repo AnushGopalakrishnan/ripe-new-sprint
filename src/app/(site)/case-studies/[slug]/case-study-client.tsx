@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { CaseStudyLongFormPlayer } from "@/components/case-study-long-form-player";
 import styles from "@/app/(site)/detail-page.module.css";
 
 type MediaKind = "auto" | "image" | "video";
@@ -14,11 +15,17 @@ type CaseStudyMedia = {
   alt: string;
   kind?: MediaKind;
   poster?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
   comments?: CaseStudyComment[];
 };
 
 type CaseStudyLayoutCell = {
   width: number;
+  rowSpan?: number;
+  hiddenByRowSpan?: boolean;
   media: CaseStudyMedia;
 };
 
@@ -48,6 +55,7 @@ type CaseStudyComment = {
 type CaseStudyReference = {
   brand: string;
   title: string;
+  accentColor?: string;
   heroNote: string;
   eyebrow: string;
   services: string[];
@@ -100,7 +108,30 @@ type DragState = {
 const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
+const CELL_WIDTH_MATCH_TOLERANCE = 0.5;
+const INFORMATION_COLLAPSED_LINES = 10;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
+
+type SpanningLayoutItem = {
+  cell: CaseStudyLayoutCell;
+  cellAspectRatio: number;
+  columnStart: number;
+  columnSpan: number;
+  rowIndex: number;
+  rowSpan: number;
+};
+
+type SpanningLayoutDefinition =
+  | {
+      kind: "unsupported";
+    }
+  | {
+      columnTemplate: string;
+      items: SpanningLayoutItem[];
+      kind: "supported";
+      rowTemplate: string;
+      totalHeight: number;
+    };
 
 function parsePathname(src: string) {
   try {
@@ -121,6 +152,76 @@ function getMediaKind(src: string, kind: MediaKind = "auto") {
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
+}
+
+function buildSpanningLayoutDefinition(layout: CaseStudyLayoutBlock, rowGap: number, designInnerWidth: number): SpanningLayoutDefinition {
+  const rows = layout.rows;
+  if (rows.length === 0) return { kind: "unsupported" };
+
+  const firstRowCells = rows[0]?.cells ?? [];
+  if (firstRowCells.length === 0) return { kind: "unsupported" };
+
+  const baseWidths = firstRowCells.map((cell) => Math.max(cell.width || 0, 0));
+  const hasUniformRowStructure = rows.every((row) => {
+    if (row.cells.length !== baseWidths.length) return false;
+    return row.cells.every((cell, index) => Math.abs(Math.max(cell.width || 0, 0) - baseWidths[index]) <= CELL_WIDTH_MATCH_TOLERANCE);
+  });
+
+  if (!hasUniformRowStructure) return { kind: "unsupported" };
+
+  const coveredSlots = new Set<string>();
+  const items: SpanningLayoutItem[] = [];
+  const totalRows = rows.length;
+
+  for (let rowIndex = 0; rowIndex < totalRows; rowIndex += 1) {
+    const row = rows[rowIndex];
+    const rowHeight = Math.max(row.height ?? 0, 1);
+    const cellCount = Math.max(row.cells.length, 1);
+    const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
+    const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
+    const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
+
+    for (let cellIndex = 0; cellIndex < row.cells.length; cellIndex += 1) {
+      const cell = row.cells[cellIndex];
+      const slotId = `${rowIndex}:${cellIndex}`;
+      if (coveredSlots.has(slotId) || cell.hiddenByRowSpan) continue;
+
+      const rawSpan = typeof cell.rowSpan === "number" ? Math.floor(cell.rowSpan) : 1;
+      const maxRowSpan = Math.max(totalRows - rowIndex, 1);
+      const rowSpan = Math.max(1, Math.min(rawSpan || 1, maxRowSpan));
+      if (rowSpan > 1) {
+        for (let offset = 1; offset < rowSpan; offset += 1) {
+          coveredSlots.add(`${rowIndex + offset}:${cellIndex}`);
+        }
+      }
+
+      const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
+      const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
+      const spannedHeight = rowHeight * rowSpan + rowGap * (rowSpan - 1);
+      const cellAspectRatio = spannedHeight > 0 ? cellTargetWidthPx / spannedHeight : 16 / 9;
+
+      items.push({
+        cell,
+        columnStart: cellIndex + 1,
+        columnSpan: 1,
+        rowIndex,
+        rowSpan,
+        cellAspectRatio,
+      });
+    }
+  }
+
+  const columnTemplate = baseWidths.map((width) => `${Math.max(width, 1)}fr`).join(" ");
+  const rowTemplate = rows.map((row) => `${Math.max(row.height ?? 0, 1)}fr`).join(" ");
+  const totalHeight = rows.reduce((sum, row) => sum + Math.max(row.height ?? 0, 1), 0) + rowGap * Math.max(rows.length - 1, 0);
+
+  return {
+    kind: "supported",
+    columnTemplate,
+    rowTemplate,
+    totalHeight: Math.max(totalHeight, 1),
+    items,
+  };
 }
 
 function toCaseStudyHref(slugOrPath?: string): `/case-studies${string}` {
@@ -171,12 +272,15 @@ function CommentableMedia({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const longFormVideoRef = useRef<HTMLVideoElement | null>(null);
   const lastPointerTypeRef = useRef<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const suppressNextClickRef = useRef(false);
   const suppressNextTouchRef = useRef(false);
   const kind = getMediaKind(media.src, media.kind);
+  const longFormHlsUrl = media.longForm?.hlsUrl?.trim();
+  const isLongFormVideo = kind === "video" && media.longForm?.enabled === true && Boolean(longFormHlsUrl);
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current === null) return;
@@ -223,7 +327,8 @@ function CommentableMedia({
       return;
     }
     const wrapper = wrapperRef.current;
-    const mediaElement = kind === "video" ? videoRef.current : imageRef.current;
+    const mediaElement =
+      kind === "video" ? (isLongFormVideo ? longFormVideoRef.current : videoRef.current) : imageRef.current;
     if (!wrapper || !mediaElement) {
       setFrame(null);
       return;
@@ -237,7 +342,9 @@ function CommentableMedia({
     }
 
     const intrinsicWidth =
-      kind === "video" ? (mediaElement as HTMLVideoElement).videoWidth : (mediaElement as HTMLImageElement).naturalWidth;
+      kind === "video"
+        ? (mediaElement as HTMLVideoElement).videoWidth
+        : (mediaElement as HTMLImageElement).naturalWidth;
     const intrinsicHeight =
       kind === "video"
         ? (mediaElement as HTMLVideoElement).videoHeight
@@ -270,7 +377,7 @@ function CommentableMedia({
       width: renderedWidth,
       height: renderedHeight,
     });
-  }, [fitMode, kind]);
+  }, [fitMode, isLongFormVideo, kind]);
 
   useEffect(() => {
     if (commentsVisible) return;
@@ -307,7 +414,17 @@ function CommentableMedia({
   }, []);
 
   const mediaElement =
-    kind === "video" ? (
+    kind === "video" && isLongFormVideo && longFormHlsUrl ? (
+      <CaseStudyLongFormPlayer
+        styles={styles}
+        mediaClassName={mediaClassName}
+        src={longFormHlsUrl}
+        poster={media.poster}
+        preload={priority ? "auto" : "metadata"}
+        videoRef={longFormVideoRef}
+        onLoadedMetadata={updateFrame}
+      />
+    ) : kind === "video" ? (
       <video
         ref={videoRef}
         className={mediaClassName}
@@ -486,13 +603,162 @@ function FormaFact({ label, children }: { label: string; children: string }) {
   );
 }
 
+function getInitialInformationText(paragraphs: string[]) {
+  return paragraphs
+    .map((paragraph) => paragraph.replace(/<[^>]*>/g, " "))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getDecodedInformationText(paragraphs: string[]) {
+  const container = document.createElement("div");
+
+  return paragraphs
+    .map((paragraph) => {
+      container.innerHTML = paragraph;
+      return container.textContent ?? "";
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getCollapsedInformationText(
+  text: string,
+  content: HTMLDivElement,
+  computed: CSSStyleDeclaration,
+  collapsedHeight: number,
+) {
+  const width = content.clientWidth;
+  if (width <= 0 || text.length === 0) return text;
+
+  const probe = document.createElement("p");
+  probe.style.fontFamily = computed.fontFamily;
+  probe.style.fontSize = computed.fontSize;
+  probe.style.fontStyle = computed.fontStyle;
+  probe.style.fontWeight = computed.fontWeight;
+  probe.style.letterSpacing = computed.letterSpacing;
+  probe.style.lineHeight = computed.lineHeight;
+  probe.style.margin = "0";
+  probe.style.pointerEvents = "none";
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.whiteSpace = "normal";
+  probe.style.width = `${width}px`;
+  document.body.appendChild(probe);
+
+  let low = 0;
+  let high = text.length;
+  let best = "";
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidate = text.slice(0, mid).trimEnd();
+    probe.textContent = `${candidate}..`;
+
+    if (probe.scrollHeight <= collapsedHeight + 1) {
+      best = candidate;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  document.body.removeChild(probe);
+
+  const wordSafe = best.replace(/\s+\S*$/, "").trimEnd();
+  return `${wordSafe || best.trimEnd()}..`;
+}
+
+function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const [collapsedText, setCollapsedText] = useState(() => getInitialInformationText(paragraphs));
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const contentKey = paragraphs.join("\n");
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    const measure = () => {
+      const firstParagraph = content.querySelector("p");
+      const computed = window.getComputedStyle(firstParagraph ?? content);
+      const fontSize = Number.parseFloat(computed.fontSize) || 15;
+      const parsedLineHeight = Number.parseFloat(computed.lineHeight);
+      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.38;
+      const collapsedHeight = lineHeight * INFORMATION_COLLAPSED_LINES;
+      const nextCanExpand = content.scrollHeight > collapsedHeight + 1;
+
+      setCanExpand(nextCanExpand);
+      setCollapsedText(
+        nextCanExpand
+          ? getCollapsedInformationText(getDecodedInformationText(paragraphs), content, computed, collapsedHeight)
+          : getDecodedInformationText(paragraphs),
+      );
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+
+    return () => observer.disconnect();
+  }, [contentKey, paragraphs]);
+
+  const showCollapsedPreview = !expanded && canExpand;
+
+  return (
+    <div className={styles.formaInformation}>
+      <p className={styles.formaLabel}>(Information)</p>
+      <div
+        ref={contentRef}
+        aria-hidden={showCollapsedPreview}
+        className={`${styles.formaInformationCopy} ${showCollapsedPreview ? styles.formaInformationCopyMeasure : ""}`}
+      >
+        {paragraphs.map((paragraph, index) => (
+          <p key={`${index}-${paragraph}`} dangerouslySetInnerHTML={{ __html: paragraph }} />
+        ))}
+      </div>
+      {showCollapsedPreview ? (
+        <div className={`${styles.formaInformationCopy} ${styles.formaInformationPreview}`}>
+          <p>{collapsedText}</p>
+        </div>
+      ) : null}
+      {canExpand ? (
+        <button
+          aria-expanded={expanded}
+          className={styles.formaInformationToggle}
+          onClick={() => setExpanded((current) => !current)}
+          type="button"
+        >
+          {expanded ? "See Less" : "See More"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProps) {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [commentsVisible, setCommentsVisible] = useState(true);
+  const pageStyle = {
+    "--case-study-player-accent": reference.accentColor?.trim() || "#ffffff",
+  } as CSSProperties;
   const hideHeroOverlayText = true;
   const slides = reference.media.carouselSlides;
   const hasFlexibleLayouts = reference.layouts.length > 0;
   const heroStageRef = useRef<HTMLElement | null>(null);
+  const hasAnyComments =
+    (reference.media.hero.comments?.length ?? 0) > 0 ||
+    (reference.media.intro.comments?.length ?? 0) > 0 ||
+    reference.media.carouselSlides.some((media) => (media.comments?.length ?? 0) > 0) ||
+    (reference.media.carouselPoster.comments?.length ?? 0) > 0 ||
+    (reference.media.blackFeature.comments?.length ?? 0) > 0 ||
+    (reference.media.wideFeature.comments?.length ?? 0) > 0 ||
+    (reference.media.cta.comments?.length ?? 0) > 0 ||
+    reference.layouts.some((layout) => layout.rows.some((row) => row.cells.some((cell) => (cell.media.comments?.length ?? 0) > 0)));
 
   const toggleCommentsVisibility = useCallback(() => {
     setCommentsVisible((current) => !current);
@@ -562,6 +828,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   }, []);
 
   useEffect(() => {
+    if (!hasAnyComments) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -579,10 +846,10 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [hasAnyComments]);
 
   return (
-    <main className={styles.formaPage}>
+    <main className={styles.formaPage} style={pageStyle}>
       <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
         <div className={styles.formaHeroStageSticky}>
           <section className={styles.formaHero} data-case-hero>
@@ -612,12 +879,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
               <FormaFact label="Year">{reference.year}</FormaFact>
             </div>
             {reference.information.length > 0 ? (
-              <div className={styles.formaInformation}>
-                <p className={styles.formaLabel}>(Information)</p>
-                {reference.information.map((paragraph) => (
-                  <p key={paragraph} dangerouslySetInnerHTML={{ __html: paragraph }} />
-                ))}
-              </div>
+              <CaseStudyInformation paragraphs={reference.information} />
             ) : (
               <div />
             )}
@@ -628,57 +890,93 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
               {reference.layouts.map((layout) => {
                 const rowGap = layout.gap ?? DESIGN_CELL_GAP_PX;
-                const designWidth = DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
+                const designWidth = layout.designWidth ?? DEFAULT_LAYOUT_DESIGN_WIDTH_PX;
                 const designInnerWidth = Math.max(designWidth - DESIGN_SIDE_PADDING_PX * 2, 1);
+                const hasRowSpan = layout.rows.some((row) => row.cells.some((cell) => (cell.rowSpan ?? 1) > 1));
+                const spanningLayout = hasRowSpan ? buildSpanningLayoutDefinition(layout, rowGap, designInnerWidth) : null;
+                const canRenderSpanningLayout = spanningLayout?.kind === "supported";
 
                 return (
                   <section
                     key={layout.id}
                     className={styles.formaLayoutBlock}
                     data-layout-preset={layout.preset}
-                    style={{ "--layout-gap": `${rowGap}px` } as CSSProperties}
+                    data-layout-has-span={canRenderSpanningLayout ? "true" : "false"}
+                    style={
+                      canRenderSpanningLayout
+                        ? ({
+                            "--layout-gap": `${rowGap}px`,
+                            gridTemplateColumns: spanningLayout.columnTemplate,
+                            gridTemplateRows: spanningLayout.rowTemplate,
+                            aspectRatio: `${designInnerWidth} / ${spanningLayout.totalHeight}`,
+                          } as CSSProperties)
+                        : ({ "--layout-gap": `${rowGap}px` } as CSSProperties)
+                    }
                   >
-                    {layout.rows.map((row, rowIndex) => {
-                      const cellCount = Math.max(row.cells.length, 1);
-                      const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
-                      const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
-                      const rowHeight = row.height ?? 0;
-                      const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
+                    {canRenderSpanningLayout
+                      ? spanningLayout.items.map((item, itemIndex) => (
+                          <div
+                            key={`${layout.id}-span-cell-${item.rowIndex}-${item.columnStart}-${itemIndex}`}
+                            className={styles.formaLayoutCell}
+                            style={
+                              {
+                                "--layout-cell-ratio": `${item.cellAspectRatio}`,
+                                gridColumn: `${item.columnStart} / span ${item.columnSpan}`,
+                                gridRow: `${item.rowIndex + 1} / span ${item.rowSpan}`,
+                              } as CSSProperties
+                            }
+                          >
+                            <CommentableMedia
+                              sectionId={`${layout.id}-${item.rowIndex}-${item.columnStart - 1}`}
+                              media={item.cell.media}
+                              mediaClassName={styles.formaLayoutMedia}
+                              fitMode="cover"
+                              imageSizes="(max-width: 900px) 100vw, 95vw"
+                              commentsVisible={commentsVisible}
+                            />
+                          </div>
+                        ))
+                      : layout.rows.map((row, rowIndex) => {
+                          const cellCount = Math.max(row.cells.length, 1);
+                          const gapsTotal = Math.max(cellCount - 1, 0) * rowGap;
+                          const rowContentWidthDesign = Math.max(designInnerWidth - gapsTotal, 1);
+                          const rowHeight = row.height ?? 0;
+                          const totalWidth = row.cells.reduce((sum, cell) => sum + Math.max(cell.width || 0, 0), 0) || 1;
 
-                      return (
-                        <div
-                          key={`${layout.id}-row-${rowIndex}`}
-                          className={styles.formaLayoutRow}
-                          style={{
-                            gridTemplateColumns: row.cells.map((cell) => `${Math.max(cell.width || 1, 1)}fr`).join(" "),
-                            aspectRatio: rowHeight > 0 ? `${designInnerWidth} / ${rowHeight}` : undefined,
-                          }}
-                        >
-                          {row.cells.map((cell, cellIndex) => {
-                            const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
-                            const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
-                            const cellAspectRatio = rowHeight > 0 ? cellTargetWidthPx / rowHeight : 16 / 9;
+                          return (
+                            <div
+                              key={`${layout.id}-row-${rowIndex}`}
+                              className={styles.formaLayoutRow}
+                              style={{
+                                gridTemplateColumns: row.cells.map((cell) => `${Math.max(cell.width || 1, 1)}fr`).join(" "),
+                                aspectRatio: rowHeight > 0 ? `${designInnerWidth} / ${rowHeight}` : undefined,
+                              }}
+                            >
+                              {row.cells.map((cell, cellIndex) => {
+                                const normalizedWidth = Math.max(cell.width || 0, 0) / totalWidth;
+                                const cellTargetWidthPx = rowContentWidthDesign * normalizedWidth;
+                                const cellAspectRatio = rowHeight > 0 ? cellTargetWidthPx / rowHeight : 16 / 9;
 
-                            return (
-                              <div
-                                key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
-                                className={styles.formaLayoutCell}
-                                style={{ "--layout-cell-ratio": `${cellAspectRatio}` } as CSSProperties}
-                              >
-                                <CommentableMedia
-                                  sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
-                                  media={cell.media}
-                                  mediaClassName={styles.formaLayoutMedia}
-                                  fitMode="cover"
-                                  imageSizes="(max-width: 900px) 100vw, 95vw"
-                                  commentsVisible={commentsVisible}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
+                                return (
+                                  <div
+                                    key={`${layout.id}-row-${rowIndex}-cell-${cellIndex}`}
+                                    className={styles.formaLayoutCell}
+                                    style={{ "--layout-cell-ratio": `${cellAspectRatio}` } as CSSProperties}
+                                  >
+                                    <CommentableMedia
+                                      sectionId={`${layout.id}-${rowIndex}-${cellIndex}`}
+                                      media={cell.media}
+                                      mediaClassName={styles.formaLayoutMedia}
+                                      fitMode="cover"
+                                      imageSizes="(max-width: 900px) 100vw, 95vw"
+                                      commentsVisible={commentsVisible}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
                   </section>
                 );
               })}
@@ -816,22 +1114,24 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           ) : null}
         </div>
       </section>
-      <div className={styles.detailCommentToggleDock}>
-        <button
-          className={styles.detailCommentToggle}
-          onClick={toggleCommentsVisibility}
-          type="button"
-          aria-pressed={commentsVisible}
-          aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
-        >
-          <span className={styles.detailCommentToggleLabel}>
-            {commentsVisible ? "Hide Comments" : "Show Comments"}
-          </span>
-          <span className={styles.detailCommentToggleKey} aria-hidden="true">
-            C
-          </span>
-        </button>
-      </div>
+      {hasAnyComments ? (
+        <div className={styles.detailCommentToggleDock}>
+          <button
+            className={styles.detailCommentToggle}
+            onClick={toggleCommentsVisibility}
+            type="button"
+            aria-pressed={commentsVisible}
+            aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
+          >
+            <span className={styles.detailCommentToggleLabel}>
+              {commentsVisible ? "Hide Comments" : "Show Comments"}
+            </span>
+            <span className={styles.detailCommentToggleKey} aria-hidden="true">
+              C
+            </span>
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }

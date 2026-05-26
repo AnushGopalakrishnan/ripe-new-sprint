@@ -45,7 +45,7 @@ export const HOME_PAGE_QUERY = defineQuery(`
       kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
     },
     "featuredStudySlugs": featuredCaseStudies[]->slug.current,
@@ -69,12 +69,17 @@ const CASE_STUDY_MEDIA_FIELDS = `
       kind,
       select(defined(upload.asset->mimeType) && upload.asset->mimeType match "video/*" => "video"),
       select(defined(video.asset->url) => "video"),
+      select(defined(longFormHlsUrl) => "video"),
       "image"
     ),
     "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
-    eyebrow
+    "poster": coalesce(posterImage.asset->url, poster),
+    eyebrow,
+    "longForm": {
+      "enabled": coalesce(longFormEnabled, false),
+      "hlsUrl": longFormHlsUrl
+    }
 `;
 
 const CASE_STUDY_COMMENT_FIELDS = `
@@ -83,7 +88,13 @@ const CASE_STUDY_COMMENT_FIELDS = `
       commenter->{
         name,
         role,
-        "avatar": avatar.asset->url
+        "avatar": coalesce(
+          avatar.upload.asset->url,
+          avatar.image.asset->url,
+          avatar.asset->url,
+          avatar.src,
+          avatar.video.asset->url
+        )
       },
       body,
       position{
@@ -114,6 +125,7 @@ const CASE_STUDY_FIELDS = `
       cells[]{
         _key,
         width,
+        rowSpan,
         content{
           media{
 ${CASE_STUDY_MEDIA_FIELDS}
@@ -138,7 +150,8 @@ ${CASE_STUDY_COMMENT_FIELDS}
         height,
         cells[]{
           _key,
-          width
+          width,
+          rowSpan
         }
       }
     },
@@ -288,7 +301,7 @@ const WRITING_FIELDS = `
     kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
   },
   publishDate,
@@ -300,7 +313,7 @@ const WRITING_FIELDS = `
     kind,
     "src": coalesce(src, image.asset->url, video.asset->url),
     alt,
-    "poster": coalesce(poster, posterImage.asset->url),
+    "poster": coalesce(posterImage.asset->url, poster),
     eyebrow
   },
   body[]{
@@ -332,5 +345,62 @@ export const WRITING_POST_QUERY = defineQuery(`
 export const WRITING_POST_SLUGS_QUERY = defineQuery(`
   *[_type == "writing" && defined(slug.current)]{
     "slug": slug.current
+  }
+`);
+
+const TEAM_MEMBER_FIELDS = `
+  name,
+  "slug": slug.current,
+  role,
+  "group": coalesce(group, "Team"),
+  avatar{
+    kind,
+    "src": coalesce(src, upload.asset->url, image.asset->url, video.asset->url),
+    alt,
+    "poster": coalesce(posterImage.asset->url, poster),
+    eyebrow
+  },
+  bio,
+  bioSummary,
+  email,
+  phone,
+  websiteUrl,
+  twitterUrl,
+  "projects": projects[]->{
+    title,
+    "slug": slug.current
+  }
+`;
+
+export const TEAM_MEMBERS_QUERY = defineQuery(`
+  *[_type == "teamMember" && defined(slug.current)] | order(group asc, publishedAt asc, name asc){
+    ${TEAM_MEMBER_FIELDS}
+  }
+`);
+
+export const TEAM_MEMBER_QUERY = defineQuery(`
+  *[_type == "teamMember" && slug.current == $slug][0]{
+    ${TEAM_MEMBER_FIELDS}
+  }
+`);
+
+export const TEAM_MEMBER_SLUGS_QUERY = defineQuery(`
+  *[_type == "teamMember" && defined(slug.current)]{
+    "slug": slug.current
+  }
+`);
+
+const JOB_POSTING_FIELDS = `
+  title,
+  location,
+  contractType,
+  externalUrl,
+  order
+`;
+
+export const JOB_POSTINGS_QUERY = defineQuery(`
+  *[_type == "jobPosting" && defined(title) && defined(location) && defined(contractType) && defined(externalUrl)]
+  | order(order asc, _createdAt asc){
+    ${JOB_POSTING_FIELDS}
   }
 `);

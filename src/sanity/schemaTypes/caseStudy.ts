@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
+import { ColorStringInput } from "@/sanity/components/color-string-input";
 
 const CELL_WIDTH_TOTAL_TOLERANCE = 0.5;
 
@@ -20,7 +21,7 @@ const placedCommentFields = [
     name: "commenter",
     title: "Commenter",
     type: "reference",
-    to: [{ type: "caseStudyCommenter" }],
+    to: [{ type: "teamMember" }],
   }),
   defineField({
     name: "author",
@@ -124,7 +125,7 @@ const layoutRowField = defineField({
           name: "cells",
           title: "Cells",
           description:
-            "Define media count by adding/removing cells in this row. Cell widths should sum to 100%.",
+            "Define media count by adding/removing cells in this row. Cell widths should sum to 100%. Use Row Span to continue a cell into following rows.",
           type: "array",
           of: [
             defineArrayMember({
@@ -138,6 +139,14 @@ const layoutRowField = defineField({
                   type: "number",
                   initialValue: 50,
                   validation: (rule) => rule.min(1).max(100).required(),
+                }),
+                defineField({
+                  name: "rowSpan",
+                  title: "Row Span",
+                  description: "Number of rows this cell should span downward.",
+                  type: "number",
+                  initialValue: 1,
+                  validation: (rule) => rule.min(1).max(12),
                 }),
                 layoutContentField,
               ],
@@ -155,7 +164,7 @@ const layoutEntryContentField = defineField({
   name: "content",
   title: "Layout Content Items",
   description:
-    "Add media items in reading order (top-left to bottom-right). Each item supports comments.",
+    "Add media items in reading order (top-left to bottom-right). Row-spanned overlap slots are skipped automatically. Each item supports comments.",
   type: "array",
   of: [
     defineArrayMember({
@@ -412,7 +421,14 @@ export const caseStudyType = defineType({
       type: "boolean",
       initialValue: false,
     }),
-    defineField({ name: "accentColor", title: "Accent Color", type: "string" }),
+    defineField({
+      name: "accentColor",
+      title: "Accent Color",
+      type: "string",
+      components: {
+        input: ColorStringInput,
+      },
+    }),
     defineField({
       name: "accentColorText",
       title: "Accent Color Text",

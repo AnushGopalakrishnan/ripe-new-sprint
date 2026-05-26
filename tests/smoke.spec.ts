@@ -1085,6 +1085,41 @@ test("case study detail page renders the native project detail", async ({ page }
   await expect(page.getByRole("button", { name: "Hide comments (C)" })).toBeVisible();
 });
 
+test("case study video volume slider remains reachable from the mute control", async ({ page }) => {
+  await gotoAppPage(page, "/case-studies/zetachain");
+
+  const volumeControl = page.locator('[class*="detailLongFormVolumeControl"]').first();
+  const sliderWrap = page.locator('[class*="detailLongFormVolumeSliderWrap"]').first();
+  const slider = page.getByLabel("Video volume").first();
+
+  await expect(volumeControl).toBeVisible();
+  await volumeControl.hover();
+  await expect(sliderWrap).toBeVisible();
+
+  const controlBox = await volumeControl.boundingBox();
+  const sliderBox = await sliderWrap.boundingBox();
+  expect(controlBox).toBeTruthy();
+  expect(sliderBox).toBeTruthy();
+  if (!controlBox || !sliderBox) return;
+
+  await page.mouse.move(controlBox.x + controlBox.width / 2, controlBox.y - 2);
+  await expect(sliderWrap).toBeVisible();
+  await page.mouse.move(sliderBox.x + sliderBox.width / 2, sliderBox.y + sliderBox.height / 2);
+  await expect(sliderWrap).toBeVisible();
+
+  const sliderGeometry = await slider.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      backgroundPositionX: styles.backgroundPositionX,
+      backgroundSize: styles.backgroundSize,
+      width: Number.parseFloat(styles.width),
+    };
+  });
+  expect(sliderGeometry.width).toBeGreaterThan(10);
+  expect(sliderGeometry.backgroundPositionX).toBe("50%");
+  expect(sliderGeometry.backgroundSize.endsWith("100%")).toBeTruthy();
+});
+
 test("mirror editor assets load for the case studies canvas", async ({ page }) => {
   const publicCss = await page.request.get("/css/ripe-studios-e83bf0-64c72-4e9b8f09cddc9.webflow.css");
   const publicVendorStyle = await page.request.get("/vendor/ripe/styles/global/theme.css");
@@ -1116,4 +1151,178 @@ test("mirror editor exposes the home new feed duplicate", async ({ page }) => {
   );
   const frame = page.frameLocator(`iframe[title='${editorFrameTitle}']`);
   await expect(frame.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
+});
+
+test("public editor shortcut keeps the page URL visible", async ({ page }) => {
+  await gotoAppPage(page, "/case-studies/zetachain?editor");
+  await expect(page).toHaveURL(/\/case-studies\/zetachain\?editor$/);
+  await expect(page.getByRole("heading", { name: "Visual edits" })).toBeVisible();
+  await expect(page.locator(`iframe[title='${editorFrameTitle}']`)).toHaveAttribute(
+    "src",
+    "/case-studies/zetachain?__editor=1",
+  );
+});
+
+test("visual editor layout width preview overrides image max-width constraints", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await frame.locator('section[aria-label="Case study layouts"] img').first().click({ force: true });
+  await page.getByRole("textbox", { name: "Width value", exact: true }).fill("500");
+
+  await expect.poll(async () => frame.evaluate(() => {
+    const image = document.querySelector('section[aria-label="Case study layouts"] img');
+    if (!(image instanceof HTMLElement)) return null;
+    const styles = getComputedStyle(image);
+    return {
+      maxWidth: styles.maxWidth,
+      rectWidth: Math.round(image.getBoundingClientRect().width),
+      width: styles.width,
+    };
+  })).toEqual({
+    maxWidth: "none",
+    rectWidth: 500,
+    width: "500px",
+  });
+});
+
+test("visual editor numeric drag creates one undo step", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: {
+          type: "editor:select",
+          selection: {
+            route: "/case-studies/zetachain",
+            target: {
+              route: "/case-studies/zetachain",
+              tag: "body",
+              selector: "body",
+              textSnippet: "Editor drag undo target",
+            },
+            text: "Editor drag undo target",
+            imageSrc: "",
+            computedStyles: {
+              alignItems: "normal",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              borderRadius: "0px",
+              color: "rgb(0, 0, 0)",
+              display: "block",
+              fontFamily: "Arial",
+              fontSize: "16px",
+              fontWeight: "400",
+              gap: "0px",
+              height: "100px",
+              justifyContent: "normal",
+              letterSpacing: "0px",
+              lineHeight: "20px",
+              margin: "0px",
+              maxWidth: "none",
+              opacity: "1",
+              padding: "0px",
+              position: "static",
+              textAlign: "left",
+              visibility: "visible",
+              width: "100px",
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  const widthInput = page.getByRole("textbox", { name: "Width value", exact: true });
+  await expect(widthInput).toHaveValue("100");
+  const box = await widthInput.boundingBox();
+  expect(box).toBeTruthy();
+  if (!box) return;
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 8 });
+  await page.mouse.up();
+  await expect(widthInput).not.toHaveValue("100");
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(widthInput).toHaveValue("100");
+  await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("");
+});
+
+test("visual editor font switcher closes when clicking outside", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: {
+          type: "editor:select",
+          selection: {
+            route: "/case-studies/zetachain",
+            target: {
+              route: "/case-studies/zetachain",
+              tag: "p",
+              selector: "body",
+              textSnippet: "Font switcher test target",
+            },
+            text: "Font switcher test target",
+            imageSrc: "",
+            computedStyles: {
+              alignItems: "normal",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              borderRadius: "0px",
+              color: "rgb(0, 0, 0)",
+              display: "block",
+              fontFamily: "Arial",
+              fontSize: "16px",
+              fontWeight: "400",
+              gap: "0px",
+              height: "20px",
+              justifyContent: "normal",
+              letterSpacing: "0px",
+              lineHeight: "20px",
+              margin: "0px",
+              maxWidth: "none",
+              opacity: "1",
+              padding: "0px",
+              position: "static",
+              textAlign: "left",
+              visibility: "visible",
+              width: "100px",
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  const fontTrigger = page.locator('button[aria-haspopup="listbox"]:not([disabled])').first();
+  await expect(fontTrigger).toBeVisible();
+  await fontTrigger.click();
+
+  const fontList = page.getByRole("listbox", { name: "Fonts" });
+  await expect(fontList).toBeVisible();
+  await page.getByText("Visual edits").click();
+  await expect(fontList).toHaveCount(0);
 });

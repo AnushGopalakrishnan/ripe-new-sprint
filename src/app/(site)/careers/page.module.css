@@ -1,0 +1,765 @@
+.page {
+  --hero-content-max: 53.75rem;
+  background: #f3f3f3;
+  color: #3a1f13;
+  font-family: var(--ripe-font-sans);
+  padding: 2rem 0 5rem;
+}
+
+.page section {
+  margin: 0 auto;
+  max-width: 72rem;
+  padding: 0 2rem;
+}
+
+.heroSection {
+  display: grid;
+  gap: 3.75rem;
+  max-width: none;
+  padding-top: 3.75rem;
+  width: 100%;
+}
+
+.heroTitleWrap {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 46.875rem;
+  position: relative;
+}
+
+.heroTitleWrap h1 {
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: clamp(2rem, 3.53vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2083;
+  margin: 0;
+}
+
+.heroPill {
+  background: #e9aace;
+  border-radius: 999px;
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  left: min(90%, 39rem);
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 0.625rem 1.25rem;
+  position: absolute;
+  text-transform: capitalize;
+  top: 4.5rem;
+  transform: rotate(-15deg);
+  white-space: nowrap;
+}
+
+.filmstripWrap {
+  height: 31.875rem;
+  margin-left: calc(50% - 50vw);
+  overflow: hidden;
+  width: 100vw;
+}
+
+.filmstripTrack {
+  animation: careersFilmstripScroll 42s linear infinite;
+  display: flex;
+  gap: 1.5rem;
+  min-width: max-content;
+}
+
+.filmstripCard {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  height: 31.875rem;
+  width: max-content;
+}
+
+.frameWide,
+.frameTall,
+.frameSquare {
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.frameWide {
+  border-radius: 1.5rem;
+  height: 17.125rem;
+  width: 21.25rem;
+}
+
+.frameTall {
+  border-radius: 1.5rem;
+  height: 31.875rem;
+  width: 21.25rem;
+}
+
+.frameSquare {
+  border-radius: 1.5rem;
+  height: 21.25rem;
+  width: 21.25rem;
+}
+
+.frameWide img,
+.frameTall img,
+.frameSquare img,
+.frameWide video {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.heroNotes {
+  display: grid;
+  gap: 3.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-left: auto;
+  max-width: var(--hero-content-max);
+  width: 100%;
+}
+
+.heroNotes h3 {
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.1;
+  margin: 0 0 0.5rem;
+  text-transform: capitalize;
+}
+
+.heroNotes p {
+  color: #666;
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.trustRow {
+  align-items: center;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 1.25rem;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding-top: 1.875rem;
+}
+
+.avatarStack {
+  display: flex;
+  height: 3.75rem;
+  position: relative;
+  width: 13.125rem;
+}
+
+.avatarStack img {
+  border: 1px solid #fff;
+  border-radius: 999px;
+  display: block;
+  height: 3.75rem;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  width: 3.75rem;
+}
+
+.avatarStack img:nth-child(1) {
+  left: 0;
+}
+
+.avatarStack img:nth-child(2) {
+  left: 3.125rem;
+}
+
+.avatarStack img:nth-child(3) {
+  left: 6.25rem;
+}
+
+.avatarStack img:nth-child(4) {
+  left: 9.375rem;
+}
+
+.trustRow p {
+  color: #666;
+  flex: 1 0 0;
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 1rem;
+  line-height: 1.625;
+  max-width: 16rem;
+}
+
+.trustRow p strong {
+  color: #222;
+  font-weight: 400;
+}
+
+.trustRow a {
+  background: #cfafe9;
+  border-radius: 0.375rem;
+  color: #222;
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 1rem 1.625rem;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.pillarsSection {
+  display: grid;
+  gap: 2rem;
+  margin-top: 122px !important;
+  margin-bottom : 122px !important;
+  padding-top: 0;
+}
+
+.pillarsSection h2 {
+  font-family: var(--ripe-font-serif);
+  font-size: clamp(2rem, 5.1vw, 3.6rem);
+  font-weight: 300;
+  line-height: 1.05;
+  margin: 0;
+  text-align: center;
+}
+
+.pillarsGrid {
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+}
+
+.pillarCard,
+.pillarCardFeatured {
+  aspect-ratio: 165 / 211;
+  background: rgb(235 234 226 / 10%);
+  box-sizing: border-box;
+  contain: layout;
+  display: grid;
+  gap: 0.625rem;
+  padding: clamp(14px, 1.4vw, 24px);
+  position: relative;
+}
+
+.pillarCardFeatured {
+  background: #f1ebe2;
+  border-radius: 0.7rem;
+}
+
+.pillarCard::after,
+.pillarCardFeatured::after {
+  background: #d9d2cc;
+  content: "";
+  height: clamp(120px, 56%, 220px);
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+}
+
+.pillarCard:last-child::after,
+.pillarCardFeatured:last-child::after {
+  display: none;
+}
+
+.pillarIcon {
+  color: #3c1b0b;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.pillarCard h3,
+.pillarCardFeatured h3 {
+  color: #3c1b0b;
+  font-family: "Plantin MT Pro", var(--ripe-font-serif);
+  font-size: clamp(14px, 1.5vw, 28px);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.pillarCard p,
+.pillarCardFeatured p {
+  color: #3c1b0b;
+  font-family: "Plantin MT Pro", var(--ripe-font-serif);
+  font-size: clamp(8px, 0.9vw, 14px);
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+  margin: 0;
+}
+
+@media (min-width: 90rem) {
+  .pillarCard,
+  .pillarCardFeatured {
+    padding: 28px;
+  }
+}
+
+.pillarsStatement {
+  font-family: var(--ripe-font-serif);
+  font-size: 27px;
+  line-height: 1.08;
+  margin: 122px auto 0;
+  max-width: 68rem;
+  text-align: center;
+}
+
+.mosaicSection {
+  padding-top: 6rem;
+}
+
+.page section.mosaicSection {
+  margin-left: calc(50% - 50vw);
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+  width: 100vw;
+}
+
+.mosaicCard {
+  background: rgb(245, 245, 245);
+  border-radius: 0.7rem;
+  min-height: 13rem;
+  overflow: hidden;
+  padding: 1rem;
+  position: relative;
+}
+
+.mosaicTagRow {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.mosaicCard small {
+  align-items: center;
+  color: rgba(58, 31, 19, 0.72);
+  display: inline-flex;
+  font-family: var(--ripe-font-sans);
+  font-size: 0.75rem;
+  gap: 0.45rem;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.mosaicCard small::before {
+  background: radial-gradient(circle, rgb(245, 245, 245) 38%, rgb(29, 61, 243) 40%);
+  border-radius: 999px;
+  content: "";
+  display: inline-block;
+  height: 0.52rem;
+  width: 0.52rem;
+}
+
+.mosaicMeta {
+  color: rgba(58, 31, 19, 0.45);
+  font-family: var(--ripe-font-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+
+.mosaicCard p {
+  font-size: 1.05rem;
+  line-height: 1.4;
+  margin-top: 2.1rem;
+  text-align: center;
+}
+
+.mosaicCard a {
+  color: #3a1f13;
+  display: block;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.mosaicCard img {
+  border-radius: 0.45rem;
+  display: block;
+  height: calc(100% - 1.8rem);
+  margin-top: 0.8rem;
+  object-fit: cover;
+  width: 100%;
+}
+
+.mosaicBlue {
+  background: #243fff;
+  color: #f7f8ff;
+}
+
+.mosaicBlue small,
+.mosaicBlue a {
+  color: rgba(247, 248, 255, 0.85);
+}
+
+.mosaicBlue small::before {
+  background: radial-gradient(circle, rgb(255, 255, 255) 38%, rgb(29, 61, 243) 40%);
+}
+
+.mosaicBlue .mosaicMeta {
+  color: rgba(247, 248, 255, 0.75);
+}
+
+.clientsLogos {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  justify-content: center;
+  margin-top: 2.75rem;
+}
+
+.clientsLogos span {
+  color: rgb(255, 255, 255);
+  font-family: var(--ripe-font-sans);
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.mosaicBlue blockquote {
+  font-size: 1.52rem;
+  line-height: 1.3;
+  margin: 3.6rem 0 1.15rem;
+  text-align: center;
+}
+
+.mosaicBlue cite {
+  color: rgba(247, 248, 255, 0.82);
+  display: block;
+  font-size: 0.85rem;
+  font-style: normal;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.testimonialDots {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  margin: 2rem 0 0;
+}
+
+.testimonialDots span {
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  display: block;
+  height: 0.31rem;
+  width: 0.31rem;
+}
+
+.testimonialDots span:first-child {
+  background: rgb(255, 255, 255);
+}
+
+.servicesWord {
+  font-family: var(--ripe-font-sans);
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin-top: 4rem;
+  text-align: center;
+}
+
+.mosaicImageTall {
+  grid-row: span 2;
+  min-height: 30rem;
+}
+
+.mosaicImage {
+  min-height: 19rem;
+}
+
+.peopleSection {
+  margin-top: 122px !important;
+  display: grid;
+  gap: 2rem;
+  padding-top: 6rem;
+}
+
+.peopleSection h2 {
+  font-family: var(--ripe-font-serif);
+  font-size: 20px;
+  font-weight: 300;
+  margin: 0;
+}
+
+.foundersRow {
+  column-gap: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: 1.25rem;
+}
+
+.founderCard {
+  align-items: center;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 8rem minmax(0, 1fr);
+}
+
+.founderCard img {
+  aspect-ratio: 1 / 1;
+  border-radius: 0.2rem;
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.founderCard h3 {
+  font-family: var(--ripe-font-serif);
+  font-size: 20px;
+  font-weight: 300;
+  margin: 0;
+}
+
+.founderCard p {
+  color: rgba(58, 31, 19, 0.66);
+  font-family: var(--ripe-font-sans);
+  letter-spacing: 0.04em;
+  margin: 0.3rem 0 0;
+  text-transform: uppercase;
+}
+
+.groupPhoto {
+  margin: 0;
+}
+
+.groupPhoto img {
+  border-radius: 0.75rem;
+  display: block;
+  max-height: 28rem;
+  object-fit: cover;
+  width: 100%;
+}
+
+.rolesBlock {
+  column-gap: 2rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.rolesCopy :global(.text) {
+  font-family: var(--ripe-font-serif);
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.rolesCopy a {
+  color: inherit;
+}
+
+.rolesHeading {
+  border-bottom: 1px solid #d7d0ca;
+  font-family: var(--ripe-font-serif);
+  font-size: 32px;
+  font-weight: 300;
+  margin: 0;
+  padding-bottom: 0.8rem;
+}
+
+.rolesListWrap :global(.jobs-list) {
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.rolesListWrap :global(.jobs_row-link) {
+  align-items: center;
+  column-gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.peopleSection :global(.join_us-section),
+.peopleSection :global(.join_us-wrap),
+.peopleSection :global(.join_us) {
+  background: transparent !important;
+}
+
+.rolesListWrap :global(.directional-list__item) {
+  border-bottom: 1px solid #ddd7d1;
+  padding-bottom: 14px !important;
+  padding-top: 14px !important;
+}
+
+.roleTitle {
+  font-family: var(--ripe-font-serif);
+  font-size: 14px;
+  margin: 0;
+}
+
+.roleMeta {
+  color: rgba(58, 31, 19, 0.6);
+  font-family: var(--ripe-font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+@media (max-width: 62rem) {
+  .heroTitleWrap {
+    max-width: 100%;
+  }
+
+  .heroTitleWrap h1 {
+    font-size: 2.375rem;
+    line-height: 1.263;
+  }
+
+  .heroPill {
+    left: auto;
+    right: 0;
+    top: 7.25rem;
+  }
+
+  .filmstripWrap {
+    height: 23.9375rem;
+  }
+
+  .filmstripTrack,
+  .filmstripCard {
+    gap: 1rem;
+  }
+
+  .filmstripCard {
+    height: 23.9375rem;
+  }
+
+  .frameWide {
+    border-radius: 1.125rem;
+    height: 12.8125rem;
+    width: 15.9375rem;
+  }
+
+  .frameTall {
+    border-radius: 1.125rem;
+    height: 23.9375rem;
+    width: 15.9375rem;
+  }
+
+  .frameSquare {
+    border-radius: 1.125rem;
+    height: 15.9375rem;
+    width: 15.9375rem;
+  }
+
+  .heroNotes {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .trustRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trustRow p {
+    max-width: 100%;
+  }
+
+  .pillarsGrid {
+    gap: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .pillarCard,
+  .pillarCardFeatured {
+    height: auto;
+    width: 100%;
+  }
+
+  .pillarCard::after,
+  .pillarCardFeatured::after {
+    display: none;
+  }
+
+  .mosaicSection {
+    grid-template-columns: 1fr;
+  }
+
+  .mosaicImageTall {
+    grid-row: auto;
+    min-height: 22rem;
+  }
+
+  .rolesBlock {
+    gap: 2rem;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48rem) {
+  .page {
+    padding-top: 1rem;
+  }
+
+  .page section {
+    padding: 0 1rem;
+  }
+
+  .page section.mosaicSection {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .foundersRow {
+    grid-template-columns: 1fr;
+  }
+
+  .founderCard {
+    grid-template-columns: 6.75rem minmax(0, 1fr);
+  }
+
+  .founderCard h3 {
+    font-size: 1.8rem;
+  }
+
+  .heroSection {
+    gap: 2.5rem;
+    padding-top: 2.5rem;
+  }
+
+  .heroTitleWrap h1 {
+    font-size: 2rem;
+    line-height: 1.3125;
+  }
+
+  .heroPill {
+    font-size: 0.8125rem;
+    padding: 0.5rem 1rem;
+    top: 8.5rem;
+  }
+
+  .heroNotes {
+    gap: 1.875rem;
+  }
+
+  .rolesListWrap :global(.jobs_row-link) {
+    grid-template-columns: 1fr;
+    row-gap: 0.4rem;
+  }
+}
+
+@keyframes careersFilmstripScroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 0.75rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filmstripTrack {
+    animation: none;
+  }
+}

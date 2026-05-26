@@ -61,12 +61,14 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
               change.before,
             )} -> ${JSON.stringify(change.after)}`,
           );
-        } else {
+        } else if (change.kind === "content") {
           lines.push(
             `- ${change.field}: ${JSON.stringify(change.before)} -> ${JSON.stringify(
               change.after,
             )}`,
           );
+        } else {
+          lines.push(`- ${change.action}: ${change.before ? "on" : "off"} -> ${change.after ? "on" : "off"}`);
         }
       }
       lines.push("");

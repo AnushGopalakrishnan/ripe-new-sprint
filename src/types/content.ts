@@ -21,6 +21,10 @@ export type MediaAsset = {
   alt: string;
   poster?: string;
   eyebrow?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
 };
 
 export type CommentPosition = {
@@ -48,6 +52,7 @@ export type CommentableMedia = {
 export type DetailLayoutCell = {
   _key?: string;
   width?: number;
+  rowSpan?: number;
   content?: CommentableMedia;
 };
 
@@ -190,4 +195,30 @@ export type WritingPost = {
   body: StorySection[];
   bodyHtml?: string;
   seo: Seo;
+};
+
+export type TeamMember = {
+  name: string;
+  slug: string;
+  role?: string;
+  group?: string;
+  avatar?: MediaAsset;
+  bio?: string;
+  bioSummary?: string;
+  email?: string;
+  phone?: string;
+  websiteUrl?: string;
+  twitterUrl?: string;
+  projects?: Array<{
+    title?: string;
+    slug?: string;
+  }>;
+};
+
+export type JobPosting = {
+  title: string;
+  location: string;
+  contractType: string;
+  externalUrl: string;
+  order?: number;
 };

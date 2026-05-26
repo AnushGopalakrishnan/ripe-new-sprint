@@ -29,6 +29,10 @@ type ClientMedia = {
   alt: string;
   kind: "auto" | "image" | "video";
   poster?: string;
+  longForm?: {
+    enabled: boolean;
+    hlsUrl?: string;
+  };
   comments: ClientComment[];
 };
 
@@ -79,6 +83,7 @@ function toClientMedia(entry: CommentableMedia | undefined, fallback: MediaAsset
     alt: media.alt || "Case study media",
     kind: media.kind ?? "image",
     poster: media.poster,
+    longForm: media.longForm,
     comments: toClientComments(entry?.comments),
   };
 }
@@ -115,6 +120,41 @@ function toClientReference(study: CaseStudy) {
   );
   const detailYear = study.year?.trim() || "";
   const baseMedia = study.coverMedia?.src ? study.coverMedia : fallbackMedia;
+  const mapTemplateLayoutRows = (
+    rows: NonNullable<NonNullable<CaseStudy["detailLayoutEntries"]>[number]["layout"]>["rows"] | undefined,
+    contentItems: NonNullable<NonNullable<CaseStudy["detailLayoutEntries"]>[number]["content"]>,
+  ) => {
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    const coveredSlots = new Set<string>();
+    let contentPointer = 0;
+
+    return sourceRows.map((row, rowIndex) => ({
+      height: row.height,
+      cells:
+        row.cells?.map((cell, cellIndex) => {
+          const slotId = `${rowIndex}:${cellIndex}`;
+          const maxSpan = Math.max(sourceRows.length - rowIndex, 1);
+          const rawSpan = typeof cell.rowSpan === "number" ? Math.floor(cell.rowSpan) : 1;
+          const rowSpan = Math.max(1, Math.min(rawSpan || 1, maxSpan));
+          const hiddenByRowSpan = coveredSlots.has(slotId);
+          const contentItem = hiddenByRowSpan ? undefined : contentItems[contentPointer];
+          if (!hiddenByRowSpan) contentPointer += 1;
+
+          if (!hiddenByRowSpan && rowSpan > 1) {
+            for (let offset = 1; offset < rowSpan; offset += 1) {
+              coveredSlots.add(`${rowIndex + offset}:${cellIndex}`);
+            }
+          }
+
+          return {
+            width: cell.width || 1,
+            rowSpan,
+            hiddenByRowSpan,
+            media: toClientMedia(contentItem, baseMedia),
+          };
+        }) ?? [],
+    }));
+  };
   const carouselSlides =
     study.detailCarouselSlides?.map((slide, index) =>
       toClientMedia(slide, {
@@ -126,26 +166,13 @@ function toClientReference(study: CaseStudy) {
     study.detailLayoutEntries?.map((entry, entryIndex) => {
       const layout = entry.layout;
       const contentItems = Array.isArray(entry.content) ? entry.content : [];
-      let contentPointer = 0;
 
       return {
         id: entry._key || `${study.slug}-layout-entry-${entryIndex}`,
         preset: layout?.preset || "layout1",
         designWidth: layout?.designWidth ?? 1440,
         gap: layout?.gap,
-        rows:
-          layout?.rows?.map((row) => ({
-            height: row.height,
-            cells:
-              row.cells?.map((cell) => {
-                const contentItem = contentItems[contentPointer];
-                contentPointer += 1;
-                return {
-                  width: cell.width || 1,
-                  media: toClientMedia(contentItem, baseMedia),
-                };
-              }) ?? [],
-          })) ?? [],
+        rows: mapTemplateLayoutRows(layout?.rows, contentItems),
       };
     }) ?? [];
 
@@ -161,6 +188,8 @@ function toClientReference(study: CaseStudy) {
           cells:
             row.cells?.map((cell) => ({
               width: cell.width || 1,
+              rowSpan: typeof cell.rowSpan === "number" ? Math.max(1, Math.floor(cell.rowSpan)) : 1,
+              hiddenByRowSpan: false,
               media: toClientMedia(cell.content, baseMedia),
             })) ?? [],
         })) ?? [],
@@ -170,6 +199,7 @@ function toClientReference(study: CaseStudy) {
   return {
     brand: study.client || study.title,
     title: study.title,
+    accentColor: study.accentColor || undefined,
     heroNote: "Scroll to view more",
     eyebrow: study.detailEyebrow || study.summary,
     services: uniqueDetailServices,
@@ -254,6 +284,7 @@ function toReferenceFromWorkJournal(item: WorkJournalItem) {
   return {
     brand: item.industry || "Ripe",
     title: item.title,
+    accentColor: item.accentColor || undefined,
     heroNote: "Scroll to view more",
     eyebrow: description,
     services: item.tags.length ? item.tags : ["Brand"],

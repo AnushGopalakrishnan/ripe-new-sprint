@@ -1719,7 +1719,7 @@ label {
   grid-column-gap: 4rem;
   grid-row-gap: 4rem;
   flex-flow: column;
-  padding: 12rem 4rem;
+  padding: 5rem 0rem;
   display: flex;
 }
 

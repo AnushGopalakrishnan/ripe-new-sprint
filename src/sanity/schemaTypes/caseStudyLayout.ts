@@ -108,7 +108,8 @@ export const caseStudyLayoutType = defineType({
             defineField({
               name: "cells",
               title: "Cells",
-              description: "Media count is based on how many cells are in the row.",
+              description:
+                "Media count is based on how many visible cells are in the row. Use Row Span to let a cell continue into following rows.",
               type: "array",
               of: [
                 defineArrayMember({
@@ -124,6 +125,14 @@ export const caseStudyLayoutType = defineType({
                       type: "number",
                       initialValue: 50,
                       validation: (rule) => rule.min(1).max(100).required(),
+                    }),
+                    defineField({
+                      name: "rowSpan",
+                      title: "Row Span",
+                      description: "Number of rows this cell should span downward.",
+                      type: "number",
+                      initialValue: 1,
+                      validation: (rule) => rule.min(1).max(12),
                     }),
                   ],
                 }),
