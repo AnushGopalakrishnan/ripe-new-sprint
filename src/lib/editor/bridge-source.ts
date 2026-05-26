@@ -30,35 +30,6 @@ export const bridgeScript = String.raw`
       transition: "none",
     });
 
-    if (selected) {
-      const handles = [
-        { left: "0%", top: "0%", transform: "translate(-50%, -50%)" },
-        { left: "50%", top: "0%", transform: "translate(-50%, -50%)" },
-        { left: "100%", top: "0%", transform: "translate(-50%, -50%)" },
-        { left: "100%", top: "50%", transform: "translate(-50%, -50%)" },
-        { left: "100%", top: "100%", transform: "translate(-50%, -50%)" },
-        { left: "50%", top: "100%", transform: "translate(-50%, -50%)" },
-        { left: "0%", top: "100%", transform: "translate(-50%, -50%)" },
-        { left: "0%", top: "50%", transform: "translate(-50%, -50%)" },
-      ];
-
-      for (const position of handles) {
-        const handle = document.createElement("span");
-        Object.assign(handle.style, {
-          position: "absolute",
-          width: "7px",
-          height: "7px",
-          background: "#ffffff",
-          border: "1.5px solid " + selectionPurple,
-          borderRadius: "2px",
-          boxShadow: "0 1px 2px rgba(20,16,38,0.18)",
-          boxSizing: "border-box",
-          ...position,
-        });
-        box.appendChild(handle);
-      }
-    }
-
     document.documentElement.appendChild(box);
   }
 

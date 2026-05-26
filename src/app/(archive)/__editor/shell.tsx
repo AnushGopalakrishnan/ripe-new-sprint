@@ -144,8 +144,8 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
     { property: "justifyContent", label: "Justify", options: ["flex-start", "center", "flex-end", "space-between", "space-around"] },
   ],
   spacing: [
-    { property: "margin", label: "Margin", placeholder: "0 0 24px" },
-    { property: "padding", label: "Padding", placeholder: "16px 24px" },
+    { property: "margin", label: "Margin", placeholder: "0px", unit: "px", units: lengthUnits },
+    { property: "padding", label: "Padding", placeholder: "0px", unit: "px", units: lengthUnits },
   ],
   typography: [
     { property: "fontSize", label: "Size", placeholder: "16px", unit: "px", units: textLengthUnits },
@@ -311,6 +311,34 @@ function normalizeCssUnit(unit: string, supportedUnits: string[]) {
   return null;
 }
 
+const boxSides = [
+  { key: "top", label: "T" },
+  { key: "right", label: "R" },
+  { key: "bottom", label: "B" },
+  { key: "left", label: "L" },
+] as const;
+
+function splitCssBoxValue(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean);
+}
+
+function expandCssBoxValue(value: string) {
+  const parts = splitCssBoxValue(value);
+  if (parts.length === 0 || parts.length > 4) return null;
+  if (parts.some((part) => !parseNumericCssValue(part))) return null;
+
+  const [top, right = top, bottom = top, left = right] = parts;
+  return [top, right, bottom, left];
+}
+
+function compactCssBoxValue(values: string[]) {
+  const [top, right, bottom, left] = values;
+  if (top === right && top === bottom && top === left) return top;
+  if (top === bottom && right === left) return `${top} ${right}`;
+  if (right === left) return `${top} ${right} ${bottom}`;
+  return values.join(" ");
+}
+
 function StyleField({
   config,
   value,
@@ -324,6 +352,10 @@ function StyleField({
 }) {
   const fieldId = `editor-style-${config.property}`;
   const canUseNumericControl = typeof config.unit === "string" && (!value || Boolean(parseNumericCssValue(value)));
+  const canUseBoxControl =
+    (config.property === "margin" || config.property === "padding") &&
+    typeof config.unit === "string" &&
+    (!value || Boolean(expandCssBoxValue(value)));
 
   return (
     <Field className="gap-1.5" data-disabled={disabled ? true : undefined}>
@@ -334,6 +366,20 @@ function StyleField({
           disabled={disabled}
           value={value}
           options={config.options}
+          onChange={onChange}
+        />
+      ) : canUseBoxControl ? (
+        <BoxSpacingInput
+          id={fieldId}
+          label={config.label}
+          disabled={disabled}
+          value={value}
+          placeholder={config.placeholder ?? "0px"}
+          defaultUnit={config.unit ?? "px"}
+          units={config.units ?? [config.unit ?? "px"]}
+          step={config.step ?? 1}
+          min={config.min}
+          max={config.max}
           onChange={onChange}
         />
       ) : canUseNumericControl ? (
@@ -363,6 +409,75 @@ function StyleField({
         />
       )}
     </Field>
+  );
+}
+
+function BoxSpacingInput({
+  id,
+  label,
+  value,
+  placeholder,
+  defaultUnit,
+  units,
+  step,
+  min,
+  max,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  defaultUnit: string;
+  units: string[];
+  step: number;
+  min?: number;
+  max?: number;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  const expandedValue = expandCssBoxValue(value) ?? ["", "", "", ""];
+  const expandedPlaceholder = expandCssBoxValue(placeholder) ?? [placeholder, placeholder, placeholder, placeholder];
+
+  function updateSide(index: number, nextValue: string) {
+    const nextValues = [...expandedValue];
+    nextValues[index] = nextValue;
+
+    if (nextValues.every((sideValue) => !sideValue.trim())) {
+      onChange("");
+      return;
+    }
+
+    const normalizedValues = nextValues.map((sideValue, sideIndex) => {
+      if (sideValue.trim()) return sideValue;
+      return expandedPlaceholder[sideIndex] || `0${defaultUnit}`;
+    });
+
+    onChange(compactCssBoxValue(normalizedValues));
+  }
+
+  return (
+    <div className={styles.boxSpacingInput} id={id}>
+      {boxSides.map((side, index) => (
+        <div className={styles.boxSpacingSide} key={side.key}>
+          <span className={styles.boxSpacingSideLabel}>{side.label}</span>
+          <NumericStyleInput
+            id={`${id}-${side.key}`}
+            label={`${label} ${side.key}`}
+            disabled={disabled}
+            value={expandedValue[index] ?? ""}
+            placeholder={expandedPlaceholder[index] ?? placeholder}
+            defaultUnit={defaultUnit}
+            units={units}
+            step={step}
+            min={min}
+            max={max}
+            onChange={(nextValue) => updateSide(index, nextValue)}
+          />
+        </div>
+      ))}
+    </div>
   );
 }
 

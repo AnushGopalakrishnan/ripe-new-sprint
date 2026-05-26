@@ -41,8 +41,28 @@ function shouldServeExportAsset(pathname: string) {
   return /^(?:\/css\/|\/fonts\/|\/images\/|\/js\/|\/vendor\/)/.test(pathname);
 }
 
+function shouldOpenEditorFromPage(pathname: string) {
+  return (
+    pathname !== "/__editor" &&
+    !pathname.startsWith("/__editor/") &&
+    pathname !== "/visual-editor" &&
+    !pathname.startsWith("/visual-editor/") &&
+    pathname !== "/__mirror" &&
+    !pathname.startsWith("/__mirror/") &&
+    pathname !== "/visual-mirror" &&
+    !pathname.startsWith("/visual-mirror/") &&
+    !shouldServeExportAsset(pathname)
+  );
+}
+
 export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
+
+  if (url.searchParams.has("editor") && shouldOpenEditorFromPage(url.pathname)) {
+    url.pathname = "/__editor";
+    url.search = `?path=${encodeURI(request.nextUrl.pathname)}`;
+    return NextResponse.redirect(url, 307);
+  }
 
   if (url.pathname === "/__editor" || url.pathname.startsWith("/__editor/")) {
     url.pathname = url.pathname.replace(/^\/__editor/, "/visual-editor");
@@ -75,31 +95,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
-    "/__editor/:path*",
-    "/__mirror/:path*",
-    "/archive/:path*",
-    "/css/:path*",
-    "/fonts/:path*",
-    "/images/:path*",
-    "/js/:path*",
-    "/vendor/:path*",
-    "/case-studies",
-    "/case-studies/tags/:path*",
-    "/case-studies-new",
-    "/case-studies-new/:path*",
-    "/case-studies-new-copy",
-    "/case-studies-new-copy/:path*",
-    "/case-studies-tags/:path*",
-    "/case-studies/:path*",
-    "/feed-posts/:path*",
-    "/job-listings/:path*",
-    "/team",
-    "/team/:path*",
-    "/writing",
-    "/writing/:path*",
-    "/careers",
-    "/services",
-    "/work",
+    "/((?!_next/static|_next/image|api|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };
