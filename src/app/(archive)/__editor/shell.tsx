@@ -884,7 +884,6 @@ function CssValueInput({
 
   useEffect(() => {
     // Keep the local draft input in sync when selection changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftValue(value);
   }, [value]);
 
@@ -1185,7 +1184,6 @@ function ColorStyleInput({
 
   useEffect(() => {
     // Keep the local draft input in sync when selection changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftValue(colorInputText(value));
   }, [value]);
 
@@ -1547,7 +1545,6 @@ function NumericStyleInput({
   useEffect(() => {
     if (!focused && !dragging) {
       // Keep the local draft input in sync when selection changes.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraftNumber(parsedValue?.numberText ?? "");
     }
   }, [dragging, focused, parsedValue?.numberText]);
@@ -1879,10 +1876,8 @@ function AssetSourceInput({
 
   useEffect(() => {
     // Keep the local draft input in sync when selection changes.
-    /* eslint-disable react-hooks/set-state-in-effect */
     setDraftValue(value);
     setPreviewFailed(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value]);
 
   function commitValue(nextValue: string) {
