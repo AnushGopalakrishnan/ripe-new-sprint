@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./careers-mosaic.module.css";
 
@@ -99,12 +100,12 @@ export default function CareersMosaic() {
               We bring brands to life with bold design and innovative storytelling. From striking visuals to immersive
               experiences, we turn ideas into realities.
             </p>
-            <a href="/">Read more</a>
+            <Link href="/">Read more</Link>
           </article>
 
           <article className={`${styles.card} ${styles.cardTestimonial}`}>
             <PulseLabel label="Testimonials" light />
-            <blockquote>"{activeTestimonial.quote}"</blockquote>
+            <blockquote>&ldquo;{activeTestimonial.quote}&rdquo;</blockquote>
             <p className={styles.testimonialAuthor}>{activeTestimonial.name}</p>
             <p className={styles.testimonialRole}>{activeTestimonial.role}</p>
             <div className={styles.dots} role="tablist" aria-label="Testimonials">

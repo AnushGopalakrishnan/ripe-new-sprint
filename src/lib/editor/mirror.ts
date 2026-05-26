@@ -205,6 +205,10 @@ const remoteScriptTagPattern =
 const remoteLinkTagPattern = /<link\b(?=[^>]*\bhref=["']https?:\/\/)[^>]*>/gi;
 const websiteFilesMediaUrlPattern =
   /https:\/\/cdn\.prod\.website-files\.com\/[^"'\s)<>]+(?:\.(?:png|jpe?g|webp|avif|svg|gif|mp4)|\/png)(?:\?[^"'\s)<>]*)?/gi;
+const showreelScalingVideoUrl =
+  "https://osmo.b-cdn.net/resource-media/scaling-element-resource-185787-876545918_tiny.mp4";
+const localShowreelScalingVideoPath =
+  "/mirror-media/scaling-element-resource-185787-876545918_tiny.mp4";
 
 function localWebsiteFilesMediaPath(remoteUrl: string) {
   const cleanUrl = remoteUrl.replace(/&quot;.*/, "");
@@ -220,9 +224,9 @@ function localWebsiteFilesMediaPath(remoteUrl: string) {
 }
 
 function rewriteWebsiteFilesMedia(html: string) {
-  return html.replace(websiteFilesMediaUrlPattern, (remoteUrl) =>
-    localWebsiteFilesMediaPath(remoteUrl),
-  );
+  return html
+    .replace(websiteFilesMediaUrlPattern, (remoteUrl) => localWebsiteFilesMediaPath(remoteUrl))
+    .replaceAll(showreelScalingVideoUrl, localShowreelScalingVideoPath);
 }
 
 function stripRemoteRuntimeTags(html: string) {

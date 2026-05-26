@@ -309,22 +309,6 @@ function sameTarget(left?: ElementTarget, right?: ElementTarget) {
   return Boolean(left && right && left.selector === right.selector && left.route === right.route);
 }
 
-function changedStyles(
-  base: Record<string, string>,
-  values: Record<string, string>,
-  viewport: ViewportName,
-) {
-  return Object.entries(values)
-    .filter(([property, value]) => value !== (base[property] ?? ""))
-    .map<StyleChange>(([property, value]) => ({
-      kind: "style",
-      property,
-      before: base[property] ?? "",
-      after: value,
-      viewport,
-    }));
-}
-
 function changedStyleProperties(base: Record<string, string>, values: Record<string, string>) {
   return Object.entries(values)
     .filter(([property, value]) => value !== (base[property] ?? ""))
@@ -1995,6 +1979,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       window.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Undo/redo handlers intentionally read the current editor state listed below.
   }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
@@ -2046,6 +2031,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
   }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
