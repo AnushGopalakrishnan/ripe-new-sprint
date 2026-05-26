@@ -346,9 +346,16 @@
   font: 400 15px / 1.38 "Graphik", Arial, sans-serif;
   justify-self: start;
   margin: 0.4em 0 12rem;
+  opacity: 0.5;
   padding: 0;
   text-decoration: underline;
   text-underline-offset: 0.12em;
+  transition: opacity 180ms ease;
+}
+
+.formaInformationToggle:hover,
+.formaInformationToggle:focus-visible {
+  opacity: 1;
 }
 
 .formaIntroMedia {
