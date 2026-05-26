@@ -1117,3 +1117,67 @@ test("mirror editor exposes the home new feed duplicate", async ({ page }) => {
   const frame = page.frameLocator(`iframe[title='${editorFrameTitle}']`);
   await expect(frame.getByRole("heading", { name: "Natural Outcome" })).toBeVisible();
 });
+
+test("visual editor font switcher closes when clicking outside", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: {
+          type: "editor:select",
+          selection: {
+            route: "/case-studies/zetachain",
+            target: {
+              route: "/case-studies/zetachain",
+              tag: "p",
+              selector: "body",
+              textSnippet: "Font switcher test target",
+            },
+            text: "Font switcher test target",
+            imageSrc: "",
+            computedStyles: {
+              alignItems: "normal",
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              borderRadius: "0px",
+              color: "rgb(0, 0, 0)",
+              display: "block",
+              fontFamily: "Arial",
+              fontSize: "16px",
+              fontWeight: "400",
+              gap: "0px",
+              height: "20px",
+              justifyContent: "normal",
+              letterSpacing: "0px",
+              lineHeight: "20px",
+              margin: "0px",
+              maxWidth: "none",
+              opacity: "1",
+              padding: "0px",
+              position: "static",
+              textAlign: "left",
+              visibility: "visible",
+              width: "100px",
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  const fontTrigger = page.locator('button[aria-haspopup="listbox"]:not([disabled])').first();
+  await expect(fontTrigger).toBeVisible();
+  await fontTrigger.click();
+
+  const fontList = page.getByRole("listbox", { name: "Fonts" });
+  await expect(fontList).toBeVisible();
+  await page.getByText("Visual edits").click();
+  await expect(fontList).toHaveCount(0);
+});

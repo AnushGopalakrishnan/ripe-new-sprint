@@ -30,7 +30,7 @@ import {
   type LucideIcon,
   Redo2,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/editor-ui/badge";
 import { Button } from "@/components/editor-ui/button";
@@ -964,20 +964,23 @@ function FontFamilyInput({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement>(null);
   const selectedFamily = firstFontFamily(value);
   const displayFamily = selectedFamily || "Unset";
 
-  function openFontList() {
-    if (disabled) return;
-    const nextOpen = !open;
-    setOpen(nextOpen);
-    if (nextOpen && fontAccessState === "idle") onLoadSystemFonts();
-    if (!nextOpen) onRestorePreview();
-  }
-
-  function closeFontList() {
+  const closeFontList = useCallback(() => {
     setOpen(false);
     onRestorePreview();
+  }, [onRestorePreview]);
+
+  function openFontList() {
+    if (disabled) return;
+    if (open) {
+      closeFontList();
+      return;
+    }
+    setOpen(true);
+    if (fontAccessState === "idle") onLoadSystemFonts();
   }
 
   function selectFont(family: string) {
@@ -985,8 +988,26 @@ function FontFamilyInput({
     setOpen(false);
   }
 
+  useEffect(() => {
+    if (!open) return;
+
+    function closeIfOutside(event: PointerEvent | FocusEvent) {
+      const root = switcherRef.current;
+      const target = event.target instanceof Node ? event.target : null;
+      if (!root || !target || root.contains(target)) return;
+      closeFontList();
+    }
+
+    document.addEventListener("pointerdown", closeIfOutside, true);
+    document.addEventListener("focusin", closeIfOutside, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeIfOutside, true);
+      document.removeEventListener("focusin", closeIfOutside, true);
+    };
+  }, [open, closeFontList]);
+
   return (
-    <div className={styles.fontSwitcher}>
+    <div className={styles.fontSwitcher} ref={switcherRef}>
       <button
         id={id}
         type="button"
