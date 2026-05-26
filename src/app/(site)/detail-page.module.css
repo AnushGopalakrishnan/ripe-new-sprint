@@ -477,6 +477,10 @@
   gap: var(--layout-gap, 20px);
 }
 
+.formaLayoutBlock[data-layout-has-span="true"] {
+  width: 100%;
+}
+
 .formaLayoutRow {
   display: grid;
   gap: var(--layout-gap, 20px);
@@ -737,6 +741,18 @@
     aspect-ratio: auto !important;
     height: auto !important;
     grid-template-columns: 1fr !important;
+  }
+
+  .formaLayoutBlock[data-layout-has-span="true"] {
+    aspect-ratio: auto !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: none !important;
+  }
+
+  .formaLayoutBlock[data-layout-has-span="true"] .formaLayoutCell {
+    aspect-ratio: var(--layout-cell-ratio, 16 / 9) !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
   }
 
   .formaLayoutCell {
