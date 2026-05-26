@@ -1000,20 +1000,13 @@
     grid-column: 1;
   }
 
-  .grid[data-layout="alternating"] {
+  .grid[data-layout="alternating"],
+  .grid[data-layout="alternating"][data-view="grid"] {
     grid-template-columns: 1fr;
   }
 
   .grid[data-layout="alternating"][data-view="grid"] .card:nth-child(n + 5) {
     margin-top: 0;
-  }
-
-  .grid[data-layout="alternating"] .media {
-    aspect-ratio: auto;
-  }
-
-  .grid[data-layout="alternating"] .image {
-    height: auto;
   }
 
   .title {

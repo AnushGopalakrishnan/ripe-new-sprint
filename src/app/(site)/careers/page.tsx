@@ -14,25 +14,25 @@ const filmstripMedia = [
   {
     kind: "image" as const,
     className: "frameWide",
-    src: "https://framerusercontent.com/images/0uYYwg4l5TY9BEyVeJEXDz5tImw.jpeg",
+    src: "/careers-media/filmstrip-1.jpeg",
     alt: "Filmstrip frame one",
   },
   {
     kind: "image" as const,
     className: "frameTall",
-    src: "https://framerusercontent.com/images/cES5Gh7X59Uy7dJCWMtC4IpBg.jpeg?scale-down-to=1024",
+    src: "/careers-media/filmstrip-2.jpeg",
     alt: "Filmstrip frame two",
   },
   {
     kind: "video" as const,
     className: "frameWide",
-    src: "https://framerusercontent.com/assets/cDCCFF66pO8EHGxFXIzo4l3wBU.mp4",
+    src: "/careers-media/filmstrip-motion.mp4",
     alt: "Filmstrip motion frame",
   },
   {
     kind: "image" as const,
     className: "frameSquare",
-    src: "https://framerusercontent.com/images/yhyOWviPLkr2WrX0EQdNiczqkqA.jpeg?scale-down-to=1024",
+    src: "/careers-media/filmstrip-4.jpeg",
     alt: "Filmstrip frame four",
   },
 ];
@@ -62,13 +62,13 @@ const fallbackFounders = [
     name: "Rahul Kashyap",
     role: "Founder, CEO",
     photo:
-      "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=600&q=80",
+      "/team-media/fallback-founder-rahul.jpg",
   },
   {
     name: "Sachin Bhatt",
     role: "Creative Director",
     photo:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
+      "/team-media/fallback-founder-sachin.jpg",
   },
 ];
 
@@ -139,22 +139,22 @@ export default async function CareersPage() {
           <div className={styles.trustRow}>
             <div className={styles.avatarStack} aria-hidden="true">
               <img
-                src="https://framerusercontent.com/images/gs1x8JrxseuqS7uJ4pK7s8lzs.jpg?width=400&height=400"
+                src="/careers-media/avatar-1.jpg"
                 alt=""
                 loading="lazy"
               />
               <img
-                src="https://framerusercontent.com/images/JPcQKZLJYrN43bpXiM9I37IK4E.jpg?width=400&height=400"
+                src="/careers-media/avatar-2.jpg"
                 alt=""
                 loading="lazy"
               />
               <img
-                src="https://framerusercontent.com/images/ojDJ2tp6DExX90gk5XwoaGDCutc.jpg?width=400&height=400"
+                src="/careers-media/avatar-3.jpg"
                 alt=""
                 loading="lazy"
               />
               <img
-                src="https://framerusercontent.com/images/PdCMf04RmRPAbpHAoPA1mSLM.jpg?width=400&height=400"
+                src="/careers-media/avatar-4.jpg"
                 alt=""
                 loading="lazy"
               />
@@ -205,7 +205,7 @@ export default async function CareersPage() {
 
         <figure className={styles.groupPhoto}>
           <img
-            src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1800&q=80"
+            src="/careers-media/group-photo.jpg"
             alt="Studio team group portrait"
             loading="lazy"
           />

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./careers-mosaic.module.css";
 
@@ -99,12 +100,12 @@ export default function CareersMosaic() {
               We bring brands to life with bold design and innovative storytelling. From striking visuals to immersive
               experiences, we turn ideas into realities.
             </p>
-            <a href="/">Read more</a>
+            <Link href="/">Read more</Link>
           </article>
 
           <article className={`${styles.card} ${styles.cardTestimonial}`}>
             <PulseLabel label="Testimonials" light />
-            <blockquote>"{activeTestimonial.quote}"</blockquote>
+            <blockquote>&ldquo;{activeTestimonial.quote}&rdquo;</blockquote>
             <p className={styles.testimonialAuthor}>{activeTestimonial.name}</p>
             <p className={styles.testimonialRole}>{activeTestimonial.role}</p>
             <div className={styles.dots} role="tablist" aria-label="Testimonials">
@@ -124,7 +125,7 @@ export default function CareersMosaic() {
         <div className={styles.columnCenter}>
           <article className={`${styles.card} ${styles.cardImageTall}`}>
             <PulseLabel label="About" meta="(TEAM)" />
-            <img src="https://framerusercontent.com/images/wXUGizpVpVC9XTzrkj7CAtDvo.jpg" alt="Studio team portrait" />
+            <img src="/careers-media/mosaic-team.jpg" alt="Studio team portrait" />
             <div className={styles.hoverTitle}>Who we are?</div>
             <span className={styles.hoverArrow} aria-hidden="true">-&gt;</span>
           </article>
@@ -156,7 +157,7 @@ export default function CareersMosaic() {
 
           <article className={`${styles.card} ${styles.cardImageTall}`}>
             <PulseLabel label="Work" meta="(BRANDING)" />
-            <img src="https://framerusercontent.com/images/TRRkZ59QIQkwMstpMclqTInKN8.jpg" alt="Girl dancing in the streets" />
+            <img src="/careers-media/mosaic-work.jpg" alt="Girl dancing in the streets" />
             <div className={styles.hoverTitle}>Design Freaks</div>
             <span className={styles.hoverArrow} aria-hidden="true">-&gt;</span>
           </article>
@@ -166,15 +167,15 @@ export default function CareersMosaic() {
       <div className={styles.gridBottom}>
         <article className={`${styles.card} ${styles.cardBlog}`}>
           <PulseLabel label="Blog" meta="10/30/24" light />
-          <img src="https://framerusercontent.com/images/K6bq3sIitTUp4uwdU4WB02MOvg.jpg" alt="Old library with books" />
+          <img src="/careers-media/mosaic-blog-1.jpg" alt="Old library with books" />
         </article>
         <article className={`${styles.card} ${styles.cardBlog}`}>
           <PulseLabel label="Blog" meta="10/20/24" light />
-          <img src="https://framerusercontent.com/images/UC0IPfYL7heHq9vGVLrwYcQrjY.jpg" alt="Asian woman photoshoot" />
+          <img src="/careers-media/mosaic-blog-2.jpg" alt="Asian woman photoshoot" />
         </article>
         <article className={`${styles.card} ${styles.cardBlog}`}>
           <PulseLabel label="Blog" meta="10/10/24" light />
-          <img src="https://framerusercontent.com/images/xI3k0uWD8NEIrdVumHCqwwTwM4.jpg" alt="Young woman in a tram" />
+          <img src="/careers-media/mosaic-blog-3.jpg" alt="Young woman in a tram" />
         </article>
       </div>
     </section>

@@ -7,7 +7,7 @@ type TeamMemberPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-const PLACEHOLDER_IMAGE = "https://cdn.prod.website-files.com/plugins/Basic/assets/placeholder.60f9b1840c.svg";
+const PLACEHOLDER_IMAGE = "/team-media/placeholder.svg";
 export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {

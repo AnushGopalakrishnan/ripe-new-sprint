@@ -1,10 +1,10 @@
 import parse from "html-react-parser";
 import { HomeCopyFeed } from "@/components/home-copy-feed";
-import { NativeRouteDocument } from "@/components/native-route-document";
-import { NativeRouteRuntime } from "@/components/native-route-runtime";
+import { RipeNativeShell } from "@/components/ripe-native-shell";
+import { prepareHomeFirstPaintDocument } from "@/lib/home-first-paint";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument, type NativeMirrorDocument } from "@/lib/native-mirror";
-import { prepareHomeFirstPaintDocument } from "@/lib/home-first-paint";
+import { getMirrorContentWithoutShell } from "@/lib/ripe-native-shell";
 import { withRipeLoaderStyles } from "@/lib/ripe-loader-styles";
 import { prepareStaticMirrorDocument } from "@/lib/static-mirror-document";
 
@@ -25,25 +25,26 @@ export default async function HomeCopyPage() {
   const nextDocument = prepareStaticMirrorDocument(
     prepareHomeFirstPaintDocument(withRipeLoaderStyles({ ...document, title })),
   );
-  const split = splitHomeFeed(nextDocument);
-
-  if (!split) {
-    return <NativeRouteDocument document={nextDocument} executeScripts={false} webflowRuntime={false} />;
-  }
+  const contentDocument = {
+    ...nextDocument,
+    bodyMarkup: getMirrorContentWithoutShell(nextDocument),
+  };
+  const split = splitHomeFeed(contentDocument);
 
   return (
     <>
-      <NativeRouteRuntime
-        bodyAttributes={nextDocument.bodyAttributes}
-        executeScripts={false}
-        htmlAttributes={nextDocument.htmlAttributes}
-        sourceRoute={nextDocument.sourceRoute}
-        webflowRuntime={false}
-      />
       {parse(nextDocument.headMarkup)}
-      {parse(split.before)}
-      <HomeCopyFeed />
-      {parse(split.after)}
+      <RipeNativeShell bodyAttributes={nextDocument.bodyAttributes}>
+        {split ? (
+          <>
+            {parse(split.before)}
+            <HomeCopyFeed />
+            {parse(split.after)}
+          </>
+        ) : (
+          parse(contentDocument.bodyMarkup)
+        )}
+      </RipeNativeShell>
     </>
   );
 }

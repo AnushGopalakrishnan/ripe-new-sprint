@@ -1,3 +1,18 @@
+@font-face {
+  font-family: "Switzer";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/fonts/home-feed-sans.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Switzer";
+  font-display: swap;
+  font-style: normal;
+  font-weight: 500;
+  src: url("/fonts/detail-sans-medium.woff2") format("woff2");
+}
+
 .formaPage {
   background: #ffffff;
   color: #000000;

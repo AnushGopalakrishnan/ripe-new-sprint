@@ -9,7 +9,6 @@
   var HOVER_CLEAR_DELAY = 60;
   var FILTER_RENDER_DEBOUNCE = 220;
   var FILTER_ACTIVE_CLASS = 'writing-feed-filter-active';
-  var FINSWEET_ATTRIBUTES_SRC = 'https://cdn.jsdelivr.net/npm/@finsweet/attributes@2/attributes.js';
   var FILTER_EXIT_DURATION = 180;
   var FILTER_ENTRY_DURATION = 500;
   var FILTER_ENTRY_STAGGER = 30;
@@ -805,24 +804,8 @@
   }
 
   function ensureFinsweetLoaded() {
-    if (document.querySelector('script[src="' + FINSWEET_ATTRIBUTES_SRC + '"][fs-list]')) {
-      return Promise.resolve();
-    }
-
     window.fsAttributes = window.fsAttributes || [];
-
-    return new Promise(function (resolve, reject) {
-      var script = document.createElement('script');
-      script.src = FINSWEET_ATTRIBUTES_SRC;
-      script.type = 'module';
-      script.async = true;
-      script.setAttribute('fs-list', '');
-      script.onload = resolve;
-      script.onerror = function () {
-        reject(new Error('Failed to load Finsweet Attributes runtime.'));
-      };
-      document.head.appendChild(script);
-    });
+    return Promise.resolve();
   }
 
   function setupHoverEffects() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RipeHeadAssets } from "@/components/ripe-head-assets";
 import { defaultMetadata } from "@/lib/metadata";
 import "./globals.css";
 
@@ -12,17 +13,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="preload" href="/fonts/PlantinMTProLight.TTF" as="font" type="font/ttf" crossOrigin="" />
-        <link rel="preload" href="/fonts/GraphikRegular.otf" as="font" type="font/otf" crossOrigin="" />
-        <link rel="preload" href="/fonts/ChivoMono-Regular.ttf" as="font" type="font/ttf" crossOrigin="" />
-        <link rel="preconnect" href="https://cdn.sanity.io" crossOrigin="" />
-        <link rel="dns-prefetch" href="https://cdn.sanity.io" />
-        <link rel="preconnect" href="https://cdn.prod.website-files.com" />
-        <link rel="dns-prefetch" href="https://cdn.prod.website-files.com" />
-        <link rel="preconnect" href="https://framerusercontent.com" crossOrigin="" />
-        <link rel="dns-prefetch" href="https://framerusercontent.com" />
-        <link rel="preconnect" href="https://ena-supply.b-cdn.net" />
-        <link rel="dns-prefetch" href="https://ena-supply.b-cdn.net" />
+        <RipeHeadAssets />
       </head>
       <body suppressHydrationWarning>{children}</body>
     </html>

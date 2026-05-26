@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
 import path from "node:path";
 import { workJournalItems } from "@/data/work-journal";
 import { bridgeScript } from "@/lib/editor/bridge-source";
@@ -199,6 +200,39 @@ function rewriteRemoteWebflowAssets(html: string) {
   return nextHtml;
 }
 
+const remoteScriptTagPattern =
+  /<script\b(?=[^>]*\bsrc=["']https?:\/\/)[\s\S]*?<\/script>/gi;
+const remoteLinkTagPattern = /<link\b(?=[^>]*\bhref=["']https?:\/\/)[^>]*>/gi;
+const websiteFilesMediaUrlPattern =
+  /https:\/\/cdn\.prod\.website-files\.com\/[^"'\s)<>]+(?:\.(?:png|jpe?g|webp|avif|svg|gif|mp4)|\/png)(?:\?[^"'\s)<>]*)?/gi;
+const showreelScalingVideoUrl =
+  "https://osmo.b-cdn.net/resource-media/scaling-element-resource-185787-876545918_tiny.mp4";
+const localShowreelScalingVideoPath =
+  "/mirror-media/scaling-element-resource-185787-876545918_tiny.mp4";
+
+function localWebsiteFilesMediaPath(remoteUrl: string) {
+  const cleanUrl = remoteUrl.replace(/&quot;.*/, "");
+  const url = new URL(cleanUrl);
+  let extension = path.extname(url.pathname).toLowerCase();
+
+  if (!extension && url.pathname.endsWith("/png")) {
+    extension = ".png";
+  }
+
+  const hash = crypto.createHash("sha1").update(cleanUrl).digest("hex").slice(0, 16);
+  return `/__mirror/images/remote/${hash}${extension || ".bin"}`;
+}
+
+function rewriteWebsiteFilesMedia(html: string) {
+  return html
+    .replace(websiteFilesMediaUrlPattern, (remoteUrl) => localWebsiteFilesMediaPath(remoteUrl))
+    .replaceAll(showreelScalingVideoUrl, localShowreelScalingVideoPath);
+}
+
+function stripRemoteRuntimeTags(html: string) {
+  return html.replace(remoteScriptTagPattern, "").replace(remoteLinkTagPattern, "");
+}
+
 function rewriteVendorPaths(source: string) {
   return source
     .replaceAll('"/vendor/', '"/__mirror/vendor/')
@@ -239,7 +273,11 @@ export function rewriteMirrorHtml(html: string) {
     injectMirrorStyles(
       stripLocalIntegrity(
         rewriteVendorPaths(
-          rewriteRemoteWebflowAssets(rewriteExportRelativeAssets(rewriteInternalAnchors(html))),
+          stripRemoteRuntimeTags(
+            rewriteWebsiteFilesMedia(
+              rewriteRemoteWebflowAssets(rewriteExportRelativeAssets(rewriteInternalAnchors(html))),
+            ),
+          ),
         ),
       ),
     ),

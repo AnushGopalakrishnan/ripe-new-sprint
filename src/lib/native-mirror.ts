@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import crypto from "node:crypto";
 import path from "node:path";
 
 const siteRoot = path.join(/* turbopackIgnore: true */ process.cwd(), "site");
@@ -21,6 +22,29 @@ const canonicalRedirects = new Map<string, string>([
   ["/archive/careers", "/careers"],
   ["/archive/work", "/work"],
 ]);
+
+const remoteScriptTagPattern =
+  /<script\b(?=[^>]*\bsrc=["']https?:\/\/)[\s\S]*?<\/script>/gi;
+const remoteLinkTagPattern = /<link\b(?=[^>]*\bhref=["']https?:\/\/)[^>]*>/gi;
+const websiteFilesMediaUrlPattern =
+  /https:\/\/cdn\.prod\.website-files\.com\/[^"'\s)<>]+(?:\.(?:png|jpe?g|webp|avif|svg|gif|mp4)|\/png)(?:\?[^"'\s)<>]*)?/gi;
+const showreelScalingVideoUrl =
+  "https://osmo.b-cdn.net/resource-media/scaling-element-resource-185787-876545918_tiny.mp4";
+const localShowreelScalingVideoPath =
+  "/mirror-media/scaling-element-resource-185787-876545918_tiny.mp4";
+
+function localWebsiteFilesMediaPath(remoteUrl: string) {
+  const cleanUrl = remoteUrl.replace(/&quot;.*/, "");
+  const url = new URL(cleanUrl);
+  let extension = path.extname(url.pathname).toLowerCase();
+
+  if (!extension && url.pathname.endsWith("/png")) {
+    extension = ".png";
+  }
+
+  const hash = crypto.createHash("sha1").update(cleanUrl).digest("hex").slice(0, 16);
+  return `/images/remote/${hash}${extension || ".bin"}`;
+}
 
 function encodeScriptContent(content: string) {
   return Buffer.from(content, "utf8").toString("base64");
@@ -99,13 +123,6 @@ function rewriteLocalAssetUrls(html: string) {
     /https:\/\/cdn\.prod\.website-files\.com\/[^"']*RIPE%20WEBCLIP\.svg/g,
     "/images/webclip.svg",
   );
-  next = next.replaceAll("https://ripe-studios.netlify.app/loader.js", "/vendor/loader.js");
-  next = next.replaceAll("https://assets.slater.app/slater/18806.js?v=1.0", "/vendor/slater-18806.js");
-  next = next.replaceAll("https://slater.app/18806.js", "/vendor/slater-18806.js");
-  next = next.replaceAll("https://vxmgyv.csb.app/src/style.css", "/vendor/vxmgyv-style.css");
-  next = next.replaceAll("https://vxmgyv.csb.app/src/index.js", "/vendor/vxmgyv-index.js");
-  next = next.replaceAll("https://vxmgyv.csb.app/src/bunnjs.js", "/vendor/vxmgyv-bunnjs.js");
-
   next = next.replace(
     /<script[^>]+src="https:\/\/cdn\.prod\.website-files\.com\/[^"]+\/js\/webflow[^"]+\.js"[^>]*><\/script>/g,
     '<script src="/js/webflow.js" type="text/javascript"></script>',
@@ -114,6 +131,11 @@ function rewriteLocalAssetUrls(html: string) {
     /(?:<script src="\/js\/webflow\.js" type="text\/javascript"><\/script>\s*){2,}/g,
     '<script src="/js/webflow.js" type="text/javascript"></script>',
   );
+  next = next.replace(websiteFilesMediaUrlPattern, (remoteUrl) =>
+    localWebsiteFilesMediaPath(remoteUrl),
+  );
+  next = next.replaceAll(showreelScalingVideoUrl, localShowreelScalingVideoPath);
+  next = next.replace(remoteScriptTagPattern, "").replace(remoteLinkTagPattern, "");
 
   next = next.replace(
     /\s(href|src)=["'](?:\.\.\/)+(css|fonts|images|js)\/([^"']+)["']/g,

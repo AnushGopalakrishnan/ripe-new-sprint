@@ -2287,8 +2287,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       window.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  // Keep the global shortcut listener synchronized with the live editor state.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Undo/redo handlers intentionally read the current editor state listed below.
   }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
@@ -2340,8 +2339,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  // Keep bridge commands synchronized with the same live state used by undo/redo snapshots.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
   }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {

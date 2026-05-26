@@ -11,7 +11,7 @@ type TeamPageClientProps = {
   roles: JobPosting[];
 };
 
-const PLACEHOLDER_IMAGE = "https://cdn.prod.website-files.com/plugins/Basic/assets/placeholder.60f9b1840c.svg";
+const PLACEHOLDER_IMAGE = "/team-media/placeholder.svg";
 const GROUP_ORDER = ["Leadership", "Brand", "Motion", "Web", "Operations"];
 
 function normalizeGroup(value: string | undefined) {
