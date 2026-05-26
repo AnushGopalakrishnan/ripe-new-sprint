@@ -316,10 +316,19 @@
 }
 
 .numericLeadingIcon {
+  align-items: center;
   cursor: ns-resize;
+  display: flex;
   flex: 0 0 auto;
-  padding-left: 8px;
-  padding-right: 2px;
+  justify-content: center;
+  padding-left: 7px;
+  padding-right: 1px;
+}
+
+.numericLeadingIcon svg {
+  height: 14px;
+  stroke-width: 1.75;
+  width: 14px;
 }
 
 .numericUnit {
@@ -413,67 +422,24 @@
 }
 
 .boxSpacingToggle svg {
-  height: 16px;
-  width: 16px;
+  height: 14px;
+  stroke-width: 1.75;
+  width: 14px;
 }
 
 .boxSpacingSideLabel {
   align-items: center;
-  border: 1.5px solid currentColor;
+  border: 1.25px solid currentColor;
   border-radius: 4px;
   color: color-mix(in oklch, var(--muted-foreground) 82%, transparent);
   display: flex;
-  font-size: 10px;
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
-  height: 20px;
+  height: 18px;
   justify-content: center;
   line-height: 1;
   text-transform: uppercase;
-  width: 20px;
-}
-
-.spacingAxisIcon {
-  border: 1.5px solid currentColor;
-  border-radius: 4px;
-  color: color-mix(in oklch, var(--muted-foreground) 82%, transparent);
-  display: block;
-  height: 20px;
-  position: relative;
-  width: 20px;
-}
-
-.spacingAxisIcon::before,
-.spacingAxisIcon::after {
-  background: currentColor;
-  content: "";
-  left: 50%;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.spacingAxisIcon[data-axis="horizontal"]::before {
-  height: 10px;
-  width: 1.5px;
-}
-
-.spacingAxisIcon[data-axis="horizontal"]::after {
-  box-shadow: 7px 0 0 currentColor;
-  height: 10px;
-  transform: translate(calc(-50% - 7px), -50%);
-  width: 1.5px;
-}
-
-.spacingAxisIcon[data-axis="vertical"]::before {
-  height: 1.5px;
-  width: 10px;
-}
-
-.spacingAxisIcon[data-axis="vertical"]::after {
-  box-shadow: 0 7px 0 currentColor;
-  height: 1.5px;
-  transform: translate(-50%, calc(-50% - 7px));
-  width: 10px;
+  width: 18px;
 }
 
 .fontSwitcher {

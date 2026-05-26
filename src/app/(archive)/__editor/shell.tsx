@@ -13,6 +13,8 @@ import {
   Maximize2,
   Minimize2,
   Monitor,
+  MoveHorizontal,
+  MoveVertical,
   MousePointer2,
   PanelRightClose,
   PanelRightOpen,
@@ -1263,7 +1265,7 @@ function BoxSpacingInput({
             step={step}
             min={min}
             max={max}
-            leadingIcon={<span className={styles.spacingAxisIcon} data-axis="horizontal" aria-hidden="true" />}
+            leadingIcon={<MoveHorizontal aria-hidden="true" />}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue) => updatePair([1, 3], nextValue)}
           />
@@ -1279,7 +1281,7 @@ function BoxSpacingInput({
             step={step}
             min={min}
             max={max}
-            leadingIcon={<span className={styles.spacingAxisIcon} data-axis="vertical" aria-hidden="true" />}
+            leadingIcon={<MoveVertical aria-hidden="true" />}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue) => updatePair([0, 2], nextValue)}
           />
@@ -1434,8 +1436,7 @@ function NumericStyleInput({
     const parsedConvertedValue = convertedValue ? parseNumericCssValue(convertedValue) : null;
     if (parsedConvertedValue) {
       const clamped = clampNumber(parsedConvertedValue.numberValue, min, max);
-      const nextNumberText =
-        clamped === parsedConvertedValue.numberValue ? parsedConvertedValue.numberText : formatCssNumber(clamped);
+      const nextNumberText = formatCssNumber(clamped);
       setDraftNumber(nextNumberText);
       onChange(`${nextNumberText}${parsedConvertedValue.unit}`);
       return;
