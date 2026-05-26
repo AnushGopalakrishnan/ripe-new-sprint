@@ -49,13 +49,25 @@ export const bridgeScript = String.raw`
     );
   }
 
+  function editableControlFor(element) {
+    const control = element && element.closest("input, textarea, select, option, [contenteditable='true'], [contenteditable='']");
+    if (!control) return null;
+    if (control.tagName && control.tagName.toLowerCase() === "option") return control.closest("select") || control;
+    return control;
+  }
+
   function inspectableControlFor(element) {
-    return element.closest("button, a[href], [role='button']");
+    return element.closest("button, a[href], [role='button'], input, textarea, select, [contenteditable='true'], [contenteditable='']");
   }
 
   function selectableElementFrom(target) {
     const element = target instanceof Element ? target : null;
-    if (!element || element.closest("[data-ripe-editor-box]") || isEditableControl(element)) return null;
+    if (!element || element.closest("[data-ripe-editor-box]")) return null;
+
+    const editableControl = editableControlFor(element);
+    if (editableControl && editableControl !== document.body && editableControl !== document.documentElement) {
+      return editableControl;
+    }
 
     const control = inspectableControlFor(element);
     if (control && control !== document.body && control !== document.documentElement) return control;
@@ -79,23 +91,41 @@ export const bridgeScript = String.raw`
   }
 
   function selectorFor(element) {
-    if (element.id) return "#" + cssEscape(element.id);
+    function isUnique(selector) {
+      try {
+        const matches = document.querySelectorAll(selector);
+        return matches.length === 1 && matches[0] === element;
+      } catch {
+        return false;
+      }
+    }
+
+    if (element.id) {
+      const byId = "#" + cssEscape(element.id);
+      if (isUnique(byId)) return byId;
+    }
 
     const attrs = ["data-w-id", "data-wf--navbar--variant", "data-site-theme", "aria-label"];
     for (const attr of attrs) {
       const value = element.getAttribute(attr);
-      if (value) return element.tagName.toLowerCase() + "[" + attr + "='" + String(value).replace(/'/g, "\\\\'") + "']";
+      if (value) {
+        const selector = element.tagName.toLowerCase() + "[" + attr + "='" + String(value).replace(/'/g, "\\\\'") + "']";
+        if (isUnique(selector)) return selector;
+      }
     }
 
     const parts = [];
     let node = element;
-    while (node && node.nodeType === 1 && parts.length < 4 && node !== document.body) {
+    let fallback = "";
+    while (node && node.nodeType === 1 && node !== document.body) {
       const tag = node.tagName.toLowerCase();
       const className = Array.from(node.classList).filter(Boolean).slice(0, 3).map(cssEscape).join(".");
       parts.unshift(tag + (className ? "." + className : "") + ":nth-of-type(" + nthOfType(node) + ")");
+      fallback = parts.join(" > ");
+      if (isUnique(fallback)) return fallback;
       node = node.parentElement;
     }
-    return parts.join(" > ");
+    return fallback;
   }
 
   function targetFor(element) {
@@ -141,8 +171,7 @@ export const bridgeScript = String.raw`
         element instanceof Element &&
         element !== document.body &&
         element !== document.documentElement &&
-        !element.closest("[data-ripe-editor-box]") &&
-        !isEditableControl(element)
+        !element.closest("[data-ripe-editor-box]")
     );
   }
 
@@ -239,6 +268,15 @@ export const bridgeScript = String.raw`
 
   function selectionFor(element) {
     const computed = window.getComputedStyle(element);
+    const selector = selectorFor(element);
+    const editable = isEditableControl(element);
+    const textEditable =
+      !editable &&
+      !(element instanceof HTMLImageElement) &&
+      !(element instanceof HTMLPictureElement) &&
+      !(element instanceof HTMLVideoElement) &&
+      !(element instanceof SVGElement) &&
+      element.children.length === 0;
     const props = [
       "display",
       "position",
@@ -268,9 +306,22 @@ export const bridgeScript = String.raw`
     return {
       route: route(),
       target: targetFor(element),
-      text: element instanceof HTMLImageElement ? "" : (element.textContent || "").trim(),
+      text: textEditable ? (element.textContent || "").trim() : "",
       imageSrc: element instanceof HTMLImageElement ? element.currentSrc || element.src : "",
       computedStyles,
+      capabilities: {
+        canEditText: textEditable,
+        canEditImage: element instanceof HTMLImageElement,
+        isEditableControl: editable,
+        selectorUnique: (() => {
+          try {
+            const matches = document.querySelectorAll(selector);
+            return matches.length === 1 && matches[0] === element;
+          } catch {
+            return false;
+          }
+        })(),
+      },
     };
   }
 

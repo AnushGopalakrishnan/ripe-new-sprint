@@ -149,9 +149,12 @@ type EditorHistorySnapshot = {
 
 type StyleValueChangeOptions = {
   undo?: "push" | "skip";
+  commit?: "preview" | "commit" | "cancel";
+  transactionId?: string;
 };
 
 type StyleValueChange = (value: string, options?: StyleValueChangeOptions) => void;
+type EditorValueChange = (value: string, options?: StyleValueChangeOptions) => void;
 
 type LocalFontData = {
   family: string;
@@ -309,22 +312,6 @@ function sameTarget(left?: ElementTarget, right?: ElementTarget) {
   return Boolean(left && right && left.selector === right.selector && left.route === right.route);
 }
 
-function changedStyles(
-  base: Record<string, string>,
-  values: Record<string, string>,
-  viewport: ViewportName,
-) {
-  return Object.entries(values)
-    .filter(([property, value]) => value !== (base[property] ?? ""))
-    .map<StyleChange>(([property, value]) => ({
-      kind: "style",
-      property,
-      before: base[property] ?? "",
-      after: value,
-      viewport,
-    }));
-}
-
 function changedStyleProperties(base: Record<string, string>, values: Record<string, string>) {
   return Object.entries(values)
     .filter(([property, value]) => value !== (base[property] ?? ""))
@@ -399,7 +386,7 @@ function commonComputedStyles(selections: SelectionMetadata[]) {
 function fieldVisibleForSelections(field: FieldConfig, selections: SelectionMetadata[]) {
   if (selections.length === 0) return true;
   if (!textOnlyStyleProperties.has(field.property)) return true;
-  return selections.every(isTextCompatibleSelection);
+  return selections.every((selection) => selection.capabilities?.canEditText ?? isTextCompatibleSelection(selection));
 }
 
 const patchPropertyLabels: Record<string, string> = {
@@ -766,6 +753,7 @@ function StyleField({
   disabled,
   fontOptions,
   fontAccessState,
+  unitConversionDisabled,
   onLoadSystemFonts,
   onPreviewStyle,
   onRestorePreview,
@@ -777,6 +765,7 @@ function StyleField({
   disabled: boolean;
   fontOptions?: FontOption[];
   fontAccessState?: FontAccessState;
+  unitConversionDisabled?: boolean;
   onLoadSystemFonts?: () => void;
   onPreviewStyle?: (property: string, value: string) => void;
   onRestorePreview?: () => void;
@@ -835,6 +824,7 @@ function StyleField({
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
+          unitConversionDisabled={unitConversionDisabled ?? false}
           onConvertUnit={onConvertUnit}
           onChange={onChange}
         />
@@ -851,6 +841,7 @@ function StyleField({
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
+          unitConversionDisabled={unitConversionDisabled ?? false}
           onConvertUnit={onConvertUnit}
           onChange={onChange}
         />
@@ -886,17 +877,25 @@ function CssValueInput({
   disabled: boolean;
   onChange: StyleValueChange;
 }) {
+  const transactionIdRef = useRef(`css:${id}`);
   const [draftValue, setDraftValue] = useState(value);
   const invalid = Boolean(draftValue.trim()) && !isValidCssDeclaration(property, draftValue);
   const presets = ["unset", "inherit", "initial", "auto"];
 
   useEffect(() => {
+    // Keep the local draft input in sync when selection changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftValue(value);
   }, [value]);
 
   function commitValue(nextValue: string) {
     setDraftValue(nextValue);
-    if (isValidCssDeclaration(property, nextValue)) onChange(nextValue.trim());
+    if (isValidCssDeclaration(property, nextValue)) {
+      onChange(nextValue.trim(), {
+        commit: "preview",
+        transactionId: transactionIdRef.current,
+      });
+    }
   }
 
   return (
@@ -910,27 +909,50 @@ function CssValueInput({
         autoComplete="off"
         spellCheck={false}
         aria-invalid={invalid}
+        aria-describedby={invalid ? `${id}-error` : undefined}
         aria-label={`${label} CSS value`}
         onFocus={(event) => event.currentTarget.select()}
         onBlur={() => {
-          if (isValidCssDeclaration(property, draftValue)) onChange(draftValue.trim());
-          else setDraftValue(value);
+          if (isValidCssDeclaration(property, draftValue)) {
+            onChange(draftValue.trim(), {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
+          } else {
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
+            setDraftValue(value);
+          }
         }}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== "Escape") return;
           event.preventDefault();
           if (event.key === "Escape") {
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
             setDraftValue(value);
             event.currentTarget.blur();
             return;
           }
           if (isValidCssDeclaration(property, draftValue)) {
-            onChange(draftValue.trim());
+            onChange(draftValue.trim(), {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
             event.currentTarget.blur();
           }
         }}
         onChange={(event) => commitValue(event.target.value)}
       />
+      {invalid ? (
+        <span className={styles.fieldError} id={`${id}-error`}>
+          Unsupported {label.toLowerCase()} value
+        </span>
+      ) : null}
       <div className={styles.cssValuePresets} aria-label={`${label} CSS presets`}>
         {presets.map((preset) => (
           <button
@@ -938,7 +960,10 @@ function CssValueInput({
             disabled={disabled}
             className={styles.cssValuePreset}
             key={preset}
-            onClick={() => commitValue(preset)}
+            onClick={() => {
+              setDraftValue(preset);
+              onChange(preset);
+            }}
           >
             {preset}
           </button>
@@ -971,6 +996,7 @@ function FontFamilyInput({
 }) {
   const [open, setOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
+  const fontMenuRef = useRef<HTMLDivElement>(null);
   const selectedFamily = firstFontFamily(value);
   const displayFamily = selectedFamily || "Unset";
 
@@ -987,6 +1013,13 @@ function FontFamilyInput({
     }
     setOpen(true);
     if (fontAccessState === "idle") onLoadSystemFonts();
+  }
+
+  function focusFontOption(index: number) {
+    const menu = fontMenuRef.current;
+    if (!menu) return;
+    const options = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="option"]'));
+    options[index]?.focus();
   }
 
   function selectFont(family: string) {
@@ -1023,9 +1056,20 @@ function FontFamilyInput({
         aria-expanded={open}
         onClick={openFontList}
         onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeFontList();
+            return;
+          }
+          if (event.key !== "ArrowDown" && event.key !== "Enter" && event.key !== " ") return;
           event.preventDefault();
-          closeFontList();
+          if (!open) {
+            setOpen(true);
+            if (fontAccessState === "idle") onLoadSystemFonts();
+            window.requestAnimationFrame(() => focusFontOption(0));
+            return;
+          }
+          focusFontOption(0);
         }}
       >
         <span className={styles.fontSwitcherValue} style={{ fontFamily: value || undefined }}>
@@ -1036,9 +1080,36 @@ function FontFamilyInput({
       {open ? (
         <div
           className={styles.fontMenu}
+          ref={fontMenuRef}
           role="listbox"
           aria-label="Fonts"
           onMouseLeave={onRestorePreview}
+          onKeyDown={(event) => {
+            const options = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'));
+            const currentIndex = options.findIndex((option) => option === document.activeElement);
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closeFontList();
+              return;
+            }
+            if (event.key === "Home") {
+              event.preventDefault();
+              options[0]?.focus();
+              return;
+            }
+            if (event.key === "End") {
+              event.preventDefault();
+              options.at(-1)?.focus();
+              return;
+            }
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex === -1
+              ? 0
+              : (currentIndex + direction + options.length) % options.length;
+            options[nextIndex]?.focus();
+          }}
         >
           <div className={styles.fontMenuStatus}>
             {fontAccessState === "loading"
@@ -1104,6 +1175,8 @@ function ColorStyleInput({
   disabled: boolean;
   onChange: StyleValueChange;
 }) {
+  const colorControlRef = useRef<HTMLDivElement>(null);
+  const transactionIdRef = useRef(`color:${id}`);
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(colorInputText(value));
   const pickerValue = cssColorToHex(value) ?? cssColorToHex(placeholder) ?? "#000000";
@@ -1111,13 +1184,36 @@ function ColorStyleInput({
   const invalid = Boolean(draftValue.trim()) && !isValidCssColor(draftValue);
 
   useEffect(() => {
+    // Keep the local draft input in sync when selection changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraftValue(colorInputText(value));
   }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function closeIfOutside(event: PointerEvent | FocusEvent) {
+      const root = colorControlRef.current;
+      const target = event.target instanceof Node ? event.target : null;
+      if (!root || !target || root.contains(target)) return;
+      setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeIfOutside, true);
+    document.addEventListener("focusin", closeIfOutside, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeIfOutside, true);
+      document.removeEventListener("focusin", closeIfOutside, true);
+    };
+  }, [open]);
 
   function commitColor(nextValue: string) {
     setDraftValue(nextValue);
     if (!nextValue.trim() || isValidCssColor(nextValue)) {
-      onChange(nextValue.trim());
+      onChange(nextValue.trim(), {
+        commit: "preview",
+        transactionId: transactionIdRef.current,
+      });
     }
   }
 
@@ -1127,7 +1223,14 @@ function ColorStyleInput({
   }
 
   return (
-    <div className={styles.colorControl}>
+    <div
+      className={styles.colorControl}
+      ref={colorControlRef}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        setOpen(false);
+      }}
+    >
       <button
         type="button"
         disabled={disabled}
@@ -1147,27 +1250,54 @@ function ColorStyleInput({
         autoComplete="off"
         spellCheck={false}
         aria-invalid={invalid}
+        aria-describedby={invalid ? `${id}-error` : undefined}
         onFocus={(event) => event.currentTarget.select()}
         onBlur={() => {
-          if (!draftValue.trim()) onChange("");
-          else if (isValidCssColor(draftValue)) onChange(draftValue.trim());
-          else setDraftValue(colorInputText(value));
+          if (!draftValue.trim()) {
+            onChange("", {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
+          } else if (isValidCssColor(draftValue)) {
+            onChange(draftValue.trim(), {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
+          } else {
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
+            setDraftValue(colorInputText(value));
+          }
         }}
         onKeyDown={(event) => {
           if (event.key !== "Enter" && event.key !== "Escape") return;
           event.preventDefault();
           if (event.key === "Escape") {
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
             setDraftValue(colorInputText(value));
             event.currentTarget.blur();
             return;
           }
           if (!draftValue.trim() || isValidCssColor(draftValue)) {
-            onChange(draftValue.trim());
+            onChange(draftValue.trim(), {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
             event.currentTarget.blur();
           }
         }}
         onChange={(event) => commitColor(event.target.value)}
       />
+      {invalid ? (
+        <span className={styles.fieldError} id={`${id}-error`}>
+          Unsupported color value
+        </span>
+      ) : null}
       {open ? (
         <div className={styles.colorPopover}>
           <div className={styles.colorPickerRow}>
@@ -1215,6 +1345,7 @@ function BoxSpacingInput({
   min,
   max,
   disabled,
+  unitConversionDisabled,
   onConvertUnit,
   onChange,
 }: {
@@ -1229,6 +1360,7 @@ function BoxSpacingInput({
   min?: number;
   max?: number;
   disabled: boolean;
+  unitConversionDisabled: boolean;
   onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
   onChange: StyleValueChange;
 }) {
@@ -1293,6 +1425,7 @@ function BoxSpacingInput({
             min={min}
             max={max}
             leadingIcon={<MoveHorizontal aria-hidden="true" />}
+            unitConversionDisabled={unitConversionDisabled}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue, options) => updatePair([1, 3], nextValue, options)}
           />
@@ -1309,6 +1442,7 @@ function BoxSpacingInput({
             min={min}
             max={max}
             leadingIcon={<MoveVertical aria-hidden="true" />}
+            unitConversionDisabled={unitConversionDisabled}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue, options) => updatePair([0, 2], nextValue, options)}
           />
@@ -1341,6 +1475,7 @@ function BoxSpacingInput({
                 min={min}
                 max={max}
                 leadingIcon={<span className={styles.boxSpacingSideLabel}>{side.label}</span>}
+                unitConversionDisabled={unitConversionDisabled}
                 onConvertUnit={onConvertUnit}
                 onChange={(nextValue, options) => updateSide(index, nextValue, options)}
               />
@@ -1365,6 +1500,7 @@ function NumericStyleInput({
   max,
   disabled,
   leadingIcon,
+  unitConversionDisabled,
   onConvertUnit,
   onChange,
 }: {
@@ -1380,10 +1516,12 @@ function NumericStyleInput({
   max?: number;
   disabled: boolean;
   leadingIcon?: React.ReactNode;
+  unitConversionDisabled: boolean;
   onConvertUnit?: (conversion: NumericUnitConversion) => string | null;
   onChange: StyleValueChange;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const transactionIdRef = useRef(`numeric:${id}`);
   const [draftNumber, setDraftNumber] = useState("");
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -1400,10 +1538,16 @@ function NumericStyleInput({
     lastSteps: number;
     active: boolean;
     undoCaptured: boolean;
+    lastValue: string;
   } | null>(null);
+  const parsedDraft = parseNumericCssValue(draftNumber);
+  const draftHasUnsupportedUnit = Boolean(parsedDraft?.unit && normalizeCssUnit(parsedDraft.unit, supportedUnits) === null);
+  const invalid = Boolean(draftNumber.trim()) && (!parsedDraft || draftHasUnsupportedUnit);
 
   useEffect(() => {
     if (!focused && !dragging) {
+      // Keep the local draft input in sync when selection changes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraftNumber(parsedValue?.numberText ?? "");
     }
   }, [dragging, focused, parsedValue?.numberText]);
@@ -1413,24 +1557,34 @@ function NumericStyleInput({
     const nextText = formatCssNumber(clamped);
     setDraftNumber(nextText);
     onChange(`${nextText}${nextUnit}`, options);
+    return `${nextText}${nextUnit}`;
   }
 
   function updateByStep(direction: 1 | -1, multiplier = 1) {
     const baseValue = Number(draftNumber || parsedValue?.numberText || 0);
-    commitNumber(baseValue + direction * step * multiplier);
+    commitNumber(baseValue + direction * step * multiplier, unit, {
+      commit: "preview",
+      transactionId: transactionIdRef.current,
+    });
   }
 
-  function commitParsedInput(parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>) {
+  function commitParsedInput(
+    parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>,
+    mode: StyleValueChangeOptions["commit"] = "preview",
+  ) {
     const typedUnit = parsed.unit ? normalizeCssUnit(parsed.unit, supportedUnits) : unit;
     if (parsed.unit && typedUnit === null) {
-      setDraftNumber(parsed.numberText);
+      setDraftNumber(`${parsed.numberText}${parsed.unit}`);
       return;
     }
 
     const clamped = clampNumber(parsed.numberValue, min, max);
     const nextNumberText = formatCssNumber(clamped);
     setDraftNumber(nextNumberText);
-    onChange(`${nextNumberText}${typedUnit}`);
+    onChange(`${nextNumberText}${typedUnit}`, {
+      commit: mode,
+      transactionId: transactionIdRef.current,
+    });
   }
 
   function handleInputChange(nextValue: string) {
@@ -1445,14 +1599,17 @@ function NumericStyleInput({
     setDraftNumber(nextValue);
 
     if (!nextValue.trim()) {
-      onChange("");
+      onChange("", {
+        commit: "preview",
+        transactionId: transactionIdRef.current,
+      });
       return;
     }
   }
 
   function updateUnit(nextUnit: string) {
     const selectedUnit = nextUnit === unitlessSelectValue ? "" : nextUnit;
-    if (selectedUnit === unit) return;
+    if (selectedUnit === unit || unitConversionDisabled) return;
 
     const baseValue = Number(draftNumber || parsedValue?.numberText || parsedPlaceholder?.numberText || 0);
     const convertedValue = Number.isFinite(baseValue)
@@ -1492,23 +1649,40 @@ function NumericStyleInput({
       return;
     }
     if (!draftNumber.trim()) {
-      onChange("");
+      onChange("", {
+        commit: "commit",
+        transactionId: transactionIdRef.current,
+      });
       return;
     }
     const parsedDraft = parseNumericCssValue(draftNumber);
+    const unsupportedUnit = Boolean(parsedDraft?.unit && normalizeCssUnit(parsedDraft.unit, supportedUnits) === null);
     if (parsedDraft) {
-      commitParsedInput(parsedDraft);
+      if (unsupportedUnit) {
+        onChange(value, {
+          commit: "cancel",
+          transactionId: transactionIdRef.current,
+        });
+        setDraftNumber(parsedValue?.numberText ?? "");
+        return;
+      }
+      commitParsedInput(parsedDraft, "commit");
       return;
     }
+    onChange(value, {
+      commit: "cancel",
+      transactionId: transactionIdRef.current,
+    });
     setDraftNumber(parsedValue?.numberText ?? "");
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (disabled || event.button !== 0) return;
-    if ((event.target as HTMLElement).closest("button, select, option")) return;
+    if ((event.target as HTMLElement).closest("input, button, select, option")) return;
 
     skipNextBlurCommitRef.current = false;
     const startValue = Number(draftNumber || parsedValue?.numberText || 0);
+    const startUnit = unit;
     dragRef.current = {
       pointerId: event.pointerId,
       startY: event.clientY,
@@ -1516,6 +1690,7 @@ function NumericStyleInput({
       lastSteps: 0,
       active: false,
       undoCaptured: false,
+      lastValue: cssNumericValue(startValue, startUnit),
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -1535,9 +1710,11 @@ function NumericStyleInput({
     const steps = Math.trunc(deltaY / 4);
     if (steps === drag.lastSteps) return;
     drag.lastSteps = steps;
-    const undo = drag.undoCaptured ? "skip" : "push";
     drag.undoCaptured = true;
-    commitNumber(drag.startValue + steps * step * multiplier, unit, { undo });
+    drag.lastValue = commitNumber(drag.startValue + steps * step * multiplier, unit, {
+      commit: "preview",
+      transactionId: transactionIdRef.current,
+    });
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
@@ -1548,27 +1725,33 @@ function NumericStyleInput({
     event.currentTarget.releasePointerCapture(event.pointerId);
     setDragging(false);
     if (drag.undoCaptured) skipNextBlurCommitRef.current = true;
+    if (drag.undoCaptured) {
+      onChange(drag.lastValue, {
+        commit: "commit",
+        transactionId: transactionIdRef.current,
+      });
+    }
 
     inputRef.current?.focus();
     inputRef.current?.select();
   }
 
   return (
-    <InputGroup
+    <div className={styles.numericControl}>
+      <InputGroup
       className={styles.numericValueGroup}
       data-dragging={dragging ? true : undefined}
       data-disabled={disabled ? true : undefined}
+      data-invalid={invalid ? true : undefined}
       title="Drag up or down to adjust. Hold Shift for larger steps or Option for finer steps."
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      {leadingIcon ? (
-        <InputGroupAddon align="inline-start" className={styles.numericLeadingIcon}>
-          {leadingIcon}
-        </InputGroupAddon>
-      ) : null}
+      <InputGroupAddon align="inline-start" className={styles.numericLeadingIcon}>
+        {leadingIcon ?? <span className={styles.numericDragHandle} aria-hidden="true" />}
+      </InputGroupAddon>
       <InputGroupInput
         ref={inputRef}
         id={id}
@@ -1580,9 +1763,26 @@ function NumericStyleInput({
         autoComplete="off"
         spellCheck={false}
         aria-label={`${label} value`}
+        aria-invalid={invalid}
+        aria-describedby={invalid ? `${id}-error` : undefined}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            event.currentTarget.blur();
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
+            setDraftNumber(parsedValue?.numberText ?? "");
+            event.currentTarget.blur();
+            return;
+          }
           if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
           event.preventDefault();
           updateByStep(event.key === "ArrowUp" ? 1 : -1, event.shiftKey ? 10 : event.altKey ? 0.1 : 1);
@@ -1592,9 +1792,10 @@ function NumericStyleInput({
       <InputGroupAddon align="inline-end" className={styles.numericValueAddon}>
         {supportedUnits.length > 1 ? (
           <select
-            disabled={disabled}
+            disabled={disabled || unitConversionDisabled}
             className={styles.numericUnitSelect}
             aria-label={`${label} unit`}
+            title={unitConversionDisabled ? "Unit conversion is single-selection only" : undefined}
             value={unit || unitlessSelectValue}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}
@@ -1610,7 +1811,13 @@ function NumericStyleInput({
           <InputGroupText className={styles.numericUnit}>{unit}</InputGroupText>
         ) : null}
       </InputGroupAddon>
-    </InputGroup>
+      </InputGroup>
+      {invalid ? (
+        <span className={styles.fieldError} id={`${id}-error`}>
+          Use a number with {supportedUnits.map(unitLabel).join(", ")}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -1661,26 +1868,38 @@ function AssetSourceInput({
   id: string;
   value: string;
   disabled: boolean;
-  onChange: (value: string) => void;
+  onChange: EditorValueChange;
 }) {
+  const transactionIdRef = useRef(`asset:${id}`);
   const [draftValue, setDraftValue] = useState(value);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const invalid = Boolean(draftValue.trim()) && !isLikelyAssetSource(draftValue);
   const canPreview = Boolean(value.trim()) && isLikelyAssetSource(value);
+  const canActOnSource = canPreview && !invalid;
 
   useEffect(() => {
+    // Keep the local draft input in sync when selection changes.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setDraftValue(value);
+    setPreviewFailed(false);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value]);
 
   function commitValue(nextValue: string) {
     setDraftValue(nextValue);
-    if (isLikelyAssetSource(nextValue)) onChange(nextValue.trim());
+    if (isLikelyAssetSource(nextValue)) {
+      onChange(nextValue.trim(), {
+        commit: "preview",
+        transactionId: transactionIdRef.current,
+      });
+    }
   }
 
   return (
     <div className={styles.assetSourceControl}>
       <div className={styles.assetPreview} aria-hidden="true">
-        {canPreview ? (
-          <img src={value} alt="" onError={(event) => event.currentTarget.replaceChildren()} />
+        {canPreview && !previewFailed ? (
+          <img src={value} alt="" onError={() => setPreviewFailed(true)} />
         ) : (
           <ImageIcon />
         )}
@@ -1695,22 +1914,40 @@ function AssetSourceInput({
           autoComplete="off"
           spellCheck={false}
           aria-invalid={invalid}
+          aria-describedby={invalid ? `${id}-error` : undefined}
           aria-label="Image source"
           onFocus={(event) => event.currentTarget.select()}
           onBlur={() => {
-            if (isLikelyAssetSource(draftValue)) onChange(draftValue.trim());
-            else setDraftValue(value);
+            if (isLikelyAssetSource(draftValue)) {
+              onChange(draftValue.trim(), {
+                commit: "commit",
+                transactionId: transactionIdRef.current,
+              });
+            } else {
+              onChange(value, {
+                commit: "cancel",
+                transactionId: transactionIdRef.current,
+              });
+              setDraftValue(value);
+            }
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" && event.key !== "Escape") return;
             event.preventDefault();
             if (event.key === "Escape") {
+              onChange(value, {
+                commit: "cancel",
+                transactionId: transactionIdRef.current,
+              });
               setDraftValue(value);
               event.currentTarget.blur();
               return;
             }
             if (isLikelyAssetSource(draftValue)) {
-              onChange(draftValue.trim());
+              onChange(draftValue.trim(), {
+                commit: "commit",
+                transactionId: transactionIdRef.current,
+              });
               event.currentTarget.blur();
             }
           }}
@@ -1720,10 +1957,10 @@ function AssetSourceInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
-            disabled={disabled || !value.trim()}
+            disabled={disabled || !canActOnSource}
             aria-label="Open image source"
             onClick={() => {
-              if (value.trim()) window.open(value, "_blank", "noopener,noreferrer");
+              if (canActOnSource) window.open(value, "_blank", "noopener,noreferrer");
             }}
           >
             <Eye />
@@ -1731,14 +1968,22 @@ function AssetSourceInput({
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
-            disabled={disabled || !value.trim()}
+            disabled={disabled || !canActOnSource}
             aria-label="Clear image source"
-            onClick={() => commitValue("")}
+            onClick={() => {
+              setDraftValue("");
+              onChange("");
+            }}
           >
             <RotateCcw />
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
+      {invalid ? (
+        <span className={styles.fieldError} id={`${id}-error`}>
+          Use a relative path, data image, blob URL, or http URL
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -1756,8 +2001,9 @@ function SmartTextarea({
   value: string;
   placeholder: string;
   disabled: boolean;
-  onChange: (value: string) => void;
+  onChange: EditorValueChange;
 }) {
+  const transactionIdRef = useRef(`textarea:${id}`);
   const lineCount = value.length ? value.split(/\r\n|\r|\n/).length : 0;
   const describedBy = `${id}-meta`;
 
@@ -1771,11 +2017,34 @@ function SmartTextarea({
         className={styles.smartTextarea}
         aria-describedby={describedBy}
         spellCheck
-        onKeyDown={(event) => {
-          if (event.key === "Escape") event.currentTarget.blur();
-          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") event.currentTarget.blur();
+        onBlur={(event) => {
+          onChange(event.currentTarget.value, {
+            commit: "commit",
+            transactionId: transactionIdRef.current,
+          });
         }}
-        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onChange(value, {
+              commit: "cancel",
+              transactionId: transactionIdRef.current,
+            });
+            event.currentTarget.blur();
+          }
+          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+            event.preventDefault();
+            onChange(event.currentTarget.value, {
+              commit: "commit",
+              transactionId: transactionIdRef.current,
+            });
+            event.currentTarget.blur();
+          }
+        }}
+        onChange={(event) => onChange(event.target.value, {
+          commit: "preview",
+          transactionId: transactionIdRef.current,
+        })}
       />
       <div className={styles.smartTextareaMeta} id={describedBy}>
         <span>{value.length} chars</span>
@@ -1869,6 +2138,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [expandedPatchIds, setExpandedPatchIds] = useState<Set<string>>(() => new Set());
   const [systemFontFamilies, setSystemFontFamilies] = useState<string[]>([]);
   const [fontAccessState, setFontAccessState] = useState<FontAccessState>("idle");
+  const fieldTransactionSnapshotsRef = useRef<Map<string, EditorHistorySnapshot>>(new Map());
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
@@ -1880,8 +2150,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       : selection.target.textSnippet || selection.target.selector
     : "Select an element in the preview";
   const canEditContent = selections.length === 1;
-  const canEditTextContent = canEditContent && selections.every(isTextCompatibleSelection);
-  const canEditImageContent = canEditContent && selections.every(isImageSelection);
+  const canEditTextContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditText ?? isTextCompatibleSelection(selections[0]));
+  const canEditImageContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditImage ?? isImageSelection(selections[0]));
 
   const routeOptions = useMemo(() => {
     if (routes.some((candidate) => candidate.path === route)) return routes;
@@ -1910,10 +2180,32 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     };
   }
 
-  function pushUndoSnapshot() {
-    const snapshot = snapshotEditorState();
+  function pushUndoSnapshot(snapshot = snapshotEditorState()) {
     setUndoStack((current) => [...current.slice(-79), snapshot]);
     setRedoStack([]);
+  }
+
+  function beginFieldTransaction(transactionId?: string) {
+    if (!transactionId || fieldTransactionSnapshotsRef.current.has(transactionId)) return;
+    fieldTransactionSnapshotsRef.current.set(transactionId, snapshotEditorState());
+  }
+
+  function commitFieldTransaction(transactionId?: string) {
+    if (!transactionId) return false;
+    const snapshot = fieldTransactionSnapshotsRef.current.get(transactionId);
+    if (!snapshot) return false;
+    pushUndoSnapshot(snapshot);
+    fieldTransactionSnapshotsRef.current.delete(transactionId);
+    return true;
+  }
+
+  function cancelFieldTransaction(transactionId?: string) {
+    if (!transactionId) return false;
+    const snapshot = fieldTransactionSnapshotsRef.current.get(transactionId);
+    if (!snapshot) return false;
+    fieldTransactionSnapshotsRef.current.delete(transactionId);
+    applyHistorySnapshot(snapshot);
+    return true;
   }
 
   function reapplyPreviewPatches(nextPatches: EditorPatch[]) {
@@ -1995,6 +2287,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       window.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
+  // Keep the global shortcut listener synchronized with the live editor state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
@@ -2046,6 +2340,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
+  // Keep bridge commands synchronized with the same live state used by undo/redo snapshots.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
@@ -2139,7 +2435,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function convertSelectedUnit({ property, value, nextUnit }: NumericUnitConversion) {
-    if (!selection) return null;
+    if (!selection || selections.length !== 1) return null;
 
     const previewDocument = iframeRef.current?.contentDocument;
     if (!previewDocument) return null;
@@ -2156,6 +2452,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   function setRouteAndUrl(nextRoute: string) {
     const normalized = normalizePath(nextRoute);
+    fieldTransactionSnapshotsRef.current.clear();
     setRoute(normalized);
     setPatches(readDrafts(normalized));
     setSelection(null);
@@ -2296,29 +2593,72 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function setViewportAndCommit(nextViewport: ViewportName) {
-    pushUndoSnapshot();
     setViewport(nextViewport);
-    commitDraft({ nextViewport });
   }
 
   function updateStyle(property: string, value: string, options?: StyleValueChangeOptions) {
-    if (styleValues[property] === value) return;
-    if (options?.undo !== "skip") pushUndoSnapshot();
     const nextStyleValues = { ...styleValues, [property]: value };
+    const mode = options?.commit ?? "commit";
+
+    if (mode === "cancel") {
+      cancelFieldTransaction(options?.transactionId);
+      return;
+    }
+
+    if (styleValues[property] === value && mode !== "commit") return;
+
+    if (mode === "preview") {
+      beginFieldTransaction(options?.transactionId);
+      if (styleValues[property] !== value) setStyleValues(nextStyleValues);
+      return;
+    }
+
+    const transactionCommitted = commitFieldTransaction(options?.transactionId);
+    if (!transactionCommitted && options?.undo !== "skip" && styleValues[property] !== value) pushUndoSnapshot();
     setStyleValues(nextStyleValues);
     commitDraft({ nextStyleValues });
   }
 
-  function updateText(value: string) {
-    if (textValue === value) return;
-    pushUndoSnapshot();
+  function updateText(value: string, options?: StyleValueChangeOptions) {
+    const mode = options?.commit ?? "commit";
+
+    if (mode === "cancel") {
+      cancelFieldTransaction(options?.transactionId);
+      return;
+    }
+
+    if (textValue === value && mode !== "commit") return;
+
+    if (mode === "preview") {
+      beginFieldTransaction(options?.transactionId);
+      if (textValue !== value) setTextValue(value);
+      return;
+    }
+
+    const transactionCommitted = commitFieldTransaction(options?.transactionId);
+    if (!transactionCommitted && options?.undo !== "skip" && textValue !== value) pushUndoSnapshot();
     setTextValue(value);
     commitDraft({ nextTextValue: value });
   }
 
-  function updateImage(value: string) {
-    if (imageValue === value) return;
-    pushUndoSnapshot();
+  function updateImage(value: string, options?: StyleValueChangeOptions) {
+    const mode = options?.commit ?? "commit";
+
+    if (mode === "cancel") {
+      cancelFieldTransaction(options?.transactionId);
+      return;
+    }
+
+    if (imageValue === value && mode !== "commit") return;
+
+    if (mode === "preview") {
+      beginFieldTransaction(options?.transactionId);
+      if (imageValue !== value) setImageValue(value);
+      return;
+    }
+
+    const transactionCommitted = commitFieldTransaction(options?.transactionId);
+    if (!transactionCommitted && options?.undo !== "skip" && imageValue !== value) pushUndoSnapshot();
     setImageValue(value);
     commitDraft({ nextImageValue: value });
   }
@@ -2337,9 +2677,24 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     commitDraft({ nextDeleted: value });
   }
 
-  function updateNotes(value: string) {
-    if (notes === value) return;
-    pushUndoSnapshot();
+  function updateNotes(value: string, options?: StyleValueChangeOptions) {
+    const mode = options?.commit ?? "commit";
+
+    if (mode === "cancel") {
+      cancelFieldTransaction(options?.transactionId);
+      return;
+    }
+
+    if (notes === value && mode !== "commit") return;
+
+    if (mode === "preview") {
+      beginFieldTransaction(options?.transactionId);
+      if (notes !== value) setNotes(value);
+      return;
+    }
+
+    const transactionCommitted = commitFieldTransaction(options?.transactionId);
+    if (!transactionCommitted && options?.undo !== "skip" && notes !== value) pushUndoSnapshot();
     setNotes(value);
     commitDraft({ nextNotes: value });
   }
@@ -2691,6 +3046,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   value={styleValues[field.property] ?? ""}
                                   fontOptions={fontOptions}
                                   fontAccessState={fontAccessState}
+                                  unitConversionDisabled={selections.length > 1}
                                   onLoadSystemFonts={loadSystemFonts}
                                   onPreviewStyle={previewStyle}
                                   onRestorePreview={restorePreview}

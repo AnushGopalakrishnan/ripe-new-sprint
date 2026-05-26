@@ -65,6 +65,12 @@ export type SelectionMetadata = {
   text: string;
   imageSrc: string;
   computedStyles: Record<string, string>;
+  capabilities?: {
+    canEditText?: boolean;
+    canEditImage?: boolean;
+    isEditableControl?: boolean;
+    selectorUnique?: boolean;
+  };
 };
 
 export type EditorMessage =

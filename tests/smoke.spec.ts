@@ -26,6 +26,109 @@ const canonicalMirrorPages = [
   { path: "/work", title: "Case Studies" },
 ];
 
+const editorTestStyles = {
+  alignItems: "normal",
+  backgroundColor: "rgba(0, 0, 0, 0)",
+  borderRadius: "0px",
+  color: "rgb(0, 0, 0)",
+  display: "block",
+  fontFamily: "Arial",
+  fontSize: "16px",
+  fontWeight: "400",
+  gap: "0px",
+  height: "100px",
+  justifyContent: "normal",
+  letterSpacing: "0px",
+  lineHeight: "20px",
+  margin: "0px",
+  maxWidth: "none",
+  opacity: "1",
+  padding: "0px",
+  position: "static",
+  textAlign: "left",
+  visibility: "visible",
+  width: "100px",
+};
+
+async function dispatchEditorSelection(
+  page: Page,
+  overrides: {
+    selector?: string;
+    tag?: string;
+    text?: string;
+    imageSrc?: string;
+    computedStyles?: Record<string, string>;
+    capabilities?: Record<string, boolean>;
+    textSnippet?: string;
+  } = {},
+  extraSelections: Array<{
+    selector: string;
+    tag?: string;
+    text?: string;
+    computedStyles?: Record<string, string>;
+    capabilities?: Record<string, boolean>;
+    textSnippet?: string;
+  }> = [],
+) {
+  const route = "/case-studies/zetachain";
+  const selection = {
+    route,
+    target: {
+      route,
+      tag: overrides.tag ?? "body",
+      selector: overrides.selector ?? "body",
+      textSnippet: overrides.textSnippet ?? "Editor test target",
+    },
+    text: overrides.text ?? "Editor test target",
+    imageSrc: overrides.imageSrc ?? "",
+    computedStyles: {
+      ...editorTestStyles,
+      ...(overrides.computedStyles ?? {}),
+    },
+    capabilities: {
+      canEditText: overrides.tag === "p",
+      canEditImage: overrides.tag === "img",
+      selectorUnique: true,
+      ...(overrides.capabilities ?? {}),
+    },
+  };
+  const selections = [
+    selection,
+    ...extraSelections.map((extra) => ({
+      route,
+      target: {
+        route,
+        tag: extra.tag ?? "div",
+        selector: extra.selector,
+        textSnippet: extra.textSnippet ?? "Extra editor target",
+      },
+      text: extra.text ?? "",
+      imageSrc: "",
+      computedStyles: {
+        ...editorTestStyles,
+        ...(extra.computedStyles ?? {}),
+      },
+      capabilities: {
+        selectorUnique: true,
+        ...(extra.capabilities ?? {}),
+      },
+    })),
+  ];
+
+  await page.evaluate((payload) => {
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        origin: window.location.origin,
+        data: {
+          type: "editor:select",
+          selection: payload.selection,
+          selections: payload.selections,
+        },
+      }),
+    );
+  }, { selection, selections });
+}
+
 test("home page renders the new feed homepage", async ({ page }) => {
   await gotoAppPage(page, "/");
   await expect(page).toHaveTitle("The Natural Outcome | Ripe Studios");
@@ -1172,11 +1275,25 @@ test("visual editor layout width preview overrides image max-width constraints",
 
   await frame.waitForLoadState("load");
   await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
-  await frame.locator('section[aria-label="Case study layouts"] img').first().click({ force: true });
+  await frame.evaluate(() => {
+    const image = document.createElement("img");
+    image.id = "editor-width-image";
+    image.src = "/images/favicon.svg";
+    image.style.maxWidth = "100%";
+    image.style.width = "100px";
+    document.body.appendChild(image);
+  });
+  await dispatchEditorSelection(page, {
+    selector: "#editor-width-image",
+    tag: "img",
+    imageSrc: "/images/favicon.svg",
+    computedStyles: { maxWidth: "100%", width: "100px" },
+    capabilities: { canEditImage: true },
+  });
   await page.getByRole("textbox", { name: "Width value", exact: true }).fill("500");
 
   await expect.poll(async () => frame.evaluate(() => {
-    const image = document.querySelector('section[aria-label="Case study layouts"] img');
+    const image = document.querySelector("#editor-width-image");
     if (!(image instanceof HTMLElement)) return null;
     const styles = getComputedStyle(image);
     return {
@@ -1247,13 +1364,13 @@ test("visual editor numeric drag creates one undo step", async ({ page }) => {
 
   const widthInput = page.getByRole("textbox", { name: "Width value", exact: true });
   await expect(widthInput).toHaveValue("100");
-  const box = await widthInput.boundingBox();
+  const box = await widthInput.locator("xpath=ancestor::*[@data-slot='input-group'][1]").boundingBox();
   expect(box).toBeTruthy();
   if (!box) return;
 
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.move(box.x + 8, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 40, { steps: 8 });
+  await page.mouse.move(box.x + 8, box.y + box.height / 2 - 40, { steps: 8 });
   await page.mouse.up();
   await expect(widthInput).not.toHaveValue("100");
 
@@ -1325,4 +1442,147 @@ test("visual editor font switcher closes when clicking outside", async ({ page }
   await expect(fontList).toBeVisible();
   await page.getByText("Visual edits").click();
   await expect(fontList).toHaveCount(0);
+});
+
+test("visual editor numeric inputs validate drafts and commit one undo step", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await dispatchEditorSelection(page);
+
+  const widthInput = page.getByRole("textbox", { name: "Width value", exact: true });
+  await expect(widthInput).toHaveValue("100");
+  await widthInput.fill("125");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("125px");
+  await widthInput.press("Enter");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(widthInput).toHaveValue("100");
+  await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("");
+
+  await widthInput.fill("10pt");
+  await expect(widthInput).toHaveValue("10pt");
+  await expect(widthInput).toHaveAttribute("aria-invalid", "true");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("");
+  await widthInput.press("Escape");
+  await expect(widthInput).toHaveValue("100");
+});
+
+test("visual editor units and spacing controls stay stable", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await dispatchEditorSelection(page);
+
+  const widthUnit = page.getByLabel("Width unit");
+  await widthUnit.selectOption("%");
+  await expect(widthUnit).toHaveValue("%");
+  await expect(page.locator('[data-dragging="true"]')).toHaveCount(0);
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toMatch(/%$/);
+
+  await dispatchEditorSelection(
+    page,
+    { selector: "body", tag: "div" },
+    [{ selector: "html", tag: "div" }],
+  );
+  await expect(page.getByLabel("Width unit")).toBeDisabled();
+
+  await dispatchEditorSelection(page, { computedStyles: { padding: "0px", paddingTop: "0px" } });
+  await page.getByRole("textbox", { name: "Padding horizontal value", exact: true }).fill("12");
+  await page.getByRole("textbox", { name: "Padding horizontal value", exact: true }).press("Enter");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("padding"))).toBe("0px 12px");
+  await page.getByRole("button", { name: "Expand Padding sides" }).click();
+  await page.getByRole("textbox", { name: "Padding top value", exact: true }).fill("20");
+  await page.getByRole("textbox", { name: "Padding top value", exact: true }).press("Enter");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("padding"))).toBe("20px 12px 0px");
+});
+
+test("visual editor color and asset fields validate without leaking invalid previews", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await dispatchEditorSelection(page, { tag: "p", capabilities: { canEditText: true } });
+
+  const colorInput = page.locator("#editor-style-color");
+  await colorInput.fill("#ff0000");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("color"))).toBe("rgb(255, 0, 0)");
+  await colorInput.fill("not-a-color");
+  await expect(colorInput).toHaveAttribute("aria-invalid", "true");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("color"))).toBe("rgb(255, 0, 0)");
+  await colorInput.press("Escape");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("color"))).toBe("");
+
+  await dispatchEditorSelection(page, {
+    selector: "img",
+    tag: "img",
+    imageSrc: "/missing-editor-test-image.jpg",
+    capabilities: { canEditImage: true },
+  });
+  const imageInput = page.getByRole("textbox", { name: "Image source" });
+  await expect(imageInput).toHaveValue("/missing-editor-test-image.jpg");
+  await imageInput.fill("not a url");
+  await expect(imageInput).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("button", { name: "Open image source" })).toBeDisabled();
+  await imageInput.press("Escape");
+  await expect(imageInput).toHaveValue("/missing-editor-test-image.jpg");
+});
+
+test("visual editor text edits, form-control selection, and viewport changes are stable", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await frame.evaluate(() => {
+    const paragraph = document.createElement("p");
+    paragraph.id = "editor-text-test";
+    paragraph.textContent = "Original editor text";
+    document.body.appendChild(paragraph);
+
+    const input = document.createElement("input");
+    input.id = "editor-input-test";
+    input.value = "do not type";
+    document.body.appendChild(input);
+  });
+
+  await dispatchEditorSelection(page, {
+    selector: "#editor-text-test",
+    tag: "p",
+    text: "Original editor text",
+    textSnippet: "Original editor text",
+    capabilities: { canEditText: true },
+  });
+  const textArea = page.getByRole("textbox", { name: "Text" });
+  await textArea.fill("Changed once");
+  await expect.poll(() => frame.locator("#editor-text-test").textContent()).toBe("Changed once");
+  await textArea.press(process.platform === "darwin" ? "Meta+Enter" : "Control+Enter");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => frame.locator("#editor-text-test").textContent()).toBe("Original editor text");
+
+  await frame.locator("#editor-input-test").click({ force: true });
+  await expect(page.locator("section[aria-live='polite']").first()).toContainText("input");
+  await expect(page.getByRole("textbox", { name: "Text" })).toBeDisabled();
+
+  const draftCountBefore = await page.locator("[data-patch-row]").count();
+  await page.locator('[aria-label="Mobile"]').click();
+  await expect(page.locator(`iframe[title='${editorFrameTitle}']`)).toBeVisible();
+  await expect.poll(() => page.locator("[data-patch-row]").count()).toBe(draftCountBefore);
 });
