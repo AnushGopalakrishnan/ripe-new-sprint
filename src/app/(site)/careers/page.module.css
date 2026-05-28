@@ -3,7 +3,7 @@
   background: #f3f3f3;
   color: #3a1f13;
   font-family: var(--ripe-font-sans);
-  padding: 2rem 0 5rem;
+  padding: 5rem 0;
 }
 
 .page section {
@@ -28,29 +28,12 @@
 }
 
 .heroTitleWrap h1 {
-  font-family: "Geist", var(--ripe-font-sans);
+  font-family: "Times New Roman";
   font-size: clamp(2rem, 3.53vw, 3rem);
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.03em;
   line-height: 1.2083;
   margin: 0;
-}
-
-.heroPill {
-  background: #e9aace;
-  border-radius: 999px;
-  font-family: "Geist", var(--ripe-font-sans);
-  font-size: 0.875rem;
-  font-weight: 600;
-  left: min(90%, 39rem);
-  letter-spacing: 0;
-  line-height: 1;
-  padding: 0.625rem 1.25rem;
-  position: absolute;
-  text-transform: capitalize;
-  top: 4.5rem;
-  transform: rotate(-15deg);
-  white-space: nowrap;
 }
 
 .filmstripWrap {
@@ -614,12 +597,6 @@
     line-height: 1.263;
   }
 
-  .heroPill {
-    left: auto;
-    right: 0;
-    top: 7.25rem;
-  }
-
   .filmstripWrap {
     height: 23.9375rem;
   }
@@ -730,12 +707,6 @@
   .heroTitleWrap h1 {
     font-size: 2rem;
     line-height: 1.3125;
-  }
-
-  .heroPill {
-    font-size: 0.8125rem;
-    padding: 0.5rem 1rem;
-    top: 8.5rem;
   }
 
   .heroNotes {
