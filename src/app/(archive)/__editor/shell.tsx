@@ -1,35 +1,35 @@
 "use client";
 
 import {
-  Box,
-  ChevronDown,
-  Clipboard,
-  CopyCheck,
-  Eye,
-  EyeOff,
-  FileText,
-  Image as ImageIcon,
-  Layers,
-  Maximize2,
-  Minimize2,
-  Monitor,
-  MoveHorizontal,
-  MoveVertical,
-  MousePointer2,
-  PanelRightClose,
-  PanelRightOpen,
-  PaintBucket,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-  Smartphone,
-  Tablet,
-  Trash2,
-  Type,
-  Undo2,
-  type LucideIcon,
-  Redo2,
-} from "lucide-react";
+  BoxIcon,
+  ChevronDownIcon,
+  ClipboardIcon,
+  ComputerIcon,
+  CopyCheckIcon,
+  CursorPointer02Icon,
+  Delete02Icon,
+  EyeIcon,
+  EyeOffIcon,
+  File01Icon,
+  HorizontalResizeIcon,
+  Image01Icon,
+  Layers01Icon,
+  Maximize02Icon,
+  Minimize02Icon,
+  PaintBucketIcon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
+  Redo03Icon,
+  RotateLeft01Icon,
+  Search01Icon,
+  SlidersHorizontalIcon,
+  SmartPhone01Icon,
+  Tablet01Icon,
+  TextIcon,
+  Undo03Icon,
+  VerticalResizeIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/editor-ui/badge";
@@ -80,6 +80,12 @@ import {
 } from "@/components/editor-ui/sheet";
 import { Textarea } from "@/components/editor-ui/textarea";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/editor-ui/tabs";
+import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/editor-ui/toggle-group";
@@ -116,6 +122,7 @@ type FieldConfig = {
   options?: string[];
   unit?: string;
   units?: string[];
+  keywords?: string[];
   step?: number;
   min?: number;
   max?: number;
@@ -155,6 +162,7 @@ type StyleValueChangeOptions = {
 
 type StyleValueChange = (value: string, options?: StyleValueChangeOptions) => void;
 type EditorValueChange = (value: string, options?: StyleValueChangeOptions) => void;
+type EditorIconType = IconSvgElement;
 
 type LocalFontData = {
   family: string;
@@ -171,15 +179,26 @@ declare global {
 
 type FieldGroupName = "layout" | "spacing" | "typography" | "appearance";
 
-const viewportSizes: Record<ViewportName, { width: number; icon: LucideIcon; label: string }> = {
-  desktop: { width: 1440, icon: Monitor, label: "Desktop" },
-  tablet: { width: 834, icon: Tablet, label: "Tablet" },
-  mobile: { width: 390, icon: Smartphone, label: "Mobile" },
+function EditorIcon({
+  icon,
+  strokeWidth = 1.8,
+  ...props
+}: Omit<React.ComponentProps<typeof HugeiconsIcon>, "icon"> & { icon: EditorIconType }) {
+  return <HugeiconsIcon icon={icon} strokeWidth={strokeWidth} {...props} />;
+}
+
+const viewportSizes: Record<ViewportName, { width: number; icon: EditorIconType; label: string }> = {
+  desktop: { width: 1440, icon: ComputerIcon, label: "Desktop" },
+  tablet: { width: 834, icon: Tablet01Icon, label: "Tablet" },
+  mobile: { width: 390, icon: SmartPhone01Icon, label: "Mobile" },
 };
 
 const lengthUnits = ["px", "%", "rem", "em", "vw", "vh", "vmin", "vmax", "ch"];
 const textLengthUnits = ["px", "rem", "em", "%", "vw", "vh"];
 const lineHeightUnits = ["", "px", "rem", "em", "%"];
+const sizeKeywords = ["auto", "min-content", "max-content", "fit-content"];
+const maxSizeKeywords = ["none", "min-content", "max-content", "fit-content"];
+const marginKeywords = ["auto"];
 const genericFontFamilies = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"]);
 const textOnlyStyleProperties = new Set(["fontFamily", "fontSize", "lineHeight", "letterSpacing", "fontWeight", "textAlign", "color"]);
 const nonTextTargetTags = new Set(["img", "picture", "video", "source", "canvas", "svg", "path"]);
@@ -219,15 +238,15 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   layout: [
     { property: "display", label: "Display", options: ["block", "flex", "grid", "inline-flex", "none"] },
     { property: "position", label: "Position", options: ["static", "relative", "absolute", "fixed", "sticky"] },
-    { property: "width", label: "Width", placeholder: "100%", unit: "px", units: lengthUnits },
-    { property: "maxWidth", label: "Max width", placeholder: "720px", unit: "px", units: lengthUnits },
-    { property: "height", label: "Height", placeholder: "auto", unit: "px", units: lengthUnits },
+    { property: "width", label: "Width", placeholder: "100%", unit: "px", units: lengthUnits, keywords: sizeKeywords },
+    { property: "maxWidth", label: "Max width", placeholder: "720px", unit: "px", units: lengthUnits, keywords: maxSizeKeywords },
+    { property: "height", label: "Height", placeholder: "auto", unit: "px", units: lengthUnits, keywords: sizeKeywords },
     { property: "gap", label: "Gap", placeholder: "16px", unit: "px", units: lengthUnits },
-    { property: "alignItems", label: "Align", options: ["stretch", "flex-start", "center", "flex-end", "baseline"] },
-    { property: "justifyContent", label: "Justify", options: ["flex-start", "center", "flex-end", "space-between", "space-around"] },
+    { property: "alignItems", label: "Align", options: ["normal", "stretch", "flex-start", "center", "flex-end", "baseline"] },
+    { property: "justifyContent", label: "Justify", options: ["normal", "flex-start", "center", "flex-end", "space-between", "space-around"] },
   ],
   spacing: [
-    { property: "margin", label: "Margin", placeholder: "0px", unit: "px", units: lengthUnits },
+    { property: "margin", label: "Margin", placeholder: "0px", unit: "px", units: lengthUnits, keywords: marginKeywords },
     { property: "padding", label: "Padding", placeholder: "0px", unit: "px", units: lengthUnits },
   ],
   typography: [
@@ -246,12 +265,12 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   ],
 };
 
-const groupMeta: Record<FieldGroupName | "content", { label: string; icon: LucideIcon }> = {
-  layout: { label: "Layout", icon: Box },
-  spacing: { label: "Space", icon: SlidersHorizontal },
-  typography: { label: "Type", icon: Type },
-  appearance: { label: "Paint", icon: PaintBucket },
-  content: { label: "Asset", icon: ImageIcon },
+const groupMeta: Record<FieldGroupName | "content", { label: string; icon: EditorIconType }> = {
+  layout: { label: "Layout", icon: BoxIcon },
+  spacing: { label: "Space", icon: SlidersHorizontalIcon },
+  typography: { label: "Type", icon: TextIcon },
+  appearance: { label: "Paint", icon: PaintBucketIcon },
+  content: { label: "Asset", icon: Image01Icon },
 };
 
 function normalizePath(path: string) {
@@ -359,6 +378,38 @@ function elementActionValue(patch: EditorPatch | undefined, action: ElementChang
     candidate.kind === "element" && candidate.action === action
   ));
   return change?.after ?? false;
+}
+
+function patchedBaseStyles(selection: SelectionMetadata, patch: EditorPatch | undefined) {
+  if (!patch) return selection.computedStyles;
+
+  const styles = { ...selection.computedStyles };
+  for (const change of patch.changes) {
+    if (change.kind === "style") styles[change.property] = change.before;
+  }
+  return styles;
+}
+
+function patchedStyleValues(base: Record<string, string>, patch: EditorPatch | undefined) {
+  if (!patch) return base;
+
+  const styles = { ...base };
+  for (const change of patch.changes) {
+    if (change.kind === "style") styles[change.property] = change.after;
+  }
+  return styles;
+}
+
+function patchedContentValue(
+  selection: SelectionMetadata,
+  patch: EditorPatch | undefined,
+  field: ContentChange["field"],
+) {
+  const change = patch?.changes.find((candidate): candidate is ContentChange => (
+    candidate.kind === "content" && candidate.field === field
+  ));
+  if (change) return change.after;
+  return field === "text" ? selection.text : selection.imageSrc;
 }
 
 function isTextCompatibleSelection(selection: SelectionMetadata) {
@@ -512,6 +563,12 @@ function parseNumericCssValue(value: string) {
   };
 }
 
+function normalizeCssKeywordValue(value: string, keywords: string[] = []) {
+  const normalizedValue = value.trim().toLowerCase();
+  if (!normalizedValue) return null;
+  return keywords.find((keyword) => keyword.toLowerCase() === normalizedValue) ?? null;
+}
+
 function clampNumber(value: number, min?: number, max?: number) {
   if (typeof min === "number" && value < min) return min;
   if (typeof max === "number" && value > max) return max;
@@ -520,6 +577,17 @@ function clampNumber(value: number, min?: number, max?: number) {
 
 function formatCssNumber(value: number) {
   return Number(value.toFixed(2)).toString();
+}
+
+function shouldRoundDraggedNumericValue(property: string, unit: string) {
+  if (property === "opacity") return false;
+  if (!unit && property === "lineHeight") return false;
+  return true;
+}
+
+function normalizeDraggedNumericValue(value: number, property: string, unit: string) {
+  if (!shouldRoundDraggedNumericValue(property, unit)) return value;
+  return Math.round(value);
 }
 
 function unitLabel(unit: string) {
@@ -706,6 +774,25 @@ function isValidCssDeclaration(property: string, value: string) {
   return window.CSS.supports(toCssPropertyName(property), value.trim());
 }
 
+function cssValuePresetsForProperty(property: string) {
+  const cssProperty = toCssPropertyName(property);
+  const presets = ["unset", "inherit", "initial"];
+
+  if (cssProperty === "width" || cssProperty === "height" || cssProperty === "min-width" || cssProperty === "min-height") {
+    return [...presets, ...sizeKeywords];
+  }
+
+  if (cssProperty === "max-width" || cssProperty === "max-height") {
+    return [...presets, ...maxSizeKeywords];
+  }
+
+  if (cssProperty === "margin" || cssProperty.startsWith("margin-")) {
+    return [...presets, ...marginKeywords];
+  }
+
+  return presets;
+}
+
 function isLikelyAssetSource(value: string) {
   const cleanValue = value.trim();
   return (
@@ -730,10 +817,10 @@ function splitCssBoxValue(value: string) {
   return value.trim().split(/\s+/).filter(Boolean);
 }
 
-function expandCssBoxValue(value: string) {
+function expandCssBoxValue(value: string, keywords: string[] = []) {
   const parts = splitCssBoxValue(value);
   if (parts.length === 0 || parts.length > 4) return null;
-  if (parts.some((part) => !parseNumericCssValue(part))) return null;
+  if (parts.some((part) => !parseNumericCssValue(part) && !normalizeCssKeywordValue(part, keywords))) return null;
 
   const [top, right = top, bottom = top, left = right] = parts;
   return [top, right, bottom, left];
@@ -773,11 +860,14 @@ function StyleField({
   onChange: StyleValueChange;
 }) {
   const fieldId = `editor-style-${config.property}`;
-  const canUseNumericControl = typeof config.unit === "string" && (!value || Boolean(parseNumericCssValue(value)));
+  const configKeywords = config.keywords ?? [];
+  const valueIsKeyword = Boolean(normalizeCssKeywordValue(value, configKeywords));
+  const canUseNumericControl =
+    typeof config.unit === "string" && (!value || Boolean(parseNumericCssValue(value)) || valueIsKeyword);
   const canUseBoxControl =
     (config.property === "margin" || config.property === "padding") &&
     typeof config.unit === "string" &&
-    (!value || Boolean(expandCssBoxValue(value)));
+    (!value || Boolean(expandCssBoxValue(value, configKeywords)));
 
   return (
     <Field className="gap-1.5" data-disabled={disabled ? true : undefined}>
@@ -821,6 +911,7 @@ function StyleField({
           placeholder={config.placeholder ?? "0px"}
           defaultUnit={config.unit ?? "px"}
           units={config.units ?? [config.unit ?? "px"]}
+          keywords={configKeywords}
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
@@ -838,6 +929,7 @@ function StyleField({
           placeholder={config.placeholder ?? "value"}
           defaultUnit={config.unit ?? ""}
           units={config.units ?? [config.unit ?? ""]}
+          keywords={configKeywords}
           step={config.step ?? 1}
           min={config.min}
           max={config.max}
@@ -853,6 +945,7 @@ function StyleField({
           disabled={disabled}
           value={value}
           placeholder={config.placeholder ?? "value"}
+          presets={cssValuePresetsForProperty(config.property)}
           onChange={onChange}
         />
       )}
@@ -866,6 +959,7 @@ function CssValueInput({
   label,
   value,
   placeholder,
+  presets,
   disabled,
   onChange,
 }: {
@@ -874,13 +968,13 @@ function CssValueInput({
   label: string;
   value: string;
   placeholder: string;
+  presets: string[];
   disabled: boolean;
   onChange: StyleValueChange;
 }) {
   const transactionIdRef = useRef(`css:${id}`);
   const [draftValue, setDraftValue] = useState(value);
   const invalid = Boolean(draftValue.trim()) && !isValidCssDeclaration(property, draftValue);
-  const presets = ["unset", "inherit", "initial", "auto"];
 
   useEffect(() => {
     // Keep the local draft input in sync when selection changes.
@@ -1074,7 +1168,7 @@ function FontFamilyInput({
         <span className={styles.fontSwitcherValue} style={{ fontFamily: value || undefined }}>
           {displayFamily}
         </span>
-        <ChevronDown className="size-3.5" />
+        <EditorIcon icon={ChevronDownIcon} className="size-3.5" />
       </button>
       {open ? (
         <div
@@ -1339,6 +1433,7 @@ function BoxSpacingInput({
   placeholder,
   defaultUnit,
   units,
+  keywords,
   step,
   min,
   max,
@@ -1354,6 +1449,7 @@ function BoxSpacingInput({
   placeholder: string;
   defaultUnit: string;
   units: string[];
+  keywords: string[];
   step: number;
   min?: number;
   max?: number;
@@ -1363,8 +1459,8 @@ function BoxSpacingInput({
   onChange: StyleValueChange;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const expandedValue = expandCssBoxValue(value) ?? ["", "", "", ""];
-  const expandedPlaceholder = expandCssBoxValue(placeholder) ?? [placeholder, placeholder, placeholder, placeholder];
+  const expandedValue = expandCssBoxValue(value, keywords) ?? ["", "", "", ""];
+  const expandedPlaceholder = expandCssBoxValue(placeholder, keywords) ?? [placeholder, placeholder, placeholder, placeholder];
   const verticalValue = expandedValue[0] === expandedValue[2] ? expandedValue[0] : "";
   const horizontalValue = expandedValue[1] === expandedValue[3] ? expandedValue[1] : "";
   const verticalPlaceholder =
@@ -1419,10 +1515,11 @@ function BoxSpacingInput({
             placeholder={horizontalPlaceholder}
             defaultUnit={defaultUnit}
             units={units}
+            keywords={keywords}
             step={step}
             min={min}
             max={max}
-            leadingIcon={<MoveHorizontal aria-hidden="true" />}
+            leadingIcon={<EditorIcon icon={HorizontalResizeIcon} aria-hidden="true" />}
             unitConversionDisabled={unitConversionDisabled}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue, options) => updatePair([1, 3], nextValue, options)}
@@ -1436,10 +1533,11 @@ function BoxSpacingInput({
             placeholder={verticalPlaceholder}
             defaultUnit={defaultUnit}
             units={units}
+            keywords={keywords}
             step={step}
             min={min}
             max={max}
-            leadingIcon={<MoveVertical aria-hidden="true" />}
+            leadingIcon={<EditorIcon icon={VerticalResizeIcon} aria-hidden="true" />}
             unitConversionDisabled={unitConversionDisabled}
             onConvertUnit={onConvertUnit}
             onChange={(nextValue, options) => updatePair([0, 2], nextValue, options)}
@@ -1453,7 +1551,7 @@ function BoxSpacingInput({
           aria-expanded={expanded}
           onClick={() => setExpanded((nextExpanded) => !nextExpanded)}
         >
-          {expanded ? <Minimize2 /> : <Maximize2 />}
+          <EditorIcon icon={expanded ? Minimize02Icon : Maximize02Icon} />
         </button>
       </div>
       {expanded ? (
@@ -1469,6 +1567,7 @@ function BoxSpacingInput({
                 placeholder={expandedPlaceholder[index] ?? placeholder}
                 defaultUnit={defaultUnit}
                 units={units}
+                keywords={keywords}
                 step={step}
                 min={min}
                 max={max}
@@ -1493,6 +1592,7 @@ function NumericStyleInput({
   placeholder,
   defaultUnit,
   units,
+  keywords = [],
   step,
   min,
   max,
@@ -1509,6 +1609,7 @@ function NumericStyleInput({
   placeholder: string;
   defaultUnit: string;
   units: string[];
+  keywords?: string[];
   step: number;
   min?: number;
   max?: number;
@@ -1527,8 +1628,11 @@ function NumericStyleInput({
   const parsedValue = parseNumericCssValue(value);
   const parsedPlaceholder = parseNumericCssValue(placeholder);
   const supportedUnits = units.length > 0 ? units : [defaultUnit];
+  const supportedKeywords = keywords.filter((keyword) => isValidCssDeclaration(property, keyword));
+  const valueKeyword = normalizeCssKeywordValue(value, supportedKeywords);
   const unit = parsedValue?.unit ?? parsedPlaceholder?.unit ?? defaultUnit;
-  const displayNumber = focused || dragging ? draftNumber : parsedValue?.numberText ?? "";
+  const displayNumber = focused || dragging ? draftNumber : valueKeyword ?? parsedValue?.numberText ?? "";
+  const displayIsKeyword = Boolean(normalizeCssKeywordValue(displayNumber, supportedKeywords));
   const dragRef = useRef<{
     pointerId: number;
     startY: number;
@@ -1539,15 +1643,16 @@ function NumericStyleInput({
     lastValue: string;
   } | null>(null);
   const parsedDraft = parseNumericCssValue(draftNumber);
+  const draftKeyword = normalizeCssKeywordValue(draftNumber, supportedKeywords);
   const draftHasUnsupportedUnit = Boolean(parsedDraft?.unit && normalizeCssUnit(parsedDraft.unit, supportedUnits) === null);
-  const invalid = Boolean(draftNumber.trim()) && (!parsedDraft || draftHasUnsupportedUnit);
+  const invalid = Boolean(draftNumber.trim()) && !draftKeyword && (!parsedDraft || draftHasUnsupportedUnit);
 
   useEffect(() => {
     if (!focused && !dragging) {
       // Keep the local draft input in sync when selection changes.
-      setDraftNumber(parsedValue?.numberText ?? "");
+      setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? "");
     }
-  }, [dragging, focused, parsedValue?.numberText]);
+  }, [dragging, focused, parsedValue?.numberText, valueKeyword]);
 
   function commitNumber(nextValue: number, nextUnit = unit, options?: StyleValueChangeOptions) {
     const clamped = clampNumber(nextValue, min, max);
@@ -1557,8 +1662,22 @@ function NumericStyleInput({
     return `${nextText}${nextUnit}`;
   }
 
+  function commitKeyword(keyword: string, mode: StyleValueChangeOptions["commit"] = "preview") {
+    setDraftNumber(keyword);
+    onChange(keyword, {
+      commit: mode,
+      transactionId: transactionIdRef.current,
+    });
+  }
+
+  function currentNumericBaseValue() {
+    const parsedDraftValue = parseNumericCssValue(draftNumber);
+    const nextValue = parsedDraftValue?.numberValue ?? parsedValue?.numberValue ?? parsedPlaceholder?.numberValue ?? 0;
+    return Number.isFinite(nextValue) ? nextValue : 0;
+  }
+
   function updateByStep(direction: 1 | -1, multiplier = 1) {
-    const baseValue = Number(draftNumber || parsedValue?.numberText || 0);
+    const baseValue = currentNumericBaseValue();
     commitNumber(baseValue + direction * step * multiplier, unit, {
       commit: "preview",
       transactionId: transactionIdRef.current,
@@ -1586,6 +1705,12 @@ function NumericStyleInput({
 
   function handleInputChange(nextValue: string) {
     skipNextBlurCommitRef.current = false;
+    const keyword = normalizeCssKeywordValue(nextValue, supportedKeywords);
+    if (keyword) {
+      commitKeyword(keyword);
+      return;
+    }
+
     const parsedInput = parseNumericCssValue(nextValue);
 
     if (parsedInput) {
@@ -1608,7 +1733,7 @@ function NumericStyleInput({
     const selectedUnit = nextUnit === unitlessSelectValue ? "" : nextUnit;
     if (selectedUnit === unit || unitConversionDisabled) return;
 
-    const baseValue = Number(draftNumber || parsedValue?.numberText || parsedPlaceholder?.numberText || 0);
+    const baseValue = currentNumericBaseValue();
     const convertedValue = Number.isFinite(baseValue)
       ? onConvertUnit?.({
           property,
@@ -1634,7 +1759,7 @@ function NumericStyleInput({
   function handleFocus(event: React.FocusEvent<HTMLInputElement>) {
     const input = event.currentTarget;
     setFocused(true);
-    setDraftNumber(parsedValue?.numberText ?? "");
+    setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? "");
     window.requestAnimationFrame(() => input.select());
   }
 
@@ -1642,7 +1767,7 @@ function NumericStyleInput({
     setFocused(false);
     if (skipNextBlurCommitRef.current) {
       skipNextBlurCommitRef.current = false;
-      setDraftNumber(parsedValue?.numberText ?? draftNumber);
+      setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? draftNumber);
       return;
     }
     if (!draftNumber.trim()) {
@@ -1650,6 +1775,11 @@ function NumericStyleInput({
         commit: "commit",
         transactionId: transactionIdRef.current,
       });
+      return;
+    }
+    const keyword = normalizeCssKeywordValue(draftNumber, supportedKeywords);
+    if (keyword) {
+      commitKeyword(keyword, "commit");
       return;
     }
     const parsedDraft = parseNumericCssValue(draftNumber);
@@ -1660,7 +1790,7 @@ function NumericStyleInput({
           commit: "cancel",
           transactionId: transactionIdRef.current,
         });
-        setDraftNumber(parsedValue?.numberText ?? "");
+        setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? "");
         return;
       }
       commitParsedInput(parsedDraft, "commit");
@@ -1670,7 +1800,7 @@ function NumericStyleInput({
       commit: "cancel",
       transactionId: transactionIdRef.current,
     });
-    setDraftNumber(parsedValue?.numberText ?? "");
+    setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? "");
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
@@ -1678,7 +1808,7 @@ function NumericStyleInput({
     if ((event.target as HTMLElement).closest("input, button, select, option")) return;
 
     skipNextBlurCommitRef.current = false;
-    const startValue = Number(draftNumber || parsedValue?.numberText || 0);
+    const startValue = currentNumericBaseValue();
     const startUnit = unit;
     dragRef.current = {
       pointerId: event.pointerId,
@@ -1708,7 +1838,12 @@ function NumericStyleInput({
     if (steps === drag.lastSteps) return;
     drag.lastSteps = steps;
     drag.undoCaptured = true;
-    drag.lastValue = commitNumber(drag.startValue + steps * step * multiplier, unit, {
+    const nextDraggedValue = normalizeDraggedNumericValue(
+      drag.startValue + steps * step * multiplier,
+      property,
+      unit,
+    );
+    drag.lastValue = commitNumber(nextDraggedValue, unit, {
       commit: "preview",
       transactionId: transactionIdRef.current,
     });
@@ -1756,7 +1891,7 @@ function NumericStyleInput({
         value={displayNumber}
         placeholder={parseNumericCssValue(placeholder)?.numberText ?? placeholder}
         className={styles.numericValueInput}
-        inputMode="decimal"
+        inputMode={supportedKeywords.length > 0 ? "text" : "decimal"}
         autoComplete="off"
         spellCheck={false}
         aria-label={`${label} value`}
@@ -1776,7 +1911,7 @@ function NumericStyleInput({
               commit: "cancel",
               transactionId: transactionIdRef.current,
             });
-            setDraftNumber(parsedValue?.numberText ?? "");
+            setDraftNumber(valueKeyword ?? parsedValue?.numberText ?? "");
             event.currentTarget.blur();
             return;
           }
@@ -1786,6 +1921,7 @@ function NumericStyleInput({
         }}
         onChange={(event) => handleInputChange(event.target.value)}
       />
+      {!displayIsKeyword ? (
       <InputGroupAddon align="inline-end" className={styles.numericValueAddon}>
         {supportedUnits.length > 1 ? (
           <select
@@ -1808,10 +1944,12 @@ function NumericStyleInput({
           <InputGroupText className={styles.numericUnit}>{unit}</InputGroupText>
         ) : null}
       </InputGroupAddon>
+      ) : null}
       </InputGroup>
       {invalid ? (
         <span className={styles.fieldError} id={`${id}-error`}>
           Use a number with {supportedUnits.map(unitLabel).join(", ")}
+          {supportedKeywords.length > 0 ? ` or ${supportedKeywords.join(", ")}` : ""}
         </span>
       ) : null}
     </div>
@@ -1831,7 +1969,7 @@ function OptionSelect({
   disabled: boolean;
   onChange: (value: string) => void;
 }) {
-  const selectedValue = value || "__unset__";
+  const selectedValue = value && options.includes(value) ? value : "__unset__";
 
   return (
     <Select
@@ -1896,7 +2034,7 @@ function AssetSourceInput({
         {canPreview && !previewFailed ? (
           <img src={value} alt="" onError={() => setPreviewFailed(true)} />
         ) : (
-          <ImageIcon />
+          <EditorIcon icon={Image01Icon} />
         )}
       </div>
       <InputGroup className={styles.assetSourceGroup} data-invalid={invalid ? true : undefined}>
@@ -1958,7 +2096,7 @@ function AssetSourceInput({
               if (canActOnSource) window.open(value, "_blank", "noopener,noreferrer");
             }}
           >
-            <Eye />
+            <EditorIcon icon={EyeIcon} />
           </InputGroupButton>
           <InputGroupButton
             size="icon-xs"
@@ -1970,7 +2108,7 @@ function AssetSourceInput({
               onChange("");
             }}
           >
-            <RotateCcw />
+            <EditorIcon icon={RotateLeft01Icon} />
           </InputGroupButton>
         </InputGroupAddon>
       </InputGroup>
@@ -2068,7 +2206,7 @@ function ToolbarButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant={active ? "default" : "outline"}
+          variant={active ? "secondary" : "outline"}
           size="icon"
           aria-label={label}
           disabled={disabled}
@@ -2083,12 +2221,12 @@ function ToolbarButton({
 }
 
 function InspectorSection({
-  icon: Icon,
+  icon,
   title,
   description,
   children,
 }: {
-  icon: LucideIcon;
+  icon: EditorIconType;
   title: string;
   description?: string;
   children: React.ReactNode;
@@ -2097,7 +2235,7 @@ function InspectorSection({
     <section className={styles.inspectorSection}>
       <div className={styles.inspectorSectionHeader}>
         <div className={styles.inspectorSectionIcon} aria-hidden="true">
-          <Icon />
+          <EditorIcon icon={icon} />
         </div>
         <div className="min-w-0">
           <h3 className={styles.inspectorSectionTitle}>{title}</h3>
@@ -2315,21 +2453,39 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
       const nextSelections = message.selections?.length ? message.selections : [message.selection];
       const primarySelection = nextSelections[0];
-      const nextBaseStyles = commonComputedStyles(nextSelections);
+      const currentPatches = readDrafts(route);
+      const selectablePatches = currentPatches.length > 0 ? currentPatches : patches;
+      const patchesBySelector = new Map(
+        nextSelections.map((candidate) => [
+          candidate.target.selector,
+          selectablePatches.find((patch) => sameTarget(patch.target, candidate.target)),
+        ]),
+      );
+      const patchedBaseSelections = nextSelections.map((candidate) => ({
+        ...candidate,
+        computedStyles: patchedBaseStyles(candidate, patchesBySelector.get(candidate.target.selector)),
+      }));
+      const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
+        ...candidate,
+        computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
+      }));
+      const nextBaseStyles = commonComputedStyles(patchedBaseSelections);
+      const nextStyleValues = commonComputedStyles(patchedValueSelections);
       const selectedPatches = nextSelections
-        .map((candidate) => patches.find((patch) => sameTarget(patch.target, candidate.target)))
+        .map((candidate) => patchesBySelector.get(candidate.target.selector))
         .filter(Boolean);
+      const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
       setSidebarOpen(true);
       setSelection(primarySelection);
       setSelections(nextSelections);
       setBaseStyles(nextBaseStyles);
-      setStyleValues(nextBaseStyles);
-      setTextValue(nextSelections.length === 1 ? primarySelection.text : "");
-      setImageValue(nextSelections.length === 1 ? primarySelection.imageSrc : "");
+      setStyleValues(nextStyleValues);
+      setTextValue(nextSelections.length === 1 ? patchedContentValue(primarySelection, primaryPatch, "text") : "");
+      setImageValue(nextSelections.length === 1 ? patchedContentValue(primarySelection, primaryPatch, "imageSrc") : "");
 
       setHidden(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide")));
       setDeleted(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete")));
-      setNotes(nextSelections.length === 1 ? selectedPatches[0]?.notes ?? "" : "");
+      setNotes(nextSelections.length === 1 ? primaryPatch?.notes ?? "" : "");
     };
 
     window.addEventListener("message", handleMessage);
@@ -2797,96 +2953,76 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     <TooltipProvider>
       <div className={styles.editor} data-visual-editor-shell="">
         <header className={styles.topbar}>
-          <div className={styles.brandMark}>
-            <Layers className="size-4" />
-            <span>Ripe Visual Editor</span>
-          </div>
+          <div className={styles.topbarLeft}>
+            <div className={styles.brandMark}>
+              <EditorIcon icon={Layers01Icon} />
+              <span>Ripe Editor</span>
+            </div>
 
-          <div className={styles.routeCluster}>
-            <Select value={route} onValueChange={setRouteAndUrl}>
-              <SelectTrigger className="min-w-[260px] max-w-[420px]" aria-label="Route">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectGroup>
-                  {routeOptions.map((candidate) => (
-                    <SelectItem value={candidate.path} key={candidate.path}>
-                      {shortRouteLabel(candidate)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              variant="outline"
-              className={styles.routeSearchButton}
-              aria-label="Routes"
-              onClick={() => setRoutesOpen(true)}
-            >
-              <Search data-icon="inline-start" />
-              <span className={styles.routeSearchLabel}>Routes</span>
-            </Button>
-          </div>
-
-          <div className={styles.statusCluster}>
-            <Badge variant={previewSource.variant}>{previewSource.label}</Badge>
-            <Badge variant="outline">{previewSource.path}</Badge>
-            <Badge variant="outline">{viewportSizes[viewport].label}</Badge>
-            {currentRoute?.collection && collectionRoutes.length > 1 ? (
-              <div className={styles.collectionSwitcher}>
-                <Badge variant="secondary" className={styles.collectionBadge}>
-                  {currentRoute.collection.label}
-                </Badge>
+            <div className={styles.routeCluster}>
+              <div className={styles.routePrimaryRow}>
                 <Select value={route} onValueChange={setRouteAndUrl}>
-                  <SelectTrigger
-                    className={styles.collectionSelectTrigger}
-                    size="sm"
-                    aria-label={`Switch ${currentRoute.collection.label} page`}
-                  >
+                  <SelectTrigger className={styles.routeSelectTrigger} aria-label="Route">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent position="popper">
                     <SelectGroup>
-                      {collectionRoutes.map((candidate) => (
+                      {routeOptions.map((candidate) => (
                         <SelectItem value={candidate.path} key={candidate.path}>
-                          {collectionItemLabel(candidate)}
+                          {shortRouteLabel(candidate)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                <Badge variant="outline" className={styles.collectionCount}>
-                  {currentCollectionIndex + 1}/{collectionRoutes.length}
-                </Badge>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={styles.routeSearchButton}
+                  aria-label="Routes"
+                  onClick={() => setRoutesOpen(true)}
+                >
+                  <EditorIcon icon={Search01Icon} data-icon="inline-start" />
+                  <span className={styles.routeSearchLabel}>Routes</span>
+                </Button>
               </div>
-            ) : null}
+
+              <div className={styles.routeMeta}>
+                <Badge variant={previewSource.variant}>{previewSource.label}</Badge>
+                <Badge variant="outline">{previewSource.path}</Badge>
+                {currentRoute?.collection && collectionRoutes.length > 1 ? (
+                  <>
+                    <Badge variant="secondary" className={styles.collectionBadge}>
+                      {currentRoute.collection.label}
+                    </Badge>
+                    <Select value={route} onValueChange={setRouteAndUrl}>
+                      <SelectTrigger
+                        className={styles.collectionSelectTrigger}
+                        size="sm"
+                        aria-label={`Switch ${currentRoute.collection.label} page`}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        <SelectGroup>
+                          {collectionRoutes.map((candidate) => (
+                            <SelectItem value={candidate.path} key={candidate.path}>
+                              {collectionItemLabel(candidate)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <Badge variant="outline" className={styles.collectionCount}>
+                      {currentCollectionIndex + 1}/{collectionRoutes.length}
+                    </Badge>
+                  </>
+                ) : null}
+              </div>
+            </div>
           </div>
 
-          <div className={styles.toolbarActions}>
-            <ToolbarButton
-              label="Undo"
-              disabled={undoStack.length === 0}
-              onClick={undoEditorChange}
-            >
-              <Undo2 />
-            </ToolbarButton>
-            <ToolbarButton
-              label="Redo"
-              disabled={redoStack.length === 0}
-              onClick={redoEditorChange}
-            >
-              <Redo2 />
-            </ToolbarButton>
-
-            <ToolbarButton
-              label={selectorEnabled ? "Disable element selector" : "Enable element selector"}
-              active={selectorEnabled}
-              onClick={() => setSelectorEnabled((enabled) => !enabled)}
-            >
-              <MousePointer2 />
-            </ToolbarButton>
-
+          <div className={styles.topbarCenter}>
             <ToggleGroup
               type="single"
               variant="outline"
@@ -2899,12 +3035,12 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               aria-label="Viewport"
             >
               {(Object.keys(viewportSizes) as ViewportName[]).map((name) => {
-                const Icon = viewportSizes[name].icon;
+                const icon = viewportSizes[name].icon;
                 return (
                   <Tooltip key={name}>
                     <TooltipTrigger asChild>
                       <ToggleGroupItem value={name} aria-label={viewportSizes[name].label}>
-                        <Icon />
+                        <EditorIcon icon={icon} />
                       </ToggleGroupItem>
                     </TooltipTrigger>
                     <TooltipContent sideOffset={8}>{viewportSizes[name].label}</TooltipContent>
@@ -2912,13 +3048,38 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                 );
               })}
             </ToggleGroup>
+          </div>
+
+          <div className={styles.topbarRight}>
+            <ToolbarButton
+              label="Undo"
+              disabled={undoStack.length === 0}
+              onClick={undoEditorChange}
+            >
+              <EditorIcon icon={Undo03Icon} />
+            </ToolbarButton>
+            <ToolbarButton
+              label="Redo"
+              disabled={redoStack.length === 0}
+              onClick={redoEditorChange}
+            >
+              <EditorIcon icon={Redo03Icon} />
+            </ToolbarButton>
+
+            <ToolbarButton
+              label={selectorEnabled ? "Disable element selector" : "Enable element selector"}
+              active={selectorEnabled}
+              onClick={() => setSelectorEnabled((enabled) => !enabled)}
+            >
+              <EditorIcon icon={CursorPointer02Icon} />
+            </ToolbarButton>
 
             <ToolbarButton
               label={sidebarOpen ? "Close inspector" : "Open inspector"}
               active={sidebarOpen}
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              {sidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
+              <EditorIcon icon={sidebarOpen ? PanelRightCloseIcon : PanelRightOpenIcon} />
             </ToolbarButton>
           </div>
         </header>
@@ -2926,7 +3087,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         <ResizablePanelGroup orientation="horizontal" className={styles.workspace}>
           <ResizablePanel minSize="280px" className={styles.previewPanel}>
             <main className={styles.stage}>
-              <div className={styles.canvasChrome} style={{ width: `min(100%, ${viewportWidth}px)` }}>
+              <div className={styles.canvasChrome} style={{ width: `${viewportWidth}px` }}>
                 <iframe
                   ref={iframeRef}
                   key={iframeSrc}
@@ -2950,28 +3111,28 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               <ResizableHandle withHandle />
               <ResizablePanel
                 className={styles.inspectorPanel}
-                defaultSize="360px"
-                minSize="300px"
-                maxSize="520px"
+                defaultSize="320px"
+                minSize="280px"
+                maxSize="440px"
                 groupResizeBehavior="preserve-pixel-size"
               >
                 <aside className={styles.inspector} aria-label="Visual editor inspector">
                   <div className={styles.inspectorHeader}>
-                    <div className="min-w-0">
+                    <div className={styles.inspectorHeaderTitle}>
                       <div className="flex items-center gap-2">
-                        <FileText className="size-4 text-muted-foreground" />
+                        <EditorIcon icon={File01Icon} />
                         <h2 className="truncate text-sm font-medium">Visual edits</h2>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
                         {route} · {patches.length} drafted
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className={styles.inspectorHeaderActions}>
                       <ToolbarButton label="Reset all changes" disabled={patches.length === 0} onClick={resetAllPreviews}>
-                        <RotateCcw />
+                        <EditorIcon icon={RotateLeft01Icon} />
                       </ToolbarButton>
                       <ToolbarButton label="Reset selected" disabled={!selection} onClick={resetSelectedPreview}>
-                        <RotateCcw />
+                        <EditorIcon icon={RotateLeft01Icon} />
                       </ToolbarButton>
                       <ToolbarButton
                         label="Copy handoff"
@@ -2979,7 +3140,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         onClick={copyStyles}
                         active={copyState === "copied"}
                       >
-                        {copyState === "copied" ? <CopyCheck /> : <Clipboard />}
+                        <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} />
                       </ToolbarButton>
                     </div>
                   </div>
@@ -2987,209 +3148,243 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
                   <ScrollArea className={styles.inspectorScroll}>
                     <div className={styles.inspectorBody}>
-                      <section className={styles.selectionCard} aria-live="polite">
-                        <div className={styles.selectionIcon}>
-                          <MousePointer2 className="size-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-muted-foreground">
-                            {selection ? selections.length > 1 ? "Multiple elements" : selection.target.tag : "No element selected"}
-                          </p>
-                          <p className="mt-1 truncate text-sm font-medium">{selectionLabel}</p>
-                        </div>
-                      </section>
-
-                      <section className={styles.elementActions} aria-label="Element actions">
-                        <Button
-                          type="button"
-                          variant={hidden ? "secondary" : "outline"}
-                          disabled={!selection || deleted}
-                          onClick={() => updateHidden(!hidden)}
-                        >
-                          {hidden ? <EyeOff data-icon="inline-start" /> : <Eye data-icon="inline-start" />}
-                          {hidden ? "Show element" : "Hide element"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={deleted ? "secondary" : "outline"}
-                          disabled={!selection}
-                          onClick={() => updateDeleted(!deleted)}
-                        >
-                          <Trash2 data-icon="inline-start" />
-                          {deleted ? "Restore element" : "Delete element"}
-                        </Button>
-                      </section>
-
-                      {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
-                        const visibleFields = fieldGroups[group].filter((field) => fieldVisibleForSelections(field, selections));
-                        if (visibleFields.length === 0) return null;
-
-                        return (
-                          <InspectorSection
-                            key={group}
-                            icon={groupMeta[group].icon}
-                            title={groupMeta[group].label}
+                      {!selection ? (
+                        <section className={styles.emptyState} aria-live="polite">
+                          <div className={styles.emptyStateIcon}>
+                            <EditorIcon icon={CursorPointer02Icon} />
+                          </div>
+                          <div className={styles.emptyStateCopy}>
+                            <p>No element selected</p>
+                            <h3>Select an element in the preview</h3>
+                            <span>Turn on the selector, then click text, media, or layout in the canvas to edit it here.</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant={selectorEnabled ? "secondary" : "outline"}
+                            onClick={() => setSelectorEnabled(true)}
                           >
-                            <FieldGroup className={group === "spacing" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
-                              {visibleFields.map((field) => (
-                                <StyleField
-                                  config={field}
-                                  key={field.property}
-                                  disabled={!selection}
-                                  value={styleValues[field.property] ?? ""}
-                                  fontOptions={fontOptions}
-                                  fontAccessState={fontAccessState}
-                                  unitConversionDisabled={selections.length > 1}
-                                  onLoadSystemFonts={loadSystemFonts}
-                                  onPreviewStyle={previewStyle}
-                                  onRestorePreview={restorePreview}
-                                  onConvertUnit={convertSelectedUnit}
-                                  onChange={(value, options) => updateStyle(field.property, value, options)}
-                                />
-                              ))}
-                            </FieldGroup>
-                          </InspectorSection>
-                        );
-                      })}
+                            <EditorIcon icon={CursorPointer02Icon} data-icon="inline-start" />
+                            {selectorEnabled ? "Selector enabled" : "Enable selector"}
+                          </Button>
+                        </section>
+                      ) : (
+                        <>
+                          <section className={styles.selectionCard} aria-live="polite">
+                            <div className={styles.selectionIcon}>
+                              <EditorIcon icon={CursorPointer02Icon} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground">
+                                {selections.length > 1 ? "Multiple elements" : selection.target.tag}
+                              </p>
+                              <p className="mt-1 truncate text-sm font-medium">{selectionLabel}</p>
+                            </div>
+                          </section>
 
-                      <InspectorSection icon={groupMeta.content.icon} title="Content">
-                        <FieldGroup>
-                          <Field data-disabled={!selection ? true : undefined}>
-                            <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
-                            <SmartTextarea
-                              id="editor-content-text"
-                              label="Selected text"
-                              disabled={!selection || !canEditTextContent}
-                              value={textValue}
-                              placeholder={selections.length > 1 ? "Text editing is single-selection only" : "Edit selected text"}
-                              onChange={updateText}
-                            />
-                          </Field>
-                          <Field data-disabled={!selection ? true : undefined}>
-                            <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
-                            <AssetSourceInput
-                              id="editor-content-image-src"
-                              disabled={!selection || !canEditImageContent}
-                              value={imageValue}
-                              onChange={updateImage}
-                            />
-                          </Field>
-                        </FieldGroup>
-                      </InspectorSection>
+                          <section className={styles.elementActions} aria-label="Element actions">
+                            <Button
+                              type="button"
+                              variant={hidden ? "secondary" : "outline"}
+                              disabled={deleted}
+                              onClick={() => updateHidden(!hidden)}
+                            >
+                              <EditorIcon icon={hidden ? EyeOffIcon : EyeIcon} data-icon="inline-start" />
+                              {hidden ? "Show element" : "Hide element"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={deleted ? "secondary" : "outline"}
+                              onClick={() => updateDeleted(!deleted)}
+                            >
+                              <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
+                              {deleted ? "Restore element" : "Delete element"}
+                            </Button>
+                          </section>
 
-                      <Separator />
+                          <Tabs defaultValue="style" className={styles.inspectorTabs}>
+                            <TabsList className={styles.inspectorTabsList}>
+                              <TabsTrigger value="style">Style</TabsTrigger>
+                              <TabsTrigger value="content">Content</TabsTrigger>
+                              <TabsTrigger value="drafts">Drafts ({patches.length})</TabsTrigger>
+                            </TabsList>
 
-                      <FieldGroup>
-                        <Field data-disabled={!selection ? true : undefined}>
-                          <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
-                          <SmartTextarea
-                            id="editor-handoff-note"
-                            label="Handoff note"
-                            disabled={!selection || selections.length > 1}
-                            value={notes}
-                            placeholder={selections.length > 1 ? "Notes are single-selection only" : "Add reviewer context for this target"}
-                            onChange={updateNotes}
-                          />
-                        </Field>
-                      </FieldGroup>
+                            <TabsContent value="style" className={styles.inspectorTabPanel}>
+                              {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
+                                const visibleFields = fieldGroups[group].filter((field) => fieldVisibleForSelections(field, selections));
+                                if (visibleFields.length === 0) return null;
 
-                      <section className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <h3 className="text-sm font-medium">Draft patches</h3>
-                          <Badge variant={patches.length ? "secondary" : "outline"}>{patches.length}</Badge>
-                        </div>
-                        <div className={styles.patchList}>
-                          {patches.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No local drafts for this route.</p>
-                          ) : (
-                            patches.map((patch) => {
-                              const expanded = expandedPatchIds.has(patch.id);
-                              const formattedChanges = patch.changes.map(formatPatchChange);
-                              const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-                              return (
-                                <div
-                                  className={styles.patchRow}
-                                  data-expanded={expanded ? true : undefined}
-                                  data-patch-row=""
-                                  key={patch.id}
-                                  tabIndex={0}
-                                  aria-expanded={expanded}
-                                  aria-controls={detailsId}
-                                  onClick={() => togglePatchExpanded(patch.id)}
-                                  onKeyDown={(event) => {
-                                    if (event.key !== "Enter" && event.key !== " ") return;
-                                    event.preventDefault();
-                                    togglePatchExpanded(patch.id);
-                                  }}
-                                >
-                                  <div className={styles.patchRowTop}>
-                                    <div className={styles.patchChevron} aria-hidden="true">
-                                      <ChevronDown />
-                                    </div>
-                                    <div className={styles.patchMeta}>
-                                      <div className={styles.patchTitleRow}>
-                                        <p className="truncate text-sm font-medium">{patch.target.tag}</p>
-                                        <span className={styles.patchSummary}>{summarizePatchChanges(patch.changes)}</span>
-                                      </div>
-                                      <p className={styles.patchSelector}>{patch.target.selector}</p>
-                                    </div>
-                                    <div className={styles.patchActions}>
-                                      <Badge variant="outline">{patch.changes.length} changes</Badge>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className={styles.patchDeleteButton}
-                                        aria-label={`Delete draft patch for ${patch.target.tag}`}
-                                        onClick={(event) => {
-                                          event.stopPropagation();
-                                          deletePatch(patch);
-                                        }}
-                                      >
-                                        <Trash2 />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  {expanded ? (
-                                    <div className={styles.patchDetails} id={detailsId}>
-                                      {formattedChanges.length === 0 ? (
-                                        <p className={styles.patchDetailEmpty}>No style/content changes; note only.</p>
-                                      ) : (
-                                        formattedChanges.map((change, index) => (
-                                          <div className={styles.patchDetailRow} key={`${change.label}-${index}`}>
-                                            <div className={styles.patchDetailHeading}>
-                                              <span>{change.label}</span>
-                                              <Badge variant="outline">{change.meta}</Badge>
-                                            </div>
-                                            <div className={styles.patchDetailValues}>
-                                              <code title={change.before}>{change.before}</code>
-                                              <span aria-hidden="true">→</span>
-                                              <code title={change.after}>{change.after}</code>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                      {patch.notes.trim() ? (
-                                        <div className={styles.patchDetailRow}>
-                                          <div className={styles.patchDetailHeading}>
-                                            <span>Note</span>
-                                            <Badge variant="outline">handoff</Badge>
-                                          </div>
-                                          <p className={styles.patchDetailNote}>{truncatePatchValue(patch.notes, 140)}</p>
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  ) : null}
+                                return (
+                                  <InspectorSection
+                                    key={group}
+                                    icon={groupMeta[group].icon}
+                                    title={groupMeta[group].label}
+                                  >
+                                    <FieldGroup className={group === "spacing" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
+                                      {visibleFields.map((field) => (
+                                        <StyleField
+                                          config={field}
+                                          key={field.property}
+                                          disabled={false}
+                                          value={styleValues[field.property] ?? ""}
+                                          fontOptions={fontOptions}
+                                          fontAccessState={fontAccessState}
+                                          unitConversionDisabled={selections.length > 1}
+                                          onLoadSystemFonts={loadSystemFonts}
+                                          onPreviewStyle={previewStyle}
+                                          onRestorePreview={restorePreview}
+                                          onConvertUnit={convertSelectedUnit}
+                                          onChange={(value, options) => updateStyle(field.property, value, options)}
+                                        />
+                                      ))}
+                                    </FieldGroup>
+                                  </InspectorSection>
+                                );
+                              })}
+                            </TabsContent>
+
+                            <TabsContent value="content" className={styles.inspectorTabPanel}>
+                              <InspectorSection icon={groupMeta.content.icon} title="Content">
+                                <FieldGroup>
+                                  <Field data-disabled={!canEditTextContent ? true : undefined}>
+                                    <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
+                                    <SmartTextarea
+                                      id="editor-content-text"
+                                      label="Selected text"
+                                      disabled={!canEditTextContent}
+                                      value={textValue}
+                                      placeholder={selections.length > 1 ? "Text editing is single-selection only" : "Edit selected text"}
+                                      onChange={updateText}
+                                    />
+                                  </Field>
+                                  <Field data-disabled={!canEditImageContent ? true : undefined}>
+                                    <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
+                                    <AssetSourceInput
+                                      id="editor-content-image-src"
+                                      disabled={!canEditImageContent}
+                                      value={imageValue}
+                                      onChange={updateImage}
+                                    />
+                                  </Field>
+                                </FieldGroup>
+                              </InspectorSection>
+                            </TabsContent>
+
+                            <TabsContent value="drafts" className={styles.inspectorTabPanel}>
+                              <FieldGroup>
+                                <Field data-disabled={selections.length > 1 ? true : undefined}>
+                                  <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
+                                  <SmartTextarea
+                                    id="editor-handoff-note"
+                                    label="Handoff note"
+                                    disabled={selections.length > 1}
+                                    value={notes}
+                                    placeholder={selections.length > 1 ? "Notes are single-selection only" : "Add reviewer context for this target"}
+                                    onChange={updateNotes}
+                                  />
+                                </Field>
+                              </FieldGroup>
+
+                              <section className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <h3 className="text-sm font-medium">Draft patches</h3>
+                                  <Badge variant={patches.length ? "secondary" : "outline"}>{patches.length}</Badge>
                                 </div>
-                              );
-                            })
-                          )}
-                        </div>
-                        <Button type="button" onClick={copyStyles} disabled={patches.length === 0}>
-                          {copyState === "copied" ? <CopyCheck data-icon="inline-start" /> : <Clipboard data-icon="inline-start" />}
-                          {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
-                        </Button>
-                      </section>
+                                <div className={styles.patchList}>
+                                  {patches.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No local drafts for this route.</p>
+                                  ) : (
+                                    patches.map((patch) => {
+                                      const expanded = expandedPatchIds.has(patch.id);
+                                      const formattedChanges = patch.changes.map(formatPatchChange);
+                                      const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+                                      return (
+                                        <div
+                                          className={styles.patchRow}
+                                          data-expanded={expanded ? true : undefined}
+                                          data-patch-row=""
+                                          key={patch.id}
+                                          tabIndex={0}
+                                          aria-expanded={expanded}
+                                          aria-controls={detailsId}
+                                          onClick={() => togglePatchExpanded(patch.id)}
+                                          onKeyDown={(event) => {
+                                            if (event.key !== "Enter" && event.key !== " ") return;
+                                            event.preventDefault();
+                                            togglePatchExpanded(patch.id);
+                                          }}
+                                        >
+                                          <div className={styles.patchRowTop}>
+                                            <div className={styles.patchChevron} aria-hidden="true">
+                                              <EditorIcon icon={ChevronDownIcon} />
+                                            </div>
+                                            <div className={styles.patchMeta}>
+                                              <div className={styles.patchTitleRow}>
+                                                <p className="truncate text-sm font-medium">{patch.target.tag}</p>
+                                                <span className={styles.patchSummary}>{summarizePatchChanges(patch.changes)}</span>
+                                              </div>
+                                              <p className={styles.patchSelector}>{patch.target.selector}</p>
+                                            </div>
+                                            <div className={styles.patchActions}>
+                                              <Badge variant="outline">{patch.changes.length} changes</Badge>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className={styles.patchDeleteButton}
+                                                aria-label={`Delete draft patch for ${patch.target.tag}`}
+                                                onClick={(event) => {
+                                                  event.stopPropagation();
+                                                  deletePatch(patch);
+                                                }}
+                                              >
+                                                <EditorIcon icon={Delete02Icon} />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                          {expanded ? (
+                                            <div className={styles.patchDetails} id={detailsId}>
+                                              {formattedChanges.length === 0 ? (
+                                                <p className={styles.patchDetailEmpty}>No style/content changes; note only.</p>
+                                              ) : (
+                                                formattedChanges.map((change, index) => (
+                                                  <div className={styles.patchDetailRow} key={`${change.label}-${index}`}>
+                                                    <div className={styles.patchDetailHeading}>
+                                                      <span>{change.label}</span>
+                                                      <Badge variant="outline">{change.meta}</Badge>
+                                                    </div>
+                                                    <div className={styles.patchDetailValues}>
+                                                      <code title={change.before}>{change.before}</code>
+                                                      <span aria-hidden="true">→</span>
+                                                      <code title={change.after}>{change.after}</code>
+                                                    </div>
+                                                  </div>
+                                                ))
+                                              )}
+                                              {patch.notes.trim() ? (
+                                                <div className={styles.patchDetailRow}>
+                                                  <div className={styles.patchDetailHeading}>
+                                                    <span>Note</span>
+                                                    <Badge variant="outline">handoff</Badge>
+                                                  </div>
+                                                  <p className={styles.patchDetailNote}>{truncatePatchValue(patch.notes, 140)}</p>
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                                <Button type="button" onClick={copyStyles} disabled={patches.length === 0}>
+                                  <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
+                                  {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
+                                </Button>
+                              </section>
+                            </TabsContent>
+                          </Tabs>
+                        </>
+                      )}
                     </div>
                   </ScrollArea>
                 </aside>

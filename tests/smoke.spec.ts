@@ -1368,11 +1368,13 @@ test("visual editor numeric drag creates one undo step", async ({ page }) => {
   expect(box).toBeTruthy();
   if (!box) return;
 
+  await page.keyboard.down("Alt");
   await page.mouse.move(box.x + 8, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + 8, box.y + box.height / 2 - 40, { steps: 8 });
+  await page.mouse.move(box.x + 8, box.y + box.height / 2 - 20, { steps: 8 });
   await page.mouse.up();
-  await expect(widthInput).not.toHaveValue("100");
+  await page.keyboard.up("Alt");
+  await expect(widthInput).toHaveValue("101");
 
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(widthInput).toHaveValue("100");
@@ -1460,6 +1462,10 @@ test("visual editor numeric inputs validate drafts and commit one undo step", as
   await widthInput.fill("125");
   await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("125px");
   await widthInput.press("Enter");
+  await expect(page.getByText("/case-studies/zetachain · 1 drafted")).toBeVisible();
+  await dispatchEditorSelection(page);
+  await expect(widthInput).toHaveValue("125");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toBe("125px");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(widthInput).toHaveValue("100");
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
@@ -1533,6 +1539,7 @@ test("visual editor color and asset fields validate without leaking invalid prev
     imageSrc: "/missing-editor-test-image.jpg",
     capabilities: { canEditImage: true },
   });
+  await page.getByRole("tab", { name: "Content" }).click();
   const imageInput = page.getByRole("textbox", { name: "Image source" });
   await expect(imageInput).toHaveValue("/missing-editor-test-image.jpg");
   await imageInput.fill("not a url");
@@ -1570,6 +1577,7 @@ test("visual editor text edits, form-control selection, and viewport changes are
     textSnippet: "Original editor text",
     capabilities: { canEditText: true },
   });
+  await page.getByRole("tab", { name: "Content" }).click();
   const textArea = page.getByRole("textbox", { name: "Text" });
   await textArea.fill("Changed once");
   await expect.poll(() => frame.locator("#editor-text-test").textContent()).toBe("Changed once");

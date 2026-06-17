@@ -25,24 +25,24 @@
   }
 }
 
-:global(.copy-email) {
+.copyEmail {
   position: relative;
   display: inline;
   cursor: pointer;
 }
 
-:global(.copy-email span) {
+.copyEmail span {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
   transition: opacity 0.15s ease;
 }
 
-:global(.copy-email:hover span) {
+.copyEmail:hover span {
   opacity: 0.65;
 }
 
-:global(.copy-email)::before {
+.copyEmail::before {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 10px);
@@ -59,7 +59,7 @@
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-:global(.copy-email)::after {
+.copyEmail::after {
   content: "";
   position: absolute;
   bottom: calc(100% + 4px);
@@ -72,16 +72,16 @@
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-:global(.copy-email:hover)::before,
-:global(.copy-email:hover)::after,
-:global(.copy-email.tooltip-visible)::before,
-:global(.copy-email.tooltip-visible)::after {
+.copyEmail:hover::before,
+.copyEmail:hover::after,
+.copyEmail:global(.tooltip-visible)::before,
+.copyEmail:global(.tooltip-visible)::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-:global(.copy-email.tooltip-hiding)::before,
-:global(.copy-email.tooltip-hiding)::after {
+.copyEmail:global(.tooltip-hiding)::before,
+.copyEmail:global(.tooltip-hiding)::after {
   opacity: 0;
   transform: translateX(-50%) translateY(4px);
 }

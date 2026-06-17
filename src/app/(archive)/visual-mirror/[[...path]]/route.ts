@@ -3,11 +3,11 @@ import { readMirrorResource } from "@/lib/editor/mirror";
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
-  params: Promise<{ path?: string[] }> | { path?: string[] };
+  params: Promise<{ path?: string[] }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const params = await Promise.resolve(context.params);
+  const params = await context.params;
 
   try {
     const resource = await readMirrorResource(params.path ?? []);

@@ -263,7 +263,7 @@ export function TeamPageClient({ members, roles }: TeamPageClientProps) {
                   <span
                     data-email="careers@ripe.studio"
                     data-tooltip={tooltip}
-                    className={`copy-email ${
+                    className={`copy-email ${styles.copyEmail} ${
                       tooltipState === "visible" ? "tooltip-visible" : tooltipState === "hiding" ? "tooltip-hiding" : ""
                     }`}
                     onClick={copyEmail}

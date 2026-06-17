@@ -131,7 +131,7 @@ export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
                 <span
                   data-email="careers@ripe.studio"
                   data-tooltip={tooltip}
-                  className={`copy-email ${
+                  className={`copy-email ${teamStyles.copyEmail} ${
                     tooltipState === "visible" ? "tooltip-visible" : tooltipState === "hiding" ? "tooltip-hiding" : ""
                   }`}
                   onClick={copyEmail}
