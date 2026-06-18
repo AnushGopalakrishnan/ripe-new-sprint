@@ -58,10 +58,10 @@ const pillars: Pillar[] = [
 ];
 
 const trustLogos = [
-  "/logos/studio-logo-1.svg",
-  "/logos/studio-logo-2.svg",
-  "/logos/studio-logo-3.svg",
-  "/logos/studio-logo-4.svg",
+  "/logos/trust-logo-1.svg",
+  "/logos/trust-logo-2.svg",
+  "/logos/trust-logo-3.svg",
+  "/logos/trust-logo-4.svg",
 ];
 
 const fallbackFounders = [
