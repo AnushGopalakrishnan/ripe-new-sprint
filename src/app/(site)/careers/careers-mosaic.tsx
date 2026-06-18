@@ -18,7 +18,7 @@ const benefits = {
   },
   offsite: {
     title: "Yearly, all expenses paid offsite Educational Reimbursements",
-    image: "/careers-media/mosaic-work.jpg",
+    image: "/careers-media/benefit-offsite.png",
   },
   skillshare: {
     title: "Annual Skillshare Subscription",
@@ -29,7 +29,7 @@ const benefits = {
   },
   homeOffice: {
     title: "Home Office Allowance",
-    image: "/careers-media/mosaic-blog-2.jpg",
+    image: "/careers-media/benefit-home-office.png",
   },
   weWork: {
     title: "We Work Passes",
