@@ -154,8 +154,10 @@
   font-family: "Inter Display", "Inter", sans-serif;
   font-size: 14px;
   margin-top: 18px;
+  outline: none;
   position: relative;
   text-decoration: none;
+  transition: color 220ms ease, transform 220ms ease;
 }
 
 .cardAbout a::after {
@@ -172,9 +174,22 @@
   width: 100%;
 }
 
-.cardAbout:hover a::after {
+.cardAbout:hover a::after,
+.cardAbout a:hover::after,
+.cardAbout a:focus-visible::after {
   opacity: 1;
   transform: scaleX(1);
+}
+
+.cardAbout a:hover,
+.cardAbout a:focus-visible {
+  color: rgb(29, 61, 243);
+  transform: translateY(-2px);
+}
+
+.cardAbout a:focus-visible {
+  outline: 2px solid rgb(29, 61, 243);
+  outline-offset: 5px;
 }
 
 .cardTestimonial {
@@ -257,8 +272,9 @@
 .hoverTitle {
   color: rgb(255, 255, 255);
   filter: blur(3px);
-  font-family: "Inter Display", "Inter", sans-serif;
+  font-family: "Times New Roman", Times, serif;
   font-size: 46px;
+  font-weight: 400;
   left: 50%;
   line-height: 1.2;
   opacity: 0;
@@ -309,8 +325,9 @@
 
 .typeWord {
   color: rgb(0, 0, 0);
-  font-family: "Inter Display", "Inter", sans-serif;
+  font-family: "Times New Roman", Times, serif;
   font-size: 42px;
+  font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }

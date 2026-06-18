@@ -218,6 +218,7 @@
 .stage {
   align-items: flex-start;
   background: var(--editor-app-bg);
+  box-sizing: border-box;
   display: flex;
   height: 100%;
   justify-content: flex-start;
@@ -230,14 +231,16 @@
   background: #fff;
   border-radius: 0;
   box-shadow: 0 0 0 1px var(--editor-hairline);
-  flex: 0 0 auto;
+  flex: 0 1 var(--canvas-width);
   height: calc(100vh - 112px);
   margin-inline: auto;
+  max-width: 100%;
   min-width: 280px;
   outline: 0;
   overflow: hidden;
   position: relative;
   transition: width 180ms ease;
+  width: min(var(--canvas-width), 100%);
 }
 
 .canvas {
@@ -281,7 +284,7 @@
   flex-direction: column;
   height: 100%;
   min-width: 280px;
-  overflow: hidden;
+  overflow: visible;
   padding: 10px 12px 0;
 }
 
@@ -359,6 +362,19 @@
   padding: 3px;
 }
 
+.applyPatchButton {
+  gap: 6px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.applyPatchButton svg {
+  height: 14px;
+  width: 14px;
+}
+
 .inspectorHeaderActions :global([data-slot="button"]) {
   background: rgba(255, 255, 255, 0.05);
   border-color: transparent;
@@ -428,7 +444,7 @@
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: visible;
 }
 
 .inspectorScroll [data-slot="scroll-area-viewport"] > div {
@@ -444,8 +460,8 @@
   gap: 8px;
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
-  padding: 12px 0 0;
+  overflow-x: visible;
+  padding: 12px 4px 0;
 }
 
 .valueInput,

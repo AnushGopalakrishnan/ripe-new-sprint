@@ -60,6 +60,51 @@ export const bridgeScript = String.raw`
     return element.closest("button, a[href], [role='button'], input, textarea, select, [contenteditable='true'], [contenteditable='']");
   }
 
+  function numericCssValue(value) {
+    const parsed = Number.parseFloat(String(value || ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function hasVisibleRadius(style) {
+    return [
+      style.borderTopLeftRadius,
+      style.borderTopRightRadius,
+      style.borderBottomRightRadius,
+      style.borderBottomLeftRadius,
+    ].some((value) => numericCssValue(value) > 0);
+  }
+
+  function clipsChildren(style) {
+    return [style.overflow, style.overflowX, style.overflowY].some((value) => value === "hidden" || value === "clip");
+  }
+
+  function editableImageFor(element) {
+    if (element instanceof HTMLImageElement) return element;
+    if (!element || !(element instanceof Element)) return null;
+
+    const images = Array.from(element.querySelectorAll("img"));
+    return images.length === 1 ? images[0] : null;
+  }
+
+  function visualMediaFrameFor(element) {
+    const mediaElement = element instanceof HTMLImageElement || element instanceof HTMLVideoElement ? element : null;
+    if (!mediaElement) return null;
+
+    let node = mediaElement.parentElement;
+    while (node && node !== document.body && node !== document.documentElement) {
+      const style = window.getComputedStyle(node);
+      const mediaChildren = node.querySelectorAll("img, video, picture");
+
+      if (mediaChildren.length === 1 && mediaChildren[0] === mediaElement && hasVisibleRadius(style) && clipsChildren(style)) {
+        return node;
+      }
+
+      node = node.parentElement;
+    }
+
+    return null;
+  }
+
   function selectableElementFrom(target) {
     const element = target instanceof Element ? target : null;
     if (!element || element.closest("[data-ripe-editor-box]")) return null;
@@ -71,6 +116,9 @@ export const bridgeScript = String.raw`
 
     const control = inspectableControlFor(element);
     if (control && control !== document.body && control !== document.documentElement) return control;
+
+    const visualMediaFrame = visualMediaFrameFor(element);
+    if (visualMediaFrame) return visualMediaFrame;
 
     return element;
   }
@@ -270,8 +318,10 @@ export const bridgeScript = String.raw`
     const computed = window.getComputedStyle(element);
     const selector = selectorFor(element);
     const editable = isEditableControl(element);
+    const editableImage = editableImageFor(element);
     const textEditable =
       !editable &&
+      !editableImage &&
       !(element instanceof HTMLImageElement) &&
       !(element instanceof HTMLPictureElement) &&
       !(element instanceof HTMLVideoElement) &&
@@ -307,11 +357,11 @@ export const bridgeScript = String.raw`
       route: route(),
       target: targetFor(element),
       text: textEditable ? (element.textContent || "").trim() : "",
-      imageSrc: element instanceof HTMLImageElement ? element.currentSrc || element.src : "",
+      imageSrc: editableImage ? editableImage.currentSrc || editableImage.src : "",
       computedStyles,
       capabilities: {
         canEditText: textEditable,
-        canEditImage: element instanceof HTMLImageElement,
+        canEditImage: Boolean(editableImage),
         isEditableControl: editable,
         selectorUnique: (() => {
           try {
@@ -428,12 +478,13 @@ export const bridgeScript = String.raw`
   function applyPreview(payload) {
     const element = findByTarget(payload && payload.target);
     if (!element) return;
+    const editableImage = editableImageFor(element);
     const existingPreview = previews.get(payload.target.selector);
     const previous = existingPreview || {
       style: element.getAttribute("style"),
       html: element instanceof HTMLImageElement ? null : element.innerHTML,
-      src: element instanceof HTMLImageElement ? element.getAttribute("src") : null,
-      srcset: element instanceof HTMLImageElement ? element.getAttribute("srcset") : null,
+      src: editableImage ? editableImage.getAttribute("src") : null,
+      srcset: editableImage ? editableImage.getAttribute("srcset") : null,
     };
     previews.set(payload.target.selector, previous);
 
@@ -470,9 +521,9 @@ export const bridgeScript = String.raw`
     if (typeof payload.text === "string" && !(element instanceof HTMLImageElement)) {
       element.textContent = payload.text;
     }
-    if (typeof payload.imageSrc === "string" && element instanceof HTMLImageElement) {
-      element.setAttribute("src", payload.imageSrc);
-      element.removeAttribute("srcset");
+    if (typeof payload.imageSrc === "string" && editableImage) {
+      editableImage.setAttribute("src", payload.imageSrc);
+      editableImage.removeAttribute("srcset");
     }
     scheduleRedraw();
   }

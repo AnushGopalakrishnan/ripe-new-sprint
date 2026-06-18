@@ -154,6 +154,14 @@ type EditorHistorySnapshot = {
   notes: string;
 };
 
+type ApplyEditorPatchesResponse = {
+  ok?: boolean;
+  applied?: number;
+  unsupported?: Array<{ selector: string; changes: string[] }>;
+  file?: string;
+  message?: string;
+};
+
 type StyleValueChangeOptions = {
   undo?: "push" | "skip";
   commit?: "preview" | "commit" | "cancel";
@@ -253,7 +261,7 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
     { property: "fontFamily", label: "Font", placeholder: "System font" },
     { property: "fontSize", label: "Size", placeholder: "16px", unit: "px", units: textLengthUnits },
     { property: "lineHeight", label: "Line height", placeholder: "1.4", unit: "", units: lineHeightUnits, step: 0.05, min: 0 },
-    { property: "letterSpacing", label: "Tracking", placeholder: "0px", unit: "px", units: textLengthUnits, step: 0.1 },
+    { property: "letterSpacing", label: "Tracking", placeholder: "0px", unit: "px", units: textLengthUnits, step: 0.01 },
     { property: "fontWeight", label: "Weight", options: ["300", "400", "500", "600", "700", "800"] },
     { property: "textAlign", label: "Align", options: ["left", "center", "right", "justify"] },
     { property: "color", label: "Color", placeholder: "#111111" },
@@ -390,6 +398,27 @@ function patchedBaseStyles(selection: SelectionMetadata, patch: EditorPatch | un
     if (change.kind === "style") styles[change.property] = change.before;
   }
   return styles;
+}
+
+function patchedBaseContentValue(
+  selection: SelectionMetadata,
+  patch: EditorPatch | undefined,
+  field: ContentChange["field"],
+) {
+  const change = patch?.changes.find((candidate): candidate is ContentChange => (
+    candidate.kind === "content" && candidate.field === field
+  ));
+  if (change) return change.before;
+  return field === "text" ? selection.text : selection.imageSrc;
+}
+
+function patchedBaseSelection(selection: SelectionMetadata, patch: EditorPatch | undefined): SelectionMetadata {
+  return {
+    ...selection,
+    computedStyles: patchedBaseStyles(selection, patch),
+    text: patchedBaseContentValue(selection, patch, "text"),
+    imageSrc: patchedBaseContentValue(selection, patch, "imageSrc"),
+  };
 }
 
 function patchedStyleValues(base: Record<string, string>, patch: EditorPatch | undefined) {
@@ -560,8 +589,18 @@ function clampNumber(value: number, min?: number, max?: number) {
   return value;
 }
 
-function formatCssNumber(value: number) {
-  return Number(value.toFixed(2)).toString();
+function cssNumberPrecision(property?: string, unit?: string) {
+  if (property === "letterSpacing") return 4;
+  if (unit === "em" || unit === "rem") return 4;
+  return 2;
+}
+
+function formatCssNumber(value: number, precision = 2) {
+  return Number(value.toFixed(precision)).toString();
+}
+
+function formatNumericStyleNumber(value: number, property: string, unit: string) {
+  return formatCssNumber(value, cssNumberPrecision(property, unit));
 }
 
 function shouldRoundDraggedNumericValue(property: string, unit: string) {
@@ -585,8 +624,8 @@ function normalizeCssUnit(unit: string, supportedUnits: string[]) {
   return null;
 }
 
-function cssNumericValue(numberValue: number, unit: string) {
-  return `${formatCssNumber(numberValue)}${unit}`;
+function cssNumericValue(numberValue: number, unit: string, property?: string) {
+  return `${formatCssNumber(numberValue, cssNumberPrecision(property, unit))}${unit}`;
 }
 
 function toCssPropertyName(property: string) {
@@ -1641,7 +1680,7 @@ function NumericStyleInput({
 
   function commitNumber(nextValue: number, nextUnit = unit, options?: StyleValueChangeOptions) {
     const clamped = clampNumber(nextValue, min, max);
-    const nextText = formatCssNumber(clamped);
+    const nextText = formatNumericStyleNumber(clamped, property, nextUnit);
     setDraftNumber(nextText);
     onChange(`${nextText}${nextUnit}`, options);
     return `${nextText}${nextUnit}`;
@@ -1672,17 +1711,27 @@ function NumericStyleInput({
   function commitParsedInput(
     parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>,
     mode: StyleValueChangeOptions["commit"] = "preview",
+    options: { preserveDraftText?: string } = {},
   ) {
     const typedUnit = parsed.unit ? normalizeCssUnit(parsed.unit, supportedUnits) : unit;
     if (parsed.unit && typedUnit === null) {
       setDraftNumber(`${parsed.numberText}${parsed.unit}`);
       return;
     }
+    const nextUnit = typedUnit ?? unit;
 
     const clamped = clampNumber(parsed.numberValue, min, max);
-    const nextNumberText = formatCssNumber(clamped);
-    setDraftNumber(nextNumberText);
-    onChange(`${nextNumberText}${typedUnit}`, {
+    const wasClamped = clamped !== parsed.numberValue;
+    const nextNumberText =
+      mode === "preview" && options.preserveDraftText && !wasClamped
+        ? parsed.numberText
+        : formatNumericStyleNumber(clamped, property, nextUnit);
+    setDraftNumber(
+      mode === "preview" && options.preserveDraftText && !wasClamped
+        ? options.preserveDraftText
+        : nextNumberText,
+    );
+    onChange(`${nextNumberText}${nextUnit}`, {
       commit: mode,
       transactionId: transactionIdRef.current,
     });
@@ -1699,7 +1748,7 @@ function NumericStyleInput({
     const parsedInput = parseNumericCssValue(nextValue);
 
     if (parsedInput) {
-      commitParsedInput(parsedInput);
+      commitParsedInput(parsedInput, "preview", { preserveDraftText: nextValue });
       return;
     }
 
@@ -1722,7 +1771,7 @@ function NumericStyleInput({
     const convertedValue = Number.isFinite(baseValue)
       ? onConvertUnit?.({
           property,
-          value: cssNumericValue(baseValue, unit),
+          value: cssNumericValue(baseValue, unit, property),
           nextUnit: selectedUnit,
         })
       : null;
@@ -1730,7 +1779,7 @@ function NumericStyleInput({
     const parsedConvertedValue = convertedValue ? parseNumericCssValue(convertedValue) : null;
     if (parsedConvertedValue) {
       const clamped = clampNumber(parsedConvertedValue.numberValue, min, max);
-      const nextNumberText = formatCssNumber(clamped);
+      const nextNumberText = formatNumericStyleNumber(clamped, property, parsedConvertedValue.unit);
       setDraftNumber(nextNumberText);
       onChange(`${nextNumberText}${parsedConvertedValue.unit}`);
       return;
@@ -2251,6 +2300,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [applyState, setApplyState] = useState<"idle" | "applying" | "applied">("idle");
   const [inspectorTab, setInspectorTab] = useState("style");
   const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
@@ -2465,10 +2515,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           selectablePatches.find((patch) => sameTarget(patch.target, candidate.target)),
         ]),
       );
-      const patchedBaseSelections = nextSelections.map((candidate) => ({
-        ...candidate,
-        computedStyles: patchedBaseStyles(candidate, patchesBySelector.get(candidate.target.selector)),
-      }));
+      const patchedBaseSelections = nextSelections.map((candidate) =>
+        patchedBaseSelection(candidate, patchesBySelector.get(candidate.target.selector)),
+      );
       const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
         ...candidate,
         computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
@@ -2479,13 +2528,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         .map((candidate) => patchesBySelector.get(candidate.target.selector))
         .filter(Boolean);
       const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
+      const primaryBaseSelection = patchedBaseSelections[0];
       setSidebarOpen(true);
-      setSelection(primarySelection);
-      setSelections(nextSelections);
+      setSelection(primaryBaseSelection);
+      setSelections(patchedBaseSelections);
       setBaseStyles(nextBaseStyles);
       setStyleValues(nextStyleValues);
-      setTextValue(nextSelections.length === 1 ? patchedContentValue(primarySelection, primaryPatch, "text") : "");
-      setImageValue(nextSelections.length === 1 ? patchedContentValue(primarySelection, primaryPatch, "imageSrc") : "");
+      setTextValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "text") : "");
+      setImageValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "imageSrc") : "");
 
       setHidden(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide")));
       setDeleted(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete")));
@@ -2953,6 +3003,38 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     }
   }
 
+  async function applyPatchesToSource() {
+    if (patches.length === 0 || applyState === "applying") return;
+
+    setApplyState("applying");
+    try {
+      const response = await fetch("/api/editor/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ patches }),
+      });
+      const result = (await response.json().catch(() => ({}))) as ApplyEditorPatchesResponse;
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.message || "Patch request failed");
+      }
+
+      setApplyState("applied");
+      const unsupportedCount = result.unsupported?.reduce((total, item) => total + item.changes.length, 0) ?? 0;
+      if (unsupportedCount > 0) {
+        toast.warning(
+          `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} non-CSS change${unsupportedCount === 1 ? "" : "s"} still need handoff.`,
+        );
+      } else {
+        toast.success(`Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"} to ${result.file ?? "CSS"}`);
+      }
+      window.setTimeout(() => setApplyState("idle"), 1600);
+    } catch (error) {
+      setApplyState("idle");
+      toast.error(error instanceof Error ? error.message : "Patch request failed");
+    }
+  }
+
   return (
     <TooltipProvider>
       <div className={styles.editor} data-visual-editor-shell="">
@@ -3058,7 +3140,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         <ResizablePanelGroup orientation="horizontal" className={styles.workspace}>
           <ResizablePanel minSize="280px" className={styles.previewPanel}>
             <main className={styles.stage}>
-              <div className={styles.canvasChrome} style={{ width: `${viewportWidth}px` }}>
+              <div className={styles.canvasChrome} style={{ "--canvas-width": `${viewportWidth}px` } as React.CSSProperties}>
                 <iframe
                   ref={iframeRef}
                   key={iframeSrc}
@@ -3101,9 +3183,22 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                     {patches.length > 0 || selectedHasDraft ? (
                       <div className={styles.inspectorHeaderActions}>
                         {patches.length > 0 ? (
-                          <ToolbarButton label="Reset all changes" onClick={resetAllPreviews}>
-                            <EditorIcon icon={RotateLeft01Icon} />
-                          </ToolbarButton>
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={styles.applyPatchButton}
+                              disabled={applyState === "applying"}
+                              onClick={applyPatchesToSource}
+                            >
+                              <EditorIcon icon={applyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                              {applyState === "applying" ? "Patching..." : applyState === "applied" ? "Patched" : "Patch changes"}
+                            </Button>
+                            <ToolbarButton label="Reset all changes" onClick={resetAllPreviews}>
+                              <EditorIcon icon={RotateLeft01Icon} />
+                            </ToolbarButton>
+                          </>
                         ) : null}
                         {selectedHasDraft ? (
                           <ToolbarButton label="Reset selected" onClick={resetSelectedPreview}>

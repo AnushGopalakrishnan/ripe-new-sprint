@@ -1479,6 +1479,34 @@ test("visual editor numeric inputs validate drafts and commit one undo step", as
   await expect(widthInput).toHaveValue("100");
 });
 
+test("visual editor tracking input preserves small negative em values while typing", async ({ page }) => {
+  await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
+  const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
+  const frame = await iframe.contentFrame();
+  expect(frame).toBeTruthy();
+  if (!frame) return;
+
+  await frame.waitForLoadState("load");
+  await frame.waitForFunction(() => (window as Window & { __RIPE_EDITOR_BRIDGE__?: boolean }).__RIPE_EDITOR_BRIDGE__);
+  await dispatchEditorSelection(page, {
+    tag: "p",
+    computedStyles: { letterSpacing: "0px" },
+    capabilities: { canEditText: true },
+  });
+
+  const trackingInput = page.getByRole("textbox", { name: "Tracking value", exact: true });
+  await expect(trackingInput).toHaveValue("0");
+  await trackingInput.fill("");
+  await trackingInput.pressSequentially("-0.025em");
+  await expect(trackingInput).toHaveValue("-0.025em");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("letter-spacing"))).toBe("-0.025em");
+
+  await trackingInput.press("Enter");
+  await expect(trackingInput).toHaveValue("-0.025");
+  await expect(page.getByLabel("Tracking unit")).toHaveValue("em");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("letter-spacing"))).toBe("-0.025em");
+});
+
 test("visual editor units and spacing controls stay stable", async ({ page }) => {
   await gotoAppPage(page, "/__editor?path=/case-studies/zetachain");
   const iframe = await page.waitForSelector(`iframe[title='${editorFrameTitle}']`);
