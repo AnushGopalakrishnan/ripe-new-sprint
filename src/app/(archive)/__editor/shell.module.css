@@ -368,10 +368,11 @@
 }
 
 .applyPatchButton {
-  gap: 6px;
+  font-size: 11px;
+  gap: 4px;
   height: 30px;
   min-height: 30px;
-  padding: 0 9px;
+  padding: 0 7px;
   white-space: nowrap;
 }
 
