@@ -1523,6 +1523,24 @@ test("visual editor units and spacing controls stay stable", async ({ page }) =>
   await expect(widthUnit).toHaveValue("%");
   await expect(page.locator('[data-dragging="true"]')).toHaveCount(0);
   await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("width"))).toMatch(/%$/);
+  const widthUnitLabelWidth = await page
+    .locator('[data-unit-label="Width"]')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(widthUnitLabelWidth).toBeLessThanOrEqual(20);
+
+  await dispatchEditorSelection(page, {
+    tag: "p",
+    computedStyles: { lineHeight: "20px" },
+    capabilities: { canEditText: true },
+  });
+  const lineHeightInput = page.getByRole("textbox", { name: "Line height value", exact: true });
+  await lineHeightInput.fill("");
+  await lineHeightInput.pressSequentially("1-");
+  await expect(lineHeightInput).toHaveValue("1-");
+  await expect.poll(() => frame.evaluate(() => document.body.style.getPropertyValue("line-height"))).toBe("1");
+  await lineHeightInput.press("Enter");
+  await expect(lineHeightInput).toHaveValue("1");
+  await expect(page.getByLabel("Line height unit")).toHaveValue("__unitless__");
 
   await dispatchEditorSelection(
     page,
