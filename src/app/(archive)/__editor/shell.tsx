@@ -265,6 +265,8 @@ const fieldGroups: Record<FieldGroupName, FieldConfig[]> = {
   ],
 };
 
+const advancedStyleProperties = new Set(["display", "position", "gap", "alignItems", "justifyContent", "opacity"]);
+
 const groupMeta: Record<FieldGroupName | "content", { label: string; icon: EditorIconType }> = {
   layout: { label: "Layout", icon: BoxIcon },
   spacing: { label: "Space", icon: SlidersHorizontalIcon },
@@ -522,25 +524,8 @@ function summarizePatchChanges(changes: EditorChange[]) {
   return remainingCount > 0 ? `${visibleLabels}, +${remainingCount} more` : visibleLabels;
 }
 
-function previewSourceLabel(iframeSrc: string) {
-  if (iframeSrc.startsWith("/__mirror")) {
-    return {
-      label: "Mirror fallback",
-      variant: "outline" as const,
-      path: iframeSrc.replace(/^\/__mirror/, "") || "/",
-    };
-  }
-
-  const path = iframeSrc.split("?")[0] || "/";
-  return {
-    label: "Native route",
-    variant: "secondary" as const,
-    path,
-  };
-}
-
 function shortRouteLabel(route: MirrorRoute) {
-  return route.label === route.path ? route.path : `${route.label} (${route.path})`;
+  return route.label || route.path;
 }
 
 function collectionItemLabel(route: MirrorRoute) {
@@ -2266,6 +2251,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [inspectorTab, setInspectorTab] = useState("style");
   const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
   const [expandedPatchIds, setExpandedPatchIds] = useState<Set<string>>(() => new Set());
@@ -2275,7 +2261,6 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
-  const previewSource = useMemo(() => previewSourceLabel(iframeSrc), [iframeSrc]);
   const fontOptions = useMemo(() => mergeFontOptions(systemFontFamilies), [systemFontFamilies]);
   const selectionLabel = selection
     ? selections.length > 1
@@ -2296,7 +2281,26 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     if (!currentCollectionKey) return [];
     return routeOptions.filter((candidate) => candidate.collection?.key === currentCollectionKey);
   }, [currentCollectionKey, routeOptions]);
-  const currentCollectionIndex = collectionRoutes.findIndex((candidate) => candidate.path === route);
+  const selectedHasDraft = selection
+    ? patches.some((patch) => selections.some((candidate) => sameTarget(candidate.target, patch.target)))
+    : false;
+  const visibleStyleGroups = (Object.keys(fieldGroups) as FieldGroupName[])
+    .map((group) => ({
+      group,
+      fields: fieldGroups[group].filter(
+        (field) => fieldVisibleForSelections(field, selections) && !advancedStyleProperties.has(field.property),
+      ),
+    }))
+    .filter(({ fields }) => fields.length > 0);
+  const advancedStyleFields = (Object.keys(fieldGroups) as FieldGroupName[]).flatMap((group) =>
+    fieldGroups[group].filter(
+      (field) => fieldVisibleForSelections(field, selections) && advancedStyleProperties.has(field.property),
+    ),
+  );
+
+  useEffect(() => {
+    if (inspectorTab === "drafts" && patches.length === 0) setInspectorTab("style");
+  }, [inspectorTab, patches.length]);
 
   function snapshotEditorState(): EditorHistorySnapshot {
     return {
@@ -2986,39 +2990,6 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                   <span className={styles.routeSearchLabel}>Routes</span>
                 </Button>
               </div>
-
-              <div className={styles.routeMeta}>
-                <Badge variant={previewSource.variant}>{previewSource.label}</Badge>
-                <Badge variant="outline">{previewSource.path}</Badge>
-                {currentRoute?.collection && collectionRoutes.length > 1 ? (
-                  <>
-                    <Badge variant="secondary" className={styles.collectionBadge}>
-                      {currentRoute.collection.label}
-                    </Badge>
-                    <Select value={route} onValueChange={setRouteAndUrl}>
-                      <SelectTrigger
-                        className={styles.collectionSelectTrigger}
-                        size="sm"
-                        aria-label={`Switch ${currentRoute.collection.label} page`}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent position="popper">
-                        <SelectGroup>
-                          {collectionRoutes.map((candidate) => (
-                            <SelectItem value={candidate.path} key={candidate.path}>
-                              {collectionItemLabel(candidate)}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                    <Badge variant="outline" className={styles.collectionCount}>
-                      {currentCollectionIndex + 1}/{collectionRoutes.length}
-                    </Badge>
-                  </>
-                ) : null}
-              </div>
             </div>
           </div>
 
@@ -3127,22 +3098,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         {route} · {patches.length} drafted
                       </p>
                     </div>
-                    <div className={styles.inspectorHeaderActions}>
-                      <ToolbarButton label="Reset all changes" disabled={patches.length === 0} onClick={resetAllPreviews}>
-                        <EditorIcon icon={RotateLeft01Icon} />
-                      </ToolbarButton>
-                      <ToolbarButton label="Reset selected" disabled={!selection} onClick={resetSelectedPreview}>
-                        <EditorIcon icon={RotateLeft01Icon} />
-                      </ToolbarButton>
-                      <ToolbarButton
-                        label="Copy handoff"
-                        disabled={patches.length === 0}
-                        onClick={copyStyles}
-                        active={copyState === "copied"}
-                      >
-                        <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} />
-                      </ToolbarButton>
-                    </div>
+                    {patches.length > 0 || selectedHasDraft ? (
+                      <div className={styles.inspectorHeaderActions}>
+                        {patches.length > 0 ? (
+                          <ToolbarButton label="Reset all changes" onClick={resetAllPreviews}>
+                            <EditorIcon icon={RotateLeft01Icon} />
+                          </ToolbarButton>
+                        ) : null}
+                        {selectedHasDraft ? (
+                          <ToolbarButton label="Reset selected" onClick={resetSelectedPreview}>
+                            <EditorIcon icon={RotateLeft01Icon} />
+                          </ToolbarButton>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   <Separator />
 
@@ -3181,38 +3150,41 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                             </div>
                           </section>
 
-                          <section className={styles.elementActions} aria-label="Element actions">
-                            <Button
-                              type="button"
-                              variant={hidden ? "secondary" : "outline"}
-                              disabled={deleted}
-                              onClick={() => updateHidden(!hidden)}
-                            >
-                              <EditorIcon icon={hidden ? EyeOffIcon : EyeIcon} data-icon="inline-start" />
-                              {hidden ? "Show element" : "Hide element"}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={deleted ? "secondary" : "outline"}
-                              onClick={() => updateDeleted(!deleted)}
-                            >
-                              <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
-                              {deleted ? "Restore element" : "Delete element"}
-                            </Button>
-                          </section>
+                          <details className={styles.elementActionsDisclosure} open={hidden || deleted ? true : undefined}>
+                            <summary>
+                              <span>More</span>
+                              <EditorIcon icon={ChevronDownIcon} aria-hidden="true" />
+                            </summary>
+                            <section className={styles.elementActions} aria-label="Element actions">
+                              <Button
+                                type="button"
+                                variant={hidden ? "secondary" : "outline"}
+                                disabled={deleted}
+                                onClick={() => updateHidden(!hidden)}
+                              >
+                                <EditorIcon icon={hidden ? EyeOffIcon : EyeIcon} data-icon="inline-start" />
+                                {hidden ? "Show element" : "Hide element"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={deleted ? "secondary" : "outline"}
+                                onClick={() => updateDeleted(!deleted)}
+                              >
+                                <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
+                                {deleted ? "Restore element" : "Delete element"}
+                              </Button>
+                            </section>
+                          </details>
 
-                          <Tabs defaultValue="style" className={styles.inspectorTabs}>
+                          <Tabs value={inspectorTab} onValueChange={setInspectorTab} className={styles.inspectorTabs}>
                             <TabsList className={styles.inspectorTabsList}>
                               <TabsTrigger value="style">Style</TabsTrigger>
                               <TabsTrigger value="content">Content</TabsTrigger>
-                              <TabsTrigger value="drafts">Drafts ({patches.length})</TabsTrigger>
+                              {patches.length > 0 ? <TabsTrigger value="drafts">Drafts ({patches.length})</TabsTrigger> : null}
                             </TabsList>
 
                             <TabsContent value="style" className={styles.inspectorTabPanel}>
-                              {(Object.keys(fieldGroups) as FieldGroupName[]).map((group) => {
-                                const visibleFields = fieldGroups[group].filter((field) => fieldVisibleForSelections(field, selections));
-                                if (visibleFields.length === 0) return null;
-
+                              {visibleStyleGroups.map(({ group, fields }) => {
                                 return (
                                   <InspectorSection
                                     key={group}
@@ -3220,7 +3192,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                     title={groupMeta[group].label}
                                   >
                                     <FieldGroup className={group === "spacing" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
-                                      {visibleFields.map((field) => (
+                                      {fields.map((field) => (
                                         <StyleField
                                           config={field}
                                           key={field.property}
@@ -3240,60 +3212,91 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   </InspectorSection>
                                 );
                               })}
+                              {advancedStyleFields.length > 0 ? (
+                                <details className={styles.advancedStyleDisclosure}>
+                                  <summary>
+                                    <span>Advanced layout</span>
+                                    <EditorIcon icon={ChevronDownIcon} aria-hidden="true" />
+                                  </summary>
+                                  <FieldGroup className={`${styles.advancedStyleGrid} grid grid-cols-2 gap-3`}>
+                                    {advancedStyleFields.map((field) => (
+                                      <StyleField
+                                        config={field}
+                                        key={field.property}
+                                        disabled={false}
+                                        value={styleValues[field.property] ?? ""}
+                                        fontOptions={fontOptions}
+                                        fontAccessState={fontAccessState}
+                                        unitConversionDisabled={selections.length > 1}
+                                        onLoadSystemFonts={loadSystemFonts}
+                                        onPreviewStyle={previewStyle}
+                                        onRestorePreview={restorePreview}
+                                        onConvertUnit={convertSelectedUnit}
+                                        onChange={(value, options) => updateStyle(field.property, value, options)}
+                                      />
+                                    ))}
+                                  </FieldGroup>
+                                </details>
+                              ) : null}
                             </TabsContent>
 
                             <TabsContent value="content" className={styles.inspectorTabPanel}>
                               <InspectorSection icon={groupMeta.content.icon} title="Content">
                                 <FieldGroup>
-                                  <Field data-disabled={!canEditTextContent ? true : undefined}>
-                                    <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
-                                    <SmartTextarea
-                                      id="editor-content-text"
-                                      label="Selected text"
-                                      disabled={!canEditTextContent}
-                                      value={textValue}
-                                      placeholder={selections.length > 1 ? "Text editing is single-selection only" : "Edit selected text"}
-                                      onChange={updateText}
-                                    />
-                                  </Field>
-                                  <Field data-disabled={!canEditImageContent ? true : undefined}>
-                                    <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
-                                    <AssetSourceInput
-                                      id="editor-content-image-src"
-                                      disabled={!canEditImageContent}
-                                      value={imageValue}
-                                      onChange={updateImage}
-                                    />
-                                  </Field>
+                                  {canEditTextContent ? (
+                                    <Field>
+                                      <FieldLabel htmlFor="editor-content-text" className="text-xs text-muted-foreground">Text</FieldLabel>
+                                      <SmartTextarea
+                                        id="editor-content-text"
+                                        label="Selected text"
+                                        disabled={false}
+                                        value={textValue}
+                                        placeholder="Edit selected text"
+                                        onChange={updateText}
+                                      />
+                                    </Field>
+                                  ) : null}
+                                  {canEditImageContent ? (
+                                    <Field>
+                                      <FieldLabel htmlFor="editor-content-image-src" className="text-xs text-muted-foreground">Image src</FieldLabel>
+                                      <AssetSourceInput
+                                        id="editor-content-image-src"
+                                        disabled={false}
+                                        value={imageValue}
+                                        onChange={updateImage}
+                                      />
+                                    </Field>
+                                  ) : null}
+                                  {!canEditTextContent && !canEditImageContent ? (
+                                    <p className={styles.contentEmptyState}>No editable text or image source for this selection.</p>
+                                  ) : null}
                                 </FieldGroup>
                               </InspectorSection>
                             </TabsContent>
 
-                            <TabsContent value="drafts" className={styles.inspectorTabPanel}>
-                              <FieldGroup>
-                                <Field data-disabled={selections.length > 1 ? true : undefined}>
-                                  <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
-                                  <SmartTextarea
-                                    id="editor-handoff-note"
-                                    label="Handoff note"
-                                    disabled={selections.length > 1}
-                                    value={notes}
-                                    placeholder={selections.length > 1 ? "Notes are single-selection only" : "Add reviewer context for this target"}
-                                    onChange={updateNotes}
-                                  />
-                                </Field>
-                              </FieldGroup>
+                            {patches.length > 0 ? (
+                              <TabsContent value="drafts" className={styles.inspectorTabPanel}>
+                                <FieldGroup>
+                                  <Field data-disabled={selections.length > 1 ? true : undefined}>
+                                    <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
+                                    <SmartTextarea
+                                      id="editor-handoff-note"
+                                      label="Handoff note"
+                                      disabled={selections.length > 1}
+                                      value={notes}
+                                      placeholder={selections.length > 1 ? "Notes are single-selection only" : "Add reviewer context for this target"}
+                                      onChange={updateNotes}
+                                    />
+                                  </Field>
+                                </FieldGroup>
 
-                              <section className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <h3 className="text-sm font-medium">Draft patches</h3>
-                                  <Badge variant={patches.length ? "secondary" : "outline"}>{patches.length}</Badge>
-                                </div>
-                                <div className={styles.patchList}>
-                                  {patches.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No local drafts for this route.</p>
-                                  ) : (
-                                    patches.map((patch) => {
+                                <section className="flex flex-col gap-3">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <h3 className="text-sm font-medium">Draft patches</h3>
+                                    <Badge variant="secondary">{patches.length}</Badge>
+                                  </div>
+                                  <div className={styles.patchList}>
+                                    {patches.map((patch) => {
                                       const expanded = expandedPatchIds.has(patch.id);
                                       const formattedChanges = patch.changes.map(formatPatchChange);
                                       const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -3373,15 +3376,15 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                           ) : null}
                                         </div>
                                       );
-                                    })
-                                  )}
-                                </div>
-                                <Button type="button" onClick={copyStyles} disabled={patches.length === 0}>
-                                  <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
-                                  {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
-                                </Button>
-                              </section>
-                            </TabsContent>
+                                    })}
+                                  </div>
+                                  <Button type="button" onClick={copyStyles}>
+                                    <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
+                                    {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
+                                  </Button>
+                                </section>
+                              </TabsContent>
+                            ) : null}
                           </Tabs>
                         </>
                       )}

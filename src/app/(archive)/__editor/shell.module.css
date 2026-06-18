@@ -124,7 +124,6 @@
 .topbarRight,
 .routeCluster,
 .routePrimaryRow,
-.routeMeta,
 .inspectorHeader,
 .inspectorHeaderActions,
 .selectionCard,
@@ -192,38 +191,12 @@
   min-width: 260px;
 }
 
-.routeSelectTrigger,
-.collectionSelectTrigger {
+.routeSelectTrigger {
   box-shadow: none;
 }
 
 .routeSearchButton {
   flex: 0 0 auto;
-}
-
-.routeMeta {
-  flex: 1 1 auto;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.routeMeta [data-slot="badge"] {
-  background: var(--muted);
-  border-color: transparent;
-  color: var(--muted-foreground);
-  max-width: 100%;
-  min-width: 0;
-}
-
-.collectionBadge,
-.collectionCount {
-  flex: 0 0 auto;
-}
-
-.collectionSelectTrigger {
-  flex: 0 1 180px;
-  min-width: 0;
 }
 
 .workspace {
@@ -1167,6 +1140,57 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.elementActionsDisclosure,
+.advancedStyleDisclosure {
+  border-top: 1px solid var(--editor-hairline);
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.elementActionsDisclosure summary,
+.advancedStyleDisclosure summary {
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  justify-content: space-between;
+  list-style: none;
+  outline: none;
+  user-select: none;
+}
+
+.elementActionsDisclosure summary::-webkit-details-marker,
+.advancedStyleDisclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.elementActionsDisclosure summary:hover,
+.elementActionsDisclosure summary:focus-visible,
+.advancedStyleDisclosure summary:hover,
+.advancedStyleDisclosure summary:focus-visible {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.elementActionsDisclosure summary svg,
+.advancedStyleDisclosure summary svg {
+  height: 13px;
+  transition: transform 150ms ease;
+  width: 13px;
+}
+
+.elementActionsDisclosure[open] summary svg,
+.advancedStyleDisclosure[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.elementActionsDisclosure:not([open]) .elementActions,
+.advancedStyleDisclosure:not([open]) .advancedStyleGrid {
+  display: none !important;
+}
+
 .elementActions button {
   min-width: 0;
 }
@@ -1181,7 +1205,7 @@
   border: 0;
   border-radius: 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   padding: 3px;
   width: 100%;
 }
@@ -1202,6 +1226,13 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+
+.contentEmptyState {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .inspectorSection {
@@ -1501,10 +1532,6 @@
   .routePrimaryRow {
     flex: 0 0 auto;
     width: 100%;
-  }
-
-  .routeMeta {
-    display: none;
   }
 
   .stage {

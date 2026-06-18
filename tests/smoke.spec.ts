@@ -1587,7 +1587,8 @@ test("visual editor text edits, form-control selection, and viewport changes are
 
   await frame.locator("#editor-input-test").click({ force: true });
   await expect(page.locator("section[aria-live='polite']").first()).toContainText("input");
-  await expect(page.getByRole("textbox", { name: "Text" })).toBeDisabled();
+  await expect(page.getByRole("textbox", { name: "Text" })).toHaveCount(0);
+  await expect(page.getByText("No editable text or image source for this selection.")).toBeVisible();
 
   const draftCountBefore = await page.locator("[data-patch-row]").count();
   await page.locator('[aria-label="Mobile"]').click();
