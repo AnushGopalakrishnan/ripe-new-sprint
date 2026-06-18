@@ -482,10 +482,18 @@ export const bridgeScript = String.raw`
     const existingPreview = previews.get(payload.target.selector);
     const previous = existingPreview || {
       style: element.getAttribute("style"),
-      html: element instanceof HTMLImageElement ? null : element.innerHTML,
+      text: typeof payload.text === "string" && !(element instanceof HTMLImageElement) ? element.textContent : null,
       src: editableImage ? editableImage.getAttribute("src") : null,
       srcset: editableImage ? editableImage.getAttribute("srcset") : null,
     };
+    if (
+      existingPreview &&
+      typeof payload.text === "string" &&
+      previous.text === null &&
+      !(element instanceof HTMLImageElement)
+    ) {
+      previous.text = element.textContent;
+    }
     previews.set(payload.target.selector, previous);
 
     if (existingPreview) {
@@ -531,7 +539,7 @@ export const bridgeScript = String.raw`
   function restorePreviewElement(element, previous) {
     if (previous.style === null) element.removeAttribute("style");
     else element.setAttribute("style", previous.style);
-    if (previous.html !== null && !(element instanceof HTMLImageElement)) element.innerHTML = previous.html;
+    if (previous.text !== null && !(element instanceof HTMLImageElement)) element.textContent = previous.text;
     if (element instanceof HTMLImageElement) {
       if (previous.src === null) element.removeAttribute("src");
       else element.setAttribute("src", previous.src);
