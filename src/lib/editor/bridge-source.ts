@@ -124,11 +124,18 @@ export const bridgeScript = String.raw`
     );
   }
 
-  function hasDirectTextContent(element) {
+  function hasTextContent(element) {
     if (!(element instanceof Element)) return false;
-    return Array.from(element.childNodes).some((node) => (
-      node.nodeType === Node.TEXT_NODE && Boolean((node.textContent || "").trim())
-    ));
+    return Boolean((element.textContent || "").trim());
+  }
+
+  function isMediaElement(element) {
+    return (
+      element instanceof HTMLImageElement ||
+      element instanceof HTMLPictureElement ||
+      element instanceof HTMLVideoElement ||
+      element instanceof SVGElement
+    );
   }
 
   function visualMediaFrameFor(element) {
@@ -367,12 +374,9 @@ export const bridgeScript = String.raw`
     const textEditable =
       !editable &&
       !editableImage &&
-      !(element instanceof HTMLImageElement) &&
-      !(element instanceof HTMLPictureElement) &&
-      !(element instanceof HTMLVideoElement) &&
-      !(element instanceof SVGElement) &&
+      !isMediaElement(element) &&
       element.children.length === 0;
-    const textStyleable = !editable && !editableImage && (textEditable || isTextStyleElement(element) || hasDirectTextContent(element));
+    const textStyleable = !editable && !isMediaElement(element) && (textEditable || isTextStyleElement(element) || hasTextContent(element));
     const props = [
       "display",
       "position",
