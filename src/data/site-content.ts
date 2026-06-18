@@ -10,9 +10,11 @@ export const siteSettings: SiteSettings = {
   description:
     "Creative technology, motion systems, and editorial infrastructure for ambitious brand storytelling.",
   nav: [
-    { label: "Case Studies", href: "/case-studies" },
+    { label: "Work", href: "/work-new" },
+    { label: "Services", href: "/services" },
     { label: "Writing", href: "/writing" },
-    { label: "Studio", href: "/studio" },
+    { label: "Team", href: "/team" },
+    { label: "Careers", href: "/careers" },
   ],
   footerNav: [
     { label: "Home", href: "/" },
@@ -24,6 +26,14 @@ export const siteSettings: SiteSettings = {
     { label: "LinkedIn", href: "https://linkedin.com" },
   ],
   contactEmail: "hello@ripe.studio",
+  navigationShowreel: {
+    title: "Ripe Showreel 2026",
+    video: {
+      kind: "video",
+      src: "/feed-media/polestar.mp4",
+      alt: "Ripe showreel video",
+    },
+  },
   location: "Remote-first, working across APAC, Europe, and North America",
   seo: {
     title: "Ripe Studios",

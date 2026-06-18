@@ -54,6 +54,14 @@
 
 ## What Exists Today
 
+### Public Navigation
+
+- Update on 2026-06-18: all public `(site)` routes now mount a custom app-owned navbar from `src/components/public-navigation.tsx` in `src/app/(site)/layout.tsx`. It replaces/suppresses the mirrored Webflow `.nav_wrap`/`.nav_contain` layer via `src/components/public-navigation.module.css`, uses hardcoded Ripe links, no search/cart UI, a fixed transparent wordmark + two-line burger header, and a full-viewport sage overlay with desktop three-column and mobile stacked link layouts. The component locks body/html scroll while open, closes on Escape, route change, close button, and link click, and keeps shadcn/ui out of the public site.
+- Follow-up on 2026-06-18: public navigation close motion now uses a dedicated closing phase. The overlay retracts with delayed clip-path/background transforms, the burger stays hidden, and body/html scroll remains locked until the close animation completes.
+- Follow-up on 2026-06-18: public navigation overlay background is `#F1EbE2`, right-column primary links come from `siteSettings.nav` with fallback labels `Work`, `Services`, `Writing`, `Team`, `Careers`, the bottom-right CTA uses `siteSettings.contactEmail` as a `mailto:` link, and the bottom-left showreel title/video come from `siteSettings.navigationShowreel` with fallback `/feed-media/polestar.mp4`. Editors do not upload a GIF; the preview is always the generated app-owned `/nav-media/showreel-preview.gif`. `npm run nav:showreel:gif` regenerates that GIF from the CMS showreel video when Sanity env is available, otherwise from the local fallback source; `prebuild` runs the generator before production builds.
+- Fix on 2026-06-18: site settings now select the latest updated `siteSettings` document, merge partial CMS settings with fallback values instead of falling back wholesale, and revalidate every 60 seconds so navigation showreel video changes in CMS are picked up without relying only on webhook invalidation. The showreel source resolver also accepts `longFormHlsUrl` before uploaded/source URLs.
+- Fix on 2026-06-18: Sanity `sanityFetch()` now uses `SANITY_API_READ_TOKEN` for published server reads when available and disables CDN in that case. The production dataset is not publicly readable without the token, so unauthenticated published fetches returned `null` and caused the navigation showreel to fall back to `/feed-media/polestar.mp4`. Verified locally on a fresh dev server: the showreel player `src` is now the CMS asset URL from `siteSettings.navigationShowreel.video`.
+
 ### Current Focus / Archive Organization
 
 - As of 2026-05-15, the active app focus is intentionally narrowed to:
