@@ -236,6 +236,33 @@ const marginKeywords = ["auto"];
 const genericFontFamilies = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"]);
 const textOnlyStyleProperties = new Set(["fontFamily", "fontSize", "lineHeight", "letterSpacing", "fontWeight", "textAlign", "color"]);
 const nonTextTargetTags = new Set(["img", "picture", "video", "source", "canvas", "svg", "path"]);
+const textStyleTargetTags = new Set([
+  "a",
+  "b",
+  "blockquote",
+  "button",
+  "cite",
+  "dd",
+  "dt",
+  "em",
+  "figcaption",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "i",
+  "label",
+  "legend",
+  "li",
+  "p",
+  "small",
+  "span",
+  "strong",
+  "summary",
+  "time",
+]);
 const fallbackFontFamilies = [
   "Graphik",
   "Plantin MT Pro",
@@ -473,6 +500,24 @@ function isTextCompatibleSelection(selection: SelectionMetadata) {
   return !nonTextTargetTags.has(selection.target.tag);
 }
 
+function isTextStyleCompatibleSelection(selection: SelectionMetadata) {
+  return textStyleTargetTags.has(selection.target.tag);
+}
+
+function selectionCanEditText(selection: SelectionMetadata | undefined) {
+  if (!selection) return false;
+  const capability = selection.capabilities?.canEditText;
+  if (typeof capability === "boolean") return capability;
+  return isTextCompatibleSelection(selection);
+}
+
+function selectionCanStyleText(selection: SelectionMetadata) {
+  const capability = selection.capabilities?.canStyleText;
+  if (typeof capability === "boolean") return capability;
+  if (selection.capabilities?.canEditText) return true;
+  return isTextStyleCompatibleSelection(selection);
+}
+
 function isImageSelection(selection: SelectionMetadata) {
   return selection.target.tag === "img";
 }
@@ -498,7 +543,7 @@ function commonComputedStyles(selections: SelectionMetadata[]) {
 function fieldVisibleForSelections(field: FieldConfig, selections: SelectionMetadata[]) {
   if (selections.length === 0) return true;
   if (!textOnlyStyleProperties.has(field.property)) return true;
-  return selections.every((selection) => selection.capabilities?.canEditText ?? isTextCompatibleSelection(selection));
+  return selections.every(selectionCanStyleText);
 }
 
 const patchPropertyLabels: Record<string, string> = {
@@ -2731,7 +2776,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       : selection.target.textSnippet || selection.target.selector
     : "Select an element in the preview";
   const canEditContent = selections.length === 1;
-  const canEditTextContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditText ?? isTextCompatibleSelection(selections[0]));
+  const canEditTextContent = canEditContent && selectionCanEditText(selections[0]);
   const canEditImageContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditImage ?? isImageSelection(selections[0]));
 
   const routeOptions = useMemo(() => {
@@ -3296,7 +3341,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           ? element
           : element.querySelector("img")
         : null;
-      const nextTextValue = selected.capabilities?.canEditText ? (element.textContent || "").trim() : selected.text;
+      const nextTextValue = selectionCanEditText(selected) ? (element.textContent || "").trim() : selected.text;
       const nextImageValue =
         editableImage instanceof previewWindow.HTMLImageElement
           ? editableImage.currentSrc || editableImage.src

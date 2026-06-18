@@ -67,6 +67,7 @@ export type SelectionMetadata = {
   computedStyles: Record<string, string>;
   capabilities?: {
     canEditText?: boolean;
+    canStyleText?: boolean;
     canEditImage?: boolean;
     isEditableControl?: boolean;
     selectorUnique?: boolean;

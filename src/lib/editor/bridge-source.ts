@@ -12,6 +12,33 @@ export const bridgeScript = String.raw`
   const selectBoxes = new Map();
 
   const selectionPurple = "#7c3aed";
+  const textStyleTags = new Set([
+    "a",
+    "b",
+    "blockquote",
+    "button",
+    "cite",
+    "dd",
+    "dt",
+    "em",
+    "figcaption",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "i",
+    "label",
+    "legend",
+    "li",
+    "p",
+    "small",
+    "span",
+    "strong",
+    "summary",
+    "time",
+  ]);
 
   function mountBox(box, variant, zIndex) {
     const selected = variant === "selected";
@@ -84,6 +111,17 @@ export const bridgeScript = String.raw`
 
     const images = Array.from(element.querySelectorAll("img"));
     return images.length === 1 ? images[0] : null;
+  }
+
+  function isTextStyleElement(element) {
+    return (
+      element instanceof Element &&
+      textStyleTags.has(element.tagName.toLowerCase()) &&
+      !(element instanceof HTMLImageElement) &&
+      !(element instanceof HTMLPictureElement) &&
+      !(element instanceof HTMLVideoElement) &&
+      !(element instanceof SVGElement)
+    );
   }
 
   function visualMediaFrameFor(element) {
@@ -327,6 +365,7 @@ export const bridgeScript = String.raw`
       !(element instanceof HTMLVideoElement) &&
       !(element instanceof SVGElement) &&
       element.children.length === 0;
+    const textStyleable = !editable && !editableImage && isTextStyleElement(element);
     const props = [
       "display",
       "position",
@@ -361,6 +400,7 @@ export const bridgeScript = String.raw`
       computedStyles,
       capabilities: {
         canEditText: textEditable,
+        canStyleText: textStyleable,
         canEditImage: Boolean(editableImage),
         isEditableControl: editable,
         selectorUnique: (() => {
