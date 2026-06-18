@@ -1,14 +1,16 @@
-import type { ClipboardSpec, EditorPatch } from "@/lib/editor/types";
+import type { ClipboardSpec, EditorComment, EditorPatch } from "@/lib/editor/types";
 
-export function createClipboardSpec(patches: EditorPatch[]): ClipboardSpec {
+export function createClipboardSpec(patches: EditorPatch[], comments: EditorComment[] = []): ClipboardSpec {
   return {
     generatedAt: new Date().toISOString(),
     patches,
+    comments,
   };
 }
 
 export function formatClipboardSpec(spec: ClipboardSpec): string {
   const routes = new Map<string, EditorPatch[]>();
+  const commentRoutes = new Map<string, EditorComment[]>();
 
   for (const patch of spec.patches) {
     const routePatches = routes.get(patch.route) ?? [];
@@ -16,18 +18,30 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
     routes.set(patch.route, routePatches);
   }
 
+  for (const comment of spec.comments ?? []) {
+    const routeComments = commentRoutes.get(comment.route) ?? [];
+    routeComments.push(comment);
+    commentRoutes.set(comment.route, routeComments);
+  }
+
+  const routeKeys = Array.from(new Set([...routes.keys(), ...commentRoutes.keys()]));
+
   const lines = [
     "# Visual edit handoff",
     "",
     `Generated: ${spec.generatedAt}`,
-    `Routes: ${routes.size}`,
+    `Routes: ${routeKeys.length}`,
     `Targets: ${spec.patches.length}`,
+    `Comments: ${spec.comments?.length ?? 0}`,
     "",
   ];
 
-  for (const [route, patches] of routes.entries()) {
+  for (const route of routeKeys) {
+    const patches = routes.get(route) ?? [];
+    const comments = commentRoutes.get(route) ?? [];
     lines.push(`## ${route}`, "");
-    lines.push(`${patches.length} target${patches.length === 1 ? "" : "s"} drafted`, "");
+    lines.push(`${patches.length} target${patches.length === 1 ? "" : "s"} drafted`);
+    lines.push(`${comments.length} comment${comments.length === 1 ? "" : "s"} anchored`, "");
 
     patches.forEach((patch, index) => {
       lines.push(`### ${index + 1}. ${patch.target.tag}`);
@@ -73,6 +87,29 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
       }
       lines.push("");
     });
+
+    if (comments.length > 0) {
+      lines.push("### Comments", "");
+      comments.forEach((comment, index) => {
+        lines.push(`#### C${index + 1}. ${comment.target.tag}`);
+        lines.push(`Selector: \`${comment.target.selector}\``);
+        lines.push(`Anchor: ${Math.round(comment.anchor.x * 100)}% ${Math.round(comment.anchor.y * 100)}%`);
+        lines.push("Fingerprint:", "```json");
+        lines.push(JSON.stringify(
+          {
+            id: comment.target.id,
+            dataAttrs: comment.target.dataAttrs,
+            classes: comment.target.classes,
+            nthOfType: comment.target.nthOfType,
+            textSnippet: comment.target.textSnippet,
+          },
+          null,
+          2,
+        ));
+        lines.push("```");
+        lines.push(`Comment: ${comment.note.trim() || "(empty)"}`, "");
+      });
+    }
   }
 
   lines.push("```json", JSON.stringify(spec, null, 2), "```");

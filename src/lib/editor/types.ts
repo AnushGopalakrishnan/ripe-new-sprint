@@ -54,9 +54,22 @@ export type EditorPatch = {
   timestamp: string;
 };
 
+export type EditorComment = {
+  id: string;
+  route: string;
+  target: ElementTarget;
+  note: string;
+  anchor: {
+    x: number;
+    y: number;
+  };
+  timestamp: string;
+};
+
 export type ClipboardSpec = {
   generatedAt: string;
   patches: EditorPatch[];
+  comments?: EditorComment[];
 };
 
 export type SelectionMetadata = {
@@ -77,6 +90,8 @@ export type SelectionMetadata = {
 export type EditorMessage =
   | { type: "editor:hover"; target: ElementTarget | null }
   | { type: "editor:select"; selection: SelectionMetadata; selections?: SelectionMetadata[] }
+  | { type: "editor:comment-anchor"; selection: SelectionMetadata; anchor: { x: number; y: number } }
+  | { type: "editor:comment-select"; id: string }
   | { type: "editor:undo" }
   | { type: "editor:redo" }
   | {
@@ -92,4 +107,6 @@ export type EditorMessage =
     }
   | { type: "editor:clear-preview"; target?: ElementTarget }
   | { type: "editor:request-dom" }
-  | { type: "editor:set-enabled"; enabled: boolean };
+  | { type: "editor:set-enabled"; enabled: boolean }
+  | { type: "editor:set-comment-mode"; enabled: boolean }
+  | { type: "editor:set-comments"; comments: EditorComment[] };

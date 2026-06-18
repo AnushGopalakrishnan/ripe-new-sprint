@@ -101,6 +101,7 @@ import { createClipboardSpec, formatClipboardSpec } from "@/lib/editor/clipboard
 import type {
   ContentChange,
   ElementChange,
+  EditorComment,
   EditorChange,
   EditorPatch,
   ElementTarget,
@@ -380,11 +381,25 @@ function storageKey(route: string) {
   return `ripe-editor:drafts:${route}`;
 }
 
+function commentsStorageKey(route: string) {
+  return `ripe-editor:comments:${route}`;
+}
+
 function readDrafts(route: string) {
   if (typeof window === "undefined") return [];
   try {
     const stored = window.localStorage.getItem(storageKey(route));
     return stored ? (JSON.parse(stored) as EditorPatch[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function readComments(route: string) {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = window.localStorage.getItem(commentsStorageKey(route));
+    return stored ? (JSON.parse(stored) as EditorComment[]) : [];
   } catch {
     return [];
   }
@@ -2728,6 +2743,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [route, setRoute] = useState(normalizedInitialPath);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectorEnabled, setSelectorEnabled] = useState(true);
+  const [commentMode, setCommentMode] = useState(false);
   const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
@@ -2740,6 +2756,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [deleted, setDeleted] = useState(false);
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
+  const [comments, setComments] = useState<EditorComment[]>([]);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const [sourceApplyState, setSourceApplyState] = useState<"idle" | "applying" | "applied">("idle");
   const [overrideApplyState, setOverrideApplyState] = useState<"idle" | "applying" | "applied">("idle");
@@ -2792,6 +2810,10 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const selectedHasDraft = selection
     ? patches.some((patch) => selections.some((candidate) => sameTarget(candidate.target, patch.target)))
     : false;
+  const selectedComments = selection
+    ? comments.filter((comment) => selections.some((candidate) => sameTarget(candidate.target, comment.target)))
+    : [];
+  const activeComment = comments.find((comment) => comment.id === activeCommentId) ?? selectedComments[0] ?? null;
   const styleGroupOrder: FieldGroupName[] = ["typography", "appearance", "spacing", "layout"];
   const visibleStyleGroups = styleGroupOrder
     .map((group) => ({
@@ -2961,8 +2983,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   useEffect(() => {
     const draftLoad = window.setTimeout(() => {
       const nextPatches = readDrafts(route);
+      const nextComments = readComments(route);
       syncLatestEditorState({ patches: nextPatches });
       setPatches(nextPatches);
+      setComments(nextComments);
+      setActiveCommentId(null);
     }, 0);
     return () => window.clearTimeout(draftLoad);
   }, [route]);
@@ -2973,6 +2998,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       window.location.origin,
     );
   }, [selectorEnabled, iframeSrc]);
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comment-mode", enabled: commentMode },
+      window.location.origin,
+    );
+  }, [commentMode, iframeSrc]);
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comments", comments },
+      window.location.origin,
+    );
+  }, [comments, iframeSrc]);
 
   useEffect(() => {
     if (selections.length === 0) return;
@@ -3095,6 +3134,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     pendingStylePropertiesRef.current.clear();
     clearPreviewDraftPayloads();
     const nextPatches = readDrafts(normalized);
+    const nextComments = readComments(normalized);
     syncLatestEditorState({
       route: normalized,
       patches: nextPatches,
@@ -3110,6 +3150,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     });
     setRoute(normalized);
     setPatches(nextPatches);
+    setComments(nextComments);
+    setActiveCommentId(null);
     setSelection(null);
     setSelections([]);
     setBaseStyles({});
@@ -3129,6 +3171,54 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     try {
       window.localStorage.setItem(storageKey(nextRoute), JSON.stringify(nextPatches));
     } catch {}
+  }
+
+  function persistComments(nextComments: EditorComment[], nextRoute = route) {
+    try {
+      window.localStorage.setItem(commentsStorageKey(nextRoute), JSON.stringify(nextComments));
+    } catch {}
+  }
+
+  function updateComments(updater: (current: EditorComment[]) => EditorComment[]) {
+    setComments((current) => {
+      const nextComments = updater(current);
+      persistComments(nextComments);
+      return nextComments;
+    });
+  }
+
+  function createCommentForSelection(nextSelection: SelectionMetadata, anchor: EditorComment["anchor"]) {
+    const timestamp = new Date().toISOString();
+    const id = `${nextSelection.target.route}:${nextSelection.target.selector}:${timestamp}`;
+    const nextComment: EditorComment = {
+      id,
+      route: latestEditorStateRef.current.route,
+      target: nextSelection.target,
+      note: "",
+      anchor,
+      timestamp,
+    };
+    updateComments((current) => [...current, nextComment]);
+    setActiveCommentId(id);
+    setInspectorTab("comments");
+    setSidebarOpen(true);
+    toast.success("Comment anchored");
+  }
+
+  function updateCommentNote(commentId: string, value: string) {
+    updateComments((current) =>
+      current.map((comment) =>
+        comment.id === commentId
+          ? { ...comment, note: value, timestamp: new Date().toISOString() }
+          : comment,
+      ),
+    );
+  }
+
+  function deleteComment(commentId: string) {
+    updateComments((current) => current.filter((comment) => comment.id !== commentId));
+    setActiveCommentId((current) => (current === commentId ? null : current));
+    toast.success("Comment deleted");
   }
 
   function updatePatches(updater: (current: EditorPatch[]) => EditorPatch[]) {
@@ -3480,13 +3570,54 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      const message = event.data as { type?: string; selection?: SelectionMetadata; selections?: SelectionMetadata[] };
+      const message = event.data as {
+        type?: string;
+        selection?: SelectionMetadata;
+        selections?: SelectionMetadata[];
+        anchor?: EditorComment["anchor"];
+        id?: string;
+      };
       if (message.type === "editor:undo") {
         undoEditorChange();
         return;
       }
       if (message.type === "editor:redo") {
         redoEditorChange();
+        return;
+      }
+      if (message.type === "editor:comment-select" && message.id) {
+        setActiveCommentId(message.id);
+        setInspectorTab("comments");
+        setSidebarOpen(true);
+        return;
+      }
+      if (message.type === "editor:comment-anchor" && message.selection && message.anchor) {
+        flushPendingDrafts();
+        clearPreviewDraftPayloads();
+        pendingStylePropertiesRef.current.clear();
+        const nextSelection = message.selection;
+        const nextBaseStyles = commonComputedStyles([nextSelection]);
+        syncLatestEditorState({
+          selection: nextSelection,
+          selections: [nextSelection],
+          baseStyles: nextBaseStyles,
+          styleValues: nextBaseStyles,
+          textValue: nextSelection.text,
+          imageValue: nextSelection.imageSrc,
+          hidden: false,
+          deleted: false,
+          notes: "",
+        });
+        setSelection(nextSelection);
+        setSelections([nextSelection]);
+        setBaseStyles(nextBaseStyles);
+        setStyleValues(nextBaseStyles);
+        setTextValue(nextSelection.text);
+        setImageValue(nextSelection.imageSrc);
+        setHidden(false);
+        setDeleted(false);
+        setNotes("");
+        createCommentForSelection(nextSelection, message.anchor);
         return;
       }
       if (message.type !== "editor:select" || !message.selection) return;
@@ -3829,13 +3960,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   async function copyStyles() {
-    if (patches.length === 0) {
-      toast.info("No draft changes to copy");
+    if (patches.length === 0 && comments.length === 0) {
+      toast.info("No draft changes or comments to copy");
       return;
     }
 
     try {
-      const spec = createClipboardSpec(patches);
+      const spec = createClipboardSpec(patches, comments);
       await navigator.clipboard.writeText(formatClipboardSpec(spec));
       setCopyState("copied");
       toast.success("Handoff copied");
@@ -3998,6 +4129,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
             </ToolbarButton>
 
             <ToolbarButton
+              label={commentMode ? "Disable comment mode" : "Enable comment mode"}
+              active={commentMode}
+              onClick={() => setCommentMode((enabled) => !enabled)}
+            >
+              <EditorIcon icon={ClipboardIcon} />
+            </ToolbarButton>
+
+            <ToolbarButton
               label={sidebarOpen ? "Close inspector" : "Open inspector"}
               active={sidebarOpen}
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -4020,6 +4159,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                   onLoad={() => {
                     iframeRef.current?.contentWindow?.postMessage(
                       { type: "editor:set-enabled", enabled: selectorEnabled },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comment-mode", enabled: commentMode },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comments", comments },
                       window.location.origin,
                     );
                     reapplyPreviewPatches(patches);
@@ -4047,11 +4194,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         <h2 className="truncate text-sm font-medium">Visual edits</h2>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {route} · {patches.length} drafted
+                        {route} · {patches.length} drafted · {comments.length} comments
                       </p>
                     </div>
-                    <Badge variant={patches.length > 0 ? "secondary" : "outline"}>
-                      {patches.length} {patches.length === 1 ? "draft" : "drafts"}
+                    <Badge variant={patches.length > 0 || comments.length > 0 ? "secondary" : "outline"}>
+                      {patches.length + comments.length}
                     </Badge>
                   </div>
                   <Separator />
@@ -4076,6 +4223,46 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                             <EditorIcon icon={CursorPointer02Icon} data-icon="inline-start" />
                             {selectorEnabled ? "Selector enabled" : "Enable selector"}
                           </Button>
+                          <Button
+                            type="button"
+                            variant={commentMode ? "secondary" : "outline"}
+                            onClick={() => setCommentMode((enabled) => !enabled)}
+                          >
+                            <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
+                            {commentMode ? "Comment mode on" : "Comment mode"}
+                          </Button>
+                          {comments.length > 0 ? (
+                            <section className={styles.reviewDrafts}>
+                              <div className={styles.reviewDraftsHeader}>
+                                <div>
+                                  <h3>Anchored comments</h3>
+                                  <p>{comments.length} comment{comments.length === 1 ? "" : "s"} on this route.</p>
+                                </div>
+                                <Badge variant="secondary">{comments.length}</Badge>
+                              </div>
+                              <div className={styles.patchList}>
+                                {comments.map((comment, index) => (
+                                  <button
+                                    type="button"
+                                    className={styles.commentRow}
+                                    data-active={comment.id === activeComment?.id ? true : undefined}
+                                    key={comment.id}
+                                    onClick={() => {
+                                      setActiveCommentId(comment.id);
+                                      setInspectorTab("comments");
+                                    }}
+                                  >
+                                    <span className={styles.commentMarker}>{index + 1}</span>
+                                    <span className={styles.commentMeta}>
+                                      <span className={styles.commentTitle}>{comment.target.tag}</span>
+                                      <span className={styles.commentSelector}>{comment.target.selector}</span>
+                                      <span className={styles.commentNote}>{comment.note.trim() || "Empty comment"}</span>
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </section>
+                          ) : null}
                         </section>
                       ) : (
                         <>
@@ -4091,6 +4278,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                 <Badge variant={selectedHasDraft ? "secondary" : "outline"}>
                                   {selectedHasDraft ? "Drafted" : "Clean"}
                                 </Badge>
+                                {selectedComments.length > 0 ? (
+                                  <Badge variant="secondary">
+                                    {selectedComments.length} comment{selectedComments.length === 1 ? "" : "s"}
+                                  </Badge>
+                                ) : null}
                               </div>
                               <p className={styles.targetLabel}>{selectionLabel}</p>
                               <p className={styles.targetSelector}>{selection.target.selector}</p>
@@ -4125,6 +4317,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                             <TabsList className={styles.inspectorTabsList}>
                               <TabsTrigger value="style">Style</TabsTrigger>
                               <TabsTrigger value="content">Content</TabsTrigger>
+                              <TabsTrigger value="comments">Comments</TabsTrigger>
                               <TabsTrigger value="review">Review</TabsTrigger>
                             </TabsList>
 
@@ -4219,6 +4412,99 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                               </InspectorSection>
                             </TabsContent>
 
+                            <TabsContent value="comments" className={styles.inspectorTabPanel}>
+                              <section className={styles.reviewPanel}>
+                                <InspectorSection
+                                  icon={ClipboardIcon}
+                                  title="Comments"
+                                  description={commentMode ? "Click the preview to anchor a comment." : "Enable comment mode, then click the preview."}
+                                >
+                                  <FieldGroup>
+                                    <Field data-disabled={!activeComment ? true : undefined}>
+                                      <FieldLabel htmlFor="editor-active-comment" className="text-xs text-muted-foreground">
+                                        Active comment
+                                      </FieldLabel>
+                                      <SmartTextarea
+                                        id="editor-active-comment"
+                                        label="Active comment"
+                                        disabled={!activeComment}
+                                        value={activeComment?.note ?? ""}
+                                        placeholder={activeComment ? "Describe what should change here" : "No comment selected"}
+                                        onChange={(value) => {
+                                          if (activeComment) updateCommentNote(activeComment.id, value);
+                                        }}
+                                      />
+                                    </Field>
+                                  </FieldGroup>
+                                  <div className={styles.reviewActions}>
+                                    <Button
+                                      type="button"
+                                      variant={commentMode ? "secondary" : "outline"}
+                                      onClick={() => setCommentMode((enabled) => !enabled)}
+                                    >
+                                      <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
+                                      {commentMode ? "Comment mode on" : "Comment mode"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      disabled={!activeComment}
+                                      onClick={() => {
+                                        if (activeComment) deleteComment(activeComment.id);
+                                      }}
+                                    >
+                                      <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </InspectorSection>
+
+                                <section className={styles.reviewDrafts}>
+                                  <div className={styles.reviewDraftsHeader}>
+                                    <div>
+                                      <h3>Anchored comments</h3>
+                                      <p>{comments.length === 0 ? "No comments for this route." : `${comments.length} comment${comments.length === 1 ? "" : "s"} ready for handoff.`}</p>
+                                    </div>
+                                    <Badge variant={comments.length > 0 ? "secondary" : "outline"}>{comments.length}</Badge>
+                                  </div>
+
+                                  {comments.length === 0 ? (
+                                    <div className={styles.reviewEmptyState}>
+                                      <div className={styles.emptyStateIcon}>
+                                        <EditorIcon icon={ClipboardIcon} />
+                                      </div>
+                                      <p>Turn on comment mode and click any section or element in the preview.</p>
+                                    </div>
+                                  ) : (
+                                    <div className={styles.patchList}>
+                                      {comments.map((comment, index) => (
+                                        <button
+                                          type="button"
+                                          className={styles.commentRow}
+                                          data-active={comment.id === activeComment?.id ? true : undefined}
+                                          key={comment.id}
+                                          onClick={() => {
+                                            setActiveCommentId(comment.id);
+                                            setInspectorTab("comments");
+                                          }}
+                                        >
+                                          <span className={styles.commentMarker}>{index + 1}</span>
+                                          <span className={styles.commentMeta}>
+                                            <span className={styles.commentTitle}>{comment.target.tag}</span>
+                                            <span className={styles.commentSelector}>{comment.target.selector}</span>
+                                            <span className={styles.commentNote}>{comment.note.trim() || "Empty comment"}</span>
+                                          </span>
+                                          <span className={styles.commentAnchor}>
+                                            {Math.round(comment.anchor.x * 100)}% / {Math.round(comment.anchor.y * 100)}%
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </section>
+                              </section>
+                            </TabsContent>
+
                             <TabsContent value="review" className={styles.inspectorTabPanel}>
                               <section className={styles.reviewPanel}>
                                 <FieldGroup>
@@ -4239,7 +4525,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <Button
                                     type="button"
                                     variant="secondary"
-                                    disabled={patches.length === 0}
+                                    disabled={patches.length === 0 && comments.length === 0}
                                     onClick={copyStyles}
                                   >
                                     <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
@@ -4278,7 +4564,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <div className={styles.reviewDraftsHeader}>
                                     <div>
                                       <h3>Draft patches</h3>
-                                      <p>{patches.length === 0 ? "No changes staged for handoff." : `${patches.length} target${patches.length === 1 ? "" : "s"} ready to review.`}</p>
+                                      <p>
+                                        {patches.length === 0
+                                          ? comments.length === 0
+                                            ? "No changes or comments staged for handoff."
+                                            : `${comments.length} anchored comment${comments.length === 1 ? "" : "s"} ready for handoff.`
+                                          : `${patches.length} target${patches.length === 1 ? "" : "s"} ready to review.`}
+                                      </p>
                                     </div>
                                     <div className={styles.reviewDraftsControls}>
                                       <Badge variant={patches.length > 0 ? "secondary" : "outline"}>{patches.length}</Badge>
@@ -4299,7 +4591,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                       <div className={styles.emptyStateIcon}>
                                         <EditorIcon icon={File01Icon} />
                                       </div>
-                                      <p>Style or content edits will appear here as draft patches.</p>
+                                      <p>Style edits appear here. Comments are copied into the handoff from the Comments tab.</p>
                                     </div>
                                   ) : (
                                     <div className={styles.patchList}>

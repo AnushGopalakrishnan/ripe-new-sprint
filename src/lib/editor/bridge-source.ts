@@ -4,12 +4,15 @@ export const bridgeScript = String.raw`
   window.__RIPE_EDITOR_BRIDGE__ = true;
 
   let enabled = true;
+  let commentMode = false;
   let hoverTarget = null;
   let selectedSelections = [];
+  let editorComments = [];
   let redrawFrame = 0;
   const previews = new Map();
   const hoverBox = document.createElement("div");
   const selectBoxes = new Map();
+  const commentMarkers = new Map();
 
   const selectionPurple = "#7c3aed";
   const textStyleTags = new Set([
@@ -59,6 +62,34 @@ export const bridgeScript = String.raw`
 
     box.dataset.ripeEditorBox = "true";
     document.documentElement.appendChild(box);
+  }
+
+  function mountCommentMarker(marker) {
+    Object.assign(marker.style, {
+      alignItems: "center",
+      background: "#facc15",
+      border: "1px solid rgba(0,0,0,0.48)",
+      borderRadius: "999px",
+      boxShadow: "0 0 0 2px rgba(255,255,255,0.92), 0 8px 22px rgba(0,0,0,0.22)",
+      boxSizing: "border-box",
+      color: "#0a0a0a",
+      cursor: "pointer",
+      display: "none",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "11px",
+      fontWeight: "700",
+      height: "24px",
+      justifyContent: "center",
+      lineHeight: "1",
+      pointerEvents: "auto",
+      position: "fixed",
+      transform: "translate(-50%, -50%)",
+      width: "24px",
+      zIndex: "2147483647",
+    });
+    marker.dataset.ripeEditorCommentMarker = "true";
+    marker.type = "button";
+    document.documentElement.appendChild(marker);
   }
 
   function cssEscape(value) {
@@ -159,7 +190,7 @@ export const bridgeScript = String.raw`
 
   function selectableElementFrom(target) {
     const element = target instanceof Element ? target : null;
-    if (!element || element.closest("[data-ripe-editor-box]")) return null;
+    if (!element || element.closest("[data-ripe-editor-box], [data-ripe-editor-comment-marker]")) return null;
 
     const editableControl = editableControlFor(element);
     if (editableControl && editableControl !== document.body && editableControl !== document.documentElement) {
@@ -355,10 +386,54 @@ export const bridgeScript = String.raw`
     }
   }
 
+  function ensureCommentMarker(comment) {
+    const existing = commentMarkers.get(comment.id);
+    if (existing) return existing;
+    const marker = document.createElement("button");
+    mountCommentMarker(marker);
+    marker.addEventListener("click", (event) => {
+      stopPageAction(event);
+      post({ type: "editor:comment-select", id: comment.id });
+    });
+    commentMarkers.set(comment.id, marker);
+    return marker;
+  }
+
+  function syncCommentMarkers() {
+    const activeIds = new Set(editorComments.map((comment) => comment.id));
+    for (const [id, marker] of commentMarkers.entries()) {
+      if (activeIds.has(id)) continue;
+      marker.remove();
+      commentMarkers.delete(id);
+    }
+
+    editorComments.forEach((comment, index) => {
+      const marker = ensureCommentMarker(comment);
+      const element = findByTarget(comment.target);
+      if (!element) {
+        marker.style.display = "none";
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        marker.style.display = "none";
+        return;
+      }
+      const anchor = comment.anchor || { x: 0.5, y: 0.5 };
+      marker.textContent = String(index + 1);
+      marker.setAttribute("aria-label", "Editor comment " + (index + 1));
+      marker.title = comment.note || "Editor comment";
+      marker.style.display = "flex";
+      marker.style.left = rect.left + rect.width * Number(anchor.x || 0.5) + "px";
+      marker.style.top = rect.top + rect.height * Number(anchor.y || 0.5) + "px";
+    });
+  }
+
   function redrawBoxes() {
     redrawFrame = 0;
     drawTarget(hoverBox, hoverTarget);
     syncSelectBoxes();
+    syncCommentMarkers();
   }
 
   function scheduleRedraw() {
@@ -431,7 +506,7 @@ export const bridgeScript = String.raw`
   }
 
   function onPointerMove(event) {
-    if (!enabled) return;
+    if (!enabled && !commentMode) return;
     const element = selectableElementFrom(event.target);
     if (!element) return;
     hoverTarget = targetFor(element);
@@ -488,18 +563,29 @@ export const bridgeScript = String.raw`
   }
 
   function onPointerDown(event) {
-    if (!enabled) return;
+    if (!enabled && !commentMode) return;
     const element = selectableElementFrom(event.target);
-    if (!element || !inspectableControlFor(element)) return;
+    if (!element || (!commentMode && !inspectableControlFor(element))) return;
     stopPageAction(event);
+    if (commentMode) return;
     updateSelection(element, event.shiftKey || event.metaKey || event.ctrlKey);
   }
 
   function onClick(event) {
-    if (!enabled) return;
+    if (!enabled && !commentMode) return;
     const element = selectableElementFrom(event.target);
     if (!element) return;
     stopPageAction(event);
+    if (commentMode) {
+      const rect = element.getBoundingClientRect();
+      const x = rect.width > 0 ? Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)) : 0.5;
+      const y = rect.height > 0 ? Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)) : 0.5;
+      const nextSelection = selectionFor(element);
+      selectedSelections = [nextSelection];
+      syncSelectBoxes();
+      post({ type: "editor:comment-anchor", selection: nextSelection, anchor: { x, y } });
+      return;
+    }
     updateSelection(element, event.shiftKey || event.metaKey || event.ctrlKey);
   }
 
@@ -615,6 +701,14 @@ export const bridgeScript = String.raw`
     const message = event.data || {};
     if (message.type === "editor:apply-preview") applyPreview(message.patch);
     if (message.type === "editor:clear-preview") clearPreview(message.target);
+    if (message.type === "editor:set-comment-mode") {
+      commentMode = Boolean(message.enabled);
+      document.documentElement.style.cursor = commentMode ? "crosshair" : "";
+    }
+    if (message.type === "editor:set-comments") {
+      editorComments = Array.isArray(message.comments) ? message.comments : [];
+      syncCommentMarkers();
+    }
     if (message.type === "editor:set-enabled") {
       enabled = Boolean(message.enabled);
       if (!enabled) {
