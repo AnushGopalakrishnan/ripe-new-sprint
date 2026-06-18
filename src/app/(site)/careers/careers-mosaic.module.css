@@ -5,30 +5,37 @@
   width: 100%;
 }
 
-.benefitsGrid {
+.gridTop {
   display: grid;
   gap: 1.5rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.benefitCard {
+.columnLeft,
+.columnCenter,
+.columnRight {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
   align-items: flex-end;
-  aspect-ratio: 1 / 1;
   background: rgb(245, 245, 245);
   border-radius: 1rem;
+  color: rgb(0, 0, 0);
   display: flex;
-  min-height: 15rem;
   overflow: hidden;
   padding: 1.5rem;
   position: relative;
 }
 
-.benefitCardImage {
+.cardImage {
   background: #1b1b1b;
-  color: #fff;
+  color: rgb(255, 255, 255);
 }
 
-.benefitCardImage::after {
+.cardImage::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.62) 100%);
   content: "";
   inset: 0;
@@ -36,7 +43,7 @@
   z-index: 1;
 }
 
-.benefitCard img {
+.card img {
   border-radius: 1rem;
   display: block;
   height: 100%;
@@ -46,7 +53,7 @@
   width: 100%;
 }
 
-.benefitCard h3 {
+.card h3 {
   color: inherit;
   font-family: "Times New Roman", Times, serif;
   font-size: clamp(1.5rem, 2.35vw, 2.5rem);
@@ -59,29 +66,92 @@
   z-index: 2;
 }
 
-@media (max-width: 74.9375rem) {
-  .benefitsGrid {
+.cardAbout {
+  height: 360px;
+}
+
+.cardTestimonial {
+  height: 490px;
+}
+
+.cardImageTall {
+  height: 620px;
+}
+
+.cardServices,
+.cardClients {
+  height: 230px;
+}
+
+.gridBottom {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.5rem;
+}
+
+.cardBlog {
+  aspect-ratio: 1.5583 / 1;
+}
+
+@media (max-width: 1199px) and (min-width: 810px) {
+  .gridTop {
+    grid-template-columns: 1fr;
+  }
+
+  .columnLeft,
+  .columnCenter,
+  .columnRight {
+    display: grid;
+    gap: 1.5rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardAbout,
+  .cardTestimonial,
+  .cardImageTall,
+  .cardServices,
+  .cardClients {
+    height: auto;
+    min-height: 387px;
   }
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 809px) {
   .wrap {
     padding: 0 8px;
   }
 
-  .benefitsGrid {
+  .gridTop {
     gap: 0.75rem;
     grid-template-columns: 1fr;
   }
 
-  .benefitCard {
-    aspect-ratio: 1.35 / 1;
-    min-height: 13rem;
+  .columnLeft,
+  .columnCenter,
+  .columnRight {
+    gap: 0.75rem;
+  }
+
+  .gridBottom {
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+    margin-top: 0.75rem;
+  }
+
+  .cardAbout,
+  .cardTestimonial,
+  .cardImageTall,
+  .cardServices,
+  .cardClients {
+    height: 200px;
+  }
+
+  .card {
     padding: 1.25rem;
   }
 
-  .benefitCard h3 {
+  .card h3 {
     font-size: clamp(1.5rem, 10vw, 2.25rem);
   }
 }
