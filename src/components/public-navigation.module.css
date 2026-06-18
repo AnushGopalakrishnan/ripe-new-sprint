@@ -1,0 +1,555 @@
+.header {
+  color: #000;
+  height: 54px;
+  inset: 0 0 auto;
+  pointer-events: none;
+  position: fixed;
+  width: 100%;
+  z-index: 1200;
+}
+
+.headerInner {
+  align-items: center;
+  display: flex;
+  height: 54px;
+  justify-content: space-between;
+  margin: 0 34px;
+  padding-top: 24px;
+}
+
+.headerLogo,
+.panelLogo {
+  color: currentColor;
+  display: flex;
+  height: 26px;
+  pointer-events: auto;
+  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  width: auto;
+}
+
+.logoSvg {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+.burger,
+.closeButton {
+  background: transparent;
+  border: 0;
+  color: currentColor;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  pointer-events: auto;
+}
+
+.burger {
+  height: 10px;
+  opacity: 1;
+  position: relative;
+  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  width: 50px;
+}
+
+.burger span,
+.closeButton span {
+  background: currentColor;
+  display: block;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  transform: translateY(-50%);
+  transform-origin: center;
+  transition:
+    top 0.3s ease,
+    transform 0.3s ease;
+  width: 100%;
+}
+
+.burger span:first-child {
+  top: 1px;
+}
+
+.burger span:last-child {
+  top: calc(100% - 1px);
+}
+
+.header[data-open="true"] .burger {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel {
+  clip-path: inset(0 0 100% 0);
+  color: #000;
+  height: 100dvh;
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: clip-path 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.2s;
+  width: 100%;
+  z-index: 1500;
+}
+
+.panel[data-open="true"] {
+  clip-path: inset(0);
+  pointer-events: auto;
+  transition-duration: 0s;
+  transition-delay: 0s;
+}
+
+.panelBackground {
+  background: #f1ebe2;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  transform: translateY(-100%);
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) 0.2s;
+  width: 100%;
+}
+
+.panel[data-open="true"] .panelBackground {
+  transform: translateY(0);
+  transition-duration: 0.8s;
+  transition-delay: 0s;
+  transition-timing-function: cubic-bezier(0.6, 0.192, 0.098, 1.03);
+}
+
+.closeBar {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  left: 0;
+  padding-top: 30px;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 2;
+}
+
+.closeButton {
+  grid-column: 2;
+  height: 22px;
+  justify-self: end;
+  opacity: 0;
+  position: relative;
+  transition: opacity 0.4s ease 0s;
+  width: 38px;
+}
+
+.closeButton span {
+  top: 50%;
+  transition: transform 0.3s ease;
+}
+
+.closeButton span:first-child {
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.closeButton span:last-child {
+  transform: translateY(-50%) rotate(-45deg);
+}
+
+.panel[data-open="true"] .closeButton {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0.4s;
+}
+
+.panelInner {
+  align-items: start;
+  box-sizing: border-box;
+  column-gap: 20px;
+  display: grid;
+  grid-template-columns: 34px repeat(12, minmax(0, 1fr)) 34px;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  padding-bottom: 40px;
+  padding-top: 140px;
+  position: relative;
+  width: 100%;
+}
+
+.panelColumn {
+  opacity: 0;
+  position: relative;
+  transform: translateY(-20px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+  z-index: 1;
+}
+
+.logoColumn {
+  grid-column: 2 / span 6;
+  transform: translateY(-114px);
+}
+
+.secondaryColumn {
+  grid-column: 8 / span 3;
+}
+
+.secondaryColumn nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.primaryColumn {
+  grid-column: 11 / span 4;
+}
+
+.showreelColumn {
+  align-self: end;
+  grid-column: 2 / span 4;
+  grid-row: 3;
+}
+
+.ctaColumn {
+  align-self: end;
+  grid-column: 11 / span 3;
+  grid-row: 3;
+  justify-self: start;
+}
+
+.panel[data-open="true"] .logoColumn {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.12s;
+  transition-duration: 0.6s;
+}
+
+.panel[data-open="true"] .secondaryColumn {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.5s;
+}
+
+.panel[data-open="true"] .primaryColumn {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.6s;
+}
+
+.panel[data-open="true"] .showreelColumn,
+.panel[data-open="true"] .ctaColumn {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.65s;
+}
+
+.secondaryList,
+.primaryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.secondaryList {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.secondaryList li:not(:last-child) {
+  padding-bottom: 2px;
+}
+
+.policyList {
+  margin-top: 32px;
+  font-size: 14px;
+}
+
+.primaryList {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 32px;
+  letter-spacing: -2%;
+  line-height: 100%;
+  
+}
+.primaryList li{
+margin-bottom:8px;
+}
+
+.primaryList a,
+.secondaryList a,
+.contactCta {
+  color: currentColor;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.panel :is(.primaryList, .secondaryList):hover a {
+  opacity: 0.4;
+}
+
+.panel :is(.primaryList, .secondaryList) a:hover {
+  opacity: 1;
+}
+
+.showreelButton {
+  background: #fff;
+  border: 0;
+  color: #000;
+  cursor: pointer;
+  display: block;
+  font-family: "Times New Roman", Times, serif;
+  margin: 0;
+  padding: 10px 10px 0;
+  text-align: left;
+  width: min(284px, 100%);
+}
+
+.showreelPreview {
+  aspect-ratio: 16 / 9;
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+.showreelMeta {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  line-height: 19px;
+  min-height: 22px;
+}
+
+.contactCta {
+  align-items: center;
+  background: #000;
+  color: #fff;
+  display: inline-flex;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  height: auto;
+  justify-content: center;
+  line-height: 1;
+  min-width: 104px;
+  padding: 16 16px;
+}
+
+.contactCta:hover {
+  opacity: 0.72;
+}
+
+.playerOverlay {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  padding: 40px;
+  position: fixed;
+  z-index: 3;
+}
+
+.playerBackdrop {
+  background: rgb(0 0 0 / 0.72);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.playerShell {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  position: relative;
+  will-change: transform;
+  width: min(1120px, 92vw);
+  z-index: 1;
+}
+
+.playerVideo {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.playerCloseButton {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  right: 0;
+  top: -38px;
+  width: 28px;
+}
+
+.playerCloseButton span {
+  background: currentColor;
+  display: block;
+  height: 2px;
+  left: 0;
+  position: absolute;
+  top: 50%;
+  width: 100%;
+}
+
+.playerCloseButton span:first-child {
+  transform: rotate(45deg);
+}
+
+.playerCloseButton span:last-child {
+  transform: rotate(-45deg);
+}
+
+:global(.nav_wrap),
+:global(.nav_contain.u-container) {
+  display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .headerLogo:hover,
+  .panelLogo:hover,
+  .burger:hover,
+  .closeButton:hover {
+    opacity: 0.4;
+  }
+
+  .burger:hover span:first-child {
+    top: -1px;
+  }
+
+  .burger:hover span:last-child {
+    top: calc(100% + 1px);
+  }
+}
+
+@media (max-width: 739px) {
+  .header {
+    height: 50px;
+  }
+
+  .headerInner {
+    height: 40px;
+    margin: 0 16px;
+    padding-top: 10px;
+  }
+
+  .headerLogo,
+  .panelLogo {
+    height: 18px;
+  }
+
+  .burger {
+    height: 8px;
+    width: 40px;
+  }
+
+  .closeBar {
+    grid-template-columns: 16px 1fr 16px;
+    padding-top: 20px;
+  }
+
+  .closeButton {
+    width: 36px;
+  }
+
+  .panelInner {
+    align-content: start;
+    column-gap: 0;
+    grid-template-columns: 16px repeat(6, minmax(0, 1fr)) 16px;
+    grid-template-rows: auto auto 1fr auto auto;
+    padding-bottom: 30px;
+    padding-top: 20px;
+  }
+
+  .logoColumn {
+    display: none;
+  }
+
+  .primaryColumn {
+    grid-column: 2 / -2;
+    grid-row: 1;
+    margin-top: 75px;
+  }
+
+  .secondaryColumn {
+    display: flex;
+    grid-column: 2 / -2;
+    grid-row: 2;
+    margin-top: 44px;
+  }
+
+  .secondaryColumn nav {
+    flex-direction: row;
+  }
+
+  .showreelColumn {
+    grid-column: 2 / -2;
+    grid-row: 4;
+    margin-top: 44px;
+  }
+
+  .ctaColumn {
+    grid-column: 2 / -2;
+    grid-row: 5;
+    justify-self: start;
+    margin-top: 18px;
+  }
+
+  .primaryList {
+    font-size: 25px;
+    letter-spacing: -0.125px;
+    line-height: 29.6875px;
+  }
+
+  .secondaryList {
+    columns: auto;
+    font-size: 13px;
+    line-height: 17.3333px;
+  }
+
+  .policyList {
+    margin-left: 40px;
+    margin-top: 0;
+  }
+
+  .showreelButton {
+    width: min(284px, 100%);
+  }
+
+  .contactCta {
+    height: 38px;
+    min-width: 100px;
+  }
+
+  .playerOverlay {
+    padding: 18px;
+  }
+
+  .panel[data-open="true"] .primaryColumn,
+  .panel[data-open="true"] .secondaryColumn,
+  .panel[data-open="true"] .showreelColumn,
+  .panel[data-open="true"] .ctaColumn {
+    transition-delay: 0.45s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panelBackground,
+  .panelColumn,
+  .burger span,
+  .closeButton span,
+  .closeButton {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .panelBackground,
+  .panelColumn {
+    transform: none;
+  }
+}

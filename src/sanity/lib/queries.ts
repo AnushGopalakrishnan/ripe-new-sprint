@@ -1,7 +1,7 @@
 import { defineQuery } from "next-sanity";
 
 export const SITE_SETTINGS_QUERY = defineQuery(`
-  *[_type == "siteSettings"][0]{
+  (*[_type == "siteSettings"] | order(_updatedAt desc))[0]{
     title,
     description,
     nav[]{
@@ -17,6 +17,25 @@ export const SITE_SETTINGS_QUERY = defineQuery(`
       href
     },
     contactEmail,
+    navigationShowreel{
+      title,
+      video{
+        "kind": coalesce(
+          kind,
+          select(defined(upload.asset->mimeType) && upload.asset->mimeType match "video/*" => "video"),
+          select(defined(video.asset->url) => "video"),
+          "video"
+        ),
+        "src": coalesce(longFormHlsUrl, src, upload.asset->url, image.asset->url, video.asset->url),
+        alt,
+        "poster": coalesce(posterImage.asset->url, poster),
+        eyebrow,
+        "longForm": {
+          "enabled": coalesce(longFormEnabled, false),
+          "hlsUrl": longFormHlsUrl
+        }
+      }
+    },
     location,
     seo{
       title,

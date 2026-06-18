@@ -9,6 +9,8 @@
     "postinstall": "node scripts/fix-lightningcss-native.mjs",
     "fix:lightningcss": "node scripts/fix-lightningcss-native.mjs",
     "mirror:refresh": "node scripts/mirror-webflow-site.mjs",
+    "nav:showreel:gif": "node scripts/generate-navigation-showreel-preview.mjs",
+    "prebuild": "node scripts/generate-navigation-showreel-preview.mjs",
     "sanity:build-import": "python3 scripts/sanity/build_import.py",
     "sanity:import": "node scripts/sanity/import-documents.mjs",
     "lint": "eslint . --max-warnings=0",

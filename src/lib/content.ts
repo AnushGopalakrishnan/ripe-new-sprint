@@ -164,6 +164,31 @@ function normalizeCaseStudy(study: CaseStudy): CaseStudy {
   });
 }
 
+function normalizeSiteSettings(settings: SiteSettings | null): SiteSettings {
+  if (!settings) return fallbackSiteSettings;
+
+  const showreelVideo = settings.navigationShowreel?.video?.src
+    ? settings.navigationShowreel.video
+    : fallbackSiteSettings.navigationShowreel?.video;
+
+  return {
+    ...fallbackSiteSettings,
+    ...settings,
+    nav: settings.nav?.length ? settings.nav : fallbackSiteSettings.nav,
+    footerNav: settings.footerNav?.length ? settings.footerNav : fallbackSiteSettings.footerNav,
+    socialLinks: settings.socialLinks?.length ? settings.socialLinks : fallbackSiteSettings.socialLinks,
+    seo: {
+      ...fallbackSiteSettings.seo,
+      ...settings.seo,
+    },
+    navigationShowreel: {
+      ...fallbackSiteSettings.navigationShowreel,
+      ...settings.navigationShowreel,
+      video: showreelVideo,
+    },
+  };
+}
+
 export async function getSiteSettings(): Promise<SiteSettings> {
   if (!hasSanityConfig) {
     return fallbackSiteSettings;
@@ -171,10 +196,11 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
   const { data } = await sanityFetch<SiteSettings | null>({
     query: SITE_SETTINGS_QUERY,
-    tags: ["siteSettings"],
+    revalidate: 60,
+    tags: [],
   });
 
-  return data || fallbackSiteSettings;
+  return normalizeSiteSettings(data);
 }
 
 export async function getHomePage(): Promise<HomePage> {

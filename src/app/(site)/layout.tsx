@@ -3,7 +3,9 @@ import { VisualEditing } from "next-sanity/visual-editing";
 import { DisableDraftMode } from "@/components/disable-draft-mode";
 import { EditorBridgeRuntime } from "@/components/editor-bridge-runtime";
 import { PageTransitionController } from "@/components/page-transition-controller";
+import { PublicNavigation } from "@/components/public-navigation";
 import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
+import { getSiteSettings } from "@/lib/content";
 
 export default async function SiteLayout({
   children,
@@ -11,6 +13,7 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }>) {
   const isDraftMode = (await draftMode()).isEnabled;
+  const siteSettings = await getSiteSettings();
 
   return (
     <>
@@ -33,6 +36,12 @@ export default async function SiteLayout({
       />
       <SmoothScrollProvider />
       <PageTransitionController />
+      <PublicNavigation
+        contactEmail={siteSettings.contactEmail}
+        navLinks={siteSettings.nav}
+        navigationShowreel={siteSettings.navigationShowreel}
+        socialLinks={siteSettings.socialLinks}
+      />
       {children}
       <EditorBridgeRuntime />
       {isDraftMode ? (

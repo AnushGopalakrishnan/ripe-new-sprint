@@ -33,7 +33,7 @@ export async function sanityFetch<T>({
   const data = await client
     .withConfig({
       stega: isDraftMode ? { studioUrl: sanityEnv.studioUrl } : false,
-      useCdn: !isDraftMode,
+      useCdn: !isDraftMode && !sanityEnv.readToken,
     })
     .fetch<T>(query, params, {
       next: {
@@ -41,7 +41,7 @@ export async function sanityFetch<T>({
         tags: isDraftMode ? [] : tags,
       },
       perspective,
-      token: isDraftMode ? sanityEnv.readToken : undefined,
+      token: sanityEnv.readToken || undefined,
     });
 
   return { data };

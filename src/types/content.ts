@@ -27,6 +27,11 @@ export type MediaAsset = {
   };
 };
 
+export type NavigationShowreel = {
+  title?: string;
+  video?: MediaAsset;
+};
+
 export type CommentPosition = {
   x?: number;
   y?: number;
@@ -103,6 +108,7 @@ export type SiteSettings = {
   footerNav: NavLink[];
   socialLinks?: SocialLink[];
   contactEmail?: string;
+  navigationShowreel?: NavigationShowreel;
   location?: string;
   seo: Seo;
 };
