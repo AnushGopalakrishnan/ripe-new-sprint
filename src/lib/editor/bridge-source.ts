@@ -124,6 +124,13 @@ export const bridgeScript = String.raw`
     );
   }
 
+  function hasDirectTextContent(element) {
+    if (!(element instanceof Element)) return false;
+    return Array.from(element.childNodes).some((node) => (
+      node.nodeType === Node.TEXT_NODE && Boolean((node.textContent || "").trim())
+    ));
+  }
+
   function visualMediaFrameFor(element) {
     const mediaElement = element instanceof HTMLImageElement || element instanceof HTMLVideoElement ? element : null;
     if (!mediaElement) return null;
@@ -365,7 +372,7 @@ export const bridgeScript = String.raw`
       !(element instanceof HTMLVideoElement) &&
       !(element instanceof SVGElement) &&
       element.children.length === 0;
-    const textStyleable = !editable && !editableImage && isTextStyleElement(element);
+    const textStyleable = !editable && !editableImage && (textEditable || isTextStyleElement(element) || hasDirectTextContent(element));
     const props = [
       "display",
       "position",
