@@ -581,8 +581,9 @@
   cursor: ns-resize;
   flex: 0 0 auto;
   gap: 2px;
-  padding-left: 2px;
-  padding-right: 4px;
+  min-width: 0;
+  padding-left: 1px !important;
+  padding-right: 2px !important;
 }
 
 .numericLeadingIcon {
@@ -617,30 +618,57 @@
   min-width: 12px;
 }
 
+.numericUnitSelectWrap {
+  display: inline-flex;
+  height: 22px;
+  min-width: 0;
+  position: relative;
+  width: calc((var(--numeric-unit-ch, 2) * 1ch) + 4px);
+}
+
+.numericUnitSelect,
+.numericUnitSelectLabel {
+  align-items: center;
+  display: flex;
+  font-size: 11px;
+  height: 22px;
+  justify-content: center;
+  line-height: 1;
+  width: 100%;
+}
+
 .numericUnitSelect {
   appearance: none;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
-  color: color-mix(in oklch, var(--muted-foreground) 86%, transparent);
   cursor: pointer;
-  font-size: 11px;
-  height: 22px !important;
-  min-height: 22px !important;
-  max-width: 7ch;
+  inset: 0;
   min-width: 0;
+  opacity: 0;
   outline: none;
-  padding: 0 1px 0 3px;
-  width: auto;
+  padding: 0;
+  position: absolute;
+  z-index: 1;
 }
 
-.numericUnitSelect:focus-visible {
+.numericUnitSelectLabel {
+  border-radius: 6px;
+  color: color-mix(in oklch, var(--muted-foreground) 86%, transparent);
+  pointer-events: none;
+  text-align: center;
+}
+
+.numericUnitSelect:focus-visible + .numericUnitSelectLabel {
   border-radius: 6px;
   box-shadow: 0 0 0 1px var(--editor-control-ring) !important;
 }
 
 .numericUnitSelect:disabled {
   cursor: not-allowed;
+}
+
+.numericUnitSelect:disabled + .numericUnitSelectLabel {
   opacity: 0.45;
 }
 

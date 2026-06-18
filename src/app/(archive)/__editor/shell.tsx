@@ -561,7 +561,7 @@ function collectionItemLabel(route: MirrorRoute) {
   return route.collection?.itemLabel || route.label || route.path;
 }
 
-const numericCssPattern = /^\s*(-?(?:\d+|\d*\.\d+))(?:\s*([a-z%]+))?\s*$/i;
+const numericCssPattern = /^\s*(-?(?:\d+|\d*\.\d+))(?:\s*([a-z%]+|-))?\s*$/i;
 const unitlessSelectValue = "__unitless__";
 
 function parseNumericCssValue(value: string) {
@@ -570,10 +570,13 @@ function parseNumericCssValue(value: string) {
   const numberText = match[1];
   const numberValue = Number(numberText);
   if (!Number.isFinite(numberValue)) return null;
+  const typedUnit = match[2] ?? "";
+  const explicitUnitless = typedUnit === "-";
   return {
+    explicitUnitless,
     numberText,
     numberValue,
-    unit: match[2] ?? "",
+    unit: explicitUnitless ? "" : typedUnit,
   };
 }
 
@@ -618,10 +621,27 @@ function unitLabel(unit: string) {
   return unit || "unitless";
 }
 
+function unitSelectLabel(unit: string) {
+  return unit || "-";
+}
+
 function normalizeCssUnit(unit: string, supportedUnits: string[]) {
   const normalized = unit.toLowerCase();
   if (supportedUnits.includes(normalized)) return normalized;
   return null;
+}
+
+function parsedNumericUnitIsSupported(
+  parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>,
+  supportedUnits: string[],
+) {
+  if (parsed.explicitUnitless) return supportedUnits.includes("");
+  if (parsed.unit) return normalizeCssUnit(parsed.unit, supportedUnits) !== null;
+  return true;
+}
+
+function parsedNumericDraftText(parsed: NonNullable<ReturnType<typeof parseNumericCssValue>>) {
+  return `${parsed.numberText}${parsed.explicitUnitless ? "-" : parsed.unit}`;
 }
 
 function cssNumericValue(numberValue: number, unit: string, property?: string) {
@@ -1886,7 +1906,7 @@ function NumericStyleInput({
   } | null>(null);
   const parsedDraft = parseNumericCssValue(draftNumber);
   const draftKeyword = normalizeCssKeywordValue(draftNumber, supportedKeywords);
-  const draftHasUnsupportedUnit = Boolean(parsedDraft?.unit && normalizeCssUnit(parsedDraft.unit, supportedUnits) === null);
+  const draftHasUnsupportedUnit = Boolean(parsedDraft && !parsedNumericUnitIsSupported(parsedDraft, supportedUnits));
   const invalid = Boolean(draftNumber.trim()) && !draftKeyword && (!parsedDraft || draftHasUnsupportedUnit);
 
   useEffect(() => {
@@ -1931,9 +1951,15 @@ function NumericStyleInput({
     mode: StyleValueChangeOptions["commit"] = "preview",
     options: { preserveDraftText?: string } = {},
   ) {
-    const typedUnit = parsed.unit ? normalizeCssUnit(parsed.unit, supportedUnits) : unit;
-    if (parsed.unit && typedUnit === null) {
-      setDraftNumber(`${parsed.numberText}${parsed.unit}`);
+    const typedUnit = parsed.explicitUnitless
+      ? supportedUnits.includes("")
+        ? ""
+        : null
+      : parsed.unit
+        ? normalizeCssUnit(parsed.unit, supportedUnits)
+        : unit;
+    if ((parsed.explicitUnitless || parsed.unit) && typedUnit === null) {
+      setDraftNumber(parsedNumericDraftText(parsed));
       return;
     }
     const nextUnit = typedUnit ?? unit;
@@ -2035,7 +2061,7 @@ function NumericStyleInput({
       return;
     }
     const parsedDraft = parseNumericCssValue(draftNumber);
-    const unsupportedUnit = Boolean(parsedDraft?.unit && normalizeCssUnit(parsedDraft.unit, supportedUnits) === null);
+    const unsupportedUnit = Boolean(parsedDraft && !parsedNumericUnitIsSupported(parsedDraft, supportedUnits));
     if (parsedDraft) {
       if (unsupportedUnit) {
         onChange(value, {
@@ -2176,22 +2202,30 @@ function NumericStyleInput({
       {!displayIsKeyword ? (
       <InputGroupAddon align="inline-end" className={styles.numericValueAddon}>
         {supportedUnits.length > 1 ? (
-          <select
-            disabled={disabled || unitConversionDisabled}
-            className={styles.numericUnitSelect}
-            aria-label={`${label} unit`}
-            title={unitConversionDisabled ? "Unit conversion is single-selection only" : undefined}
-            value={unit || unitlessSelectValue}
-            onClick={(event) => event.stopPropagation()}
-            onPointerDown={(event) => event.stopPropagation()}
-            onChange={(event) => updateUnit(event.target.value)}
+          <span
+            className={styles.numericUnitSelectWrap}
+            style={{ "--numeric-unit-ch": unitSelectLabel(unit).length } as React.CSSProperties}
           >
-            {supportedUnits.map((supportedUnit) => (
-              <option value={supportedUnit || unitlessSelectValue} key={supportedUnit || unitlessSelectValue}>
-                {unitLabel(supportedUnit)}
-              </option>
-            ))}
-          </select>
+            <select
+              disabled={disabled || unitConversionDisabled}
+              className={styles.numericUnitSelect}
+              aria-label={`${label} unit`}
+              title={unitConversionDisabled ? "Unit conversion is single-selection only" : undefined}
+              value={unit || unitlessSelectValue}
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onChange={(event) => updateUnit(event.target.value)}
+            >
+              {supportedUnits.map((supportedUnit) => (
+                <option value={supportedUnit || unitlessSelectValue} key={supportedUnit || unitlessSelectValue}>
+                  {unitSelectLabel(supportedUnit)}
+                </option>
+              ))}
+            </select>
+            <span className={styles.numericUnitSelectLabel} data-unit-label={label} aria-hidden="true">
+              {unitSelectLabel(unit)}
+            </span>
+          </span>
         ) : unit ? (
           <InputGroupText className={styles.numericUnit}>{unit}</InputGroupText>
         ) : null}
