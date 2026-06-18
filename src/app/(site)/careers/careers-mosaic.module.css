@@ -27,7 +27,7 @@
 
 .topTag {
   align-items: center;
-  display: flex;
+  display: none;
   gap: 10px;
   left: 16px;
   position: absolute;
@@ -275,6 +275,7 @@
   font-family: "Times New Roman", Times, serif;
   font-size: 46px;
   font-weight: 400;
+  letter-spacing: -0.02em;
   left: 50%;
   line-height: 1.2;
   opacity: 0;

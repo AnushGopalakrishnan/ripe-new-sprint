@@ -20,7 +20,7 @@
 
 .heroSection {
   display: grid;
-  gap: 4rem;
+  gap: 8rem;
   max-width: none;
   padding: 0;
   width: 100%;
@@ -41,7 +41,7 @@
   font-family: var(--careers-heading-font);
   font-size: clamp(2rem, 3.53vw, 3rem);
   font-weight: 400;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.2083;
   margin: 0;
 }
@@ -151,11 +151,13 @@
 }
 
 .avatarStack img {
+  background: #fff;
   border: 1px solid #fff;
   border-radius: 999px;
   display: block;
   height: 3.75rem;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 0.7rem;
   position: absolute;
   top: 0;
   width: 3.75rem;
@@ -181,24 +183,19 @@
   color: #666;
   flex: 1 0 0;
   font-family: "Geist", var(--ripe-font-sans);
-  font-size: 1rem;
+  font-size: 14px;
   line-height: 1.625;
   max-width: 16rem;
 }
 
-.trustRow p strong {
-  color: #222;
-  font-weight: 400;
-}
-
 .trustRow a {
-  background: #cfafe9;
+  background: #000;
   border-radius: 0.375rem;
-  color: #222;
+  color: #fff;
   display: inline-flex;
   font-family: "Geist", var(--ripe-font-sans);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   justify-content: center;
   line-height: 1;
   padding: 1rem 1.625rem;
@@ -230,6 +227,7 @@
   font-family: var(--careers-heading-font);
   font-size: 48px;
   font-weight: 400;
+  letter-spacing: -0.02em;
   line-height: 1.05;
   margin: 0;
   text-align: center;
@@ -253,11 +251,17 @@
   gap: 1rem;
   padding: clamp(14px, 1.4vw, 24px);
   position: relative;
+  transition: background-color 220ms ease;
 }
 
 .pillarCardFeatured {
   background: #f3f3f3;
   border-radius: 0.7rem;
+}
+
+.pillarCard:hover,
+.pillarCardFeatured:hover {
+  background: #f1ebe2;
 }
 
 .pillarCard::after,
@@ -499,6 +503,7 @@
   font-family: var(--careers-heading-font);
   font-size: clamp(1.375rem, 2vw, 1.75rem);
   font-weight: 400;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -529,12 +534,14 @@
   font-family: var(--careers-heading-font);
   font-size: clamp(1.375rem, 2vw, 1.75rem);
   font-weight: 400;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
 .founderCard p {
   color: rgba(58, 31, 19, 0.66);
   font-family: var(--ripe-font-sans);
+  font-size: 12px;
   letter-spacing: 0.04em;
   margin: 0.3rem 0 0;
   text-transform: uppercase;
@@ -559,8 +566,9 @@
 }
 
 .rolesCopy :global(.text) {
-  font-family: var(--ripe-font-serif);
+  font-family: var(--careers-heading-font);
   font-size: 1rem;
+  letter-spacing: -0.02em;
   line-height: 1.4;
   margin: 0;
 }
@@ -571,9 +579,10 @@
 
 .rolesHeading {
   border-bottom: 1px solid #d7d0ca;
-  font-family: var(--ripe-font-serif);
+  font-family: var(--careers-heading-font);
   font-size: 32px;
   font-weight: 300;
+  letter-spacing: -0.02em;
   margin: 0;
   padding-bottom: 0.8rem;
 }
@@ -596,6 +605,18 @@
   background: transparent !important;
 }
 
+.peopleSection :global(.join_us_content .heading),
+.peopleSection :global(.join_us_content .text.u-text-primary),
+.peopleSection :global(.join_us_content .direcitonal-list__p) {
+  font-family: var(--careers-heading-font) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.peopleSection :global(.join_us_content .text.u-text-primary) {
+  font-size: 1rem !important;
+  line-height: 1.4;
+}
+
 .rolesListWrap :global(.directional-list__item) {
   border-bottom: 1px solid #ddd7d1;
   padding-bottom: 14px !important;
@@ -603,8 +624,9 @@
 }
 
 .roleTitle {
-  font-family: var(--ripe-font-serif);
+  font-family: var(--careers-heading-font);
   font-size: 14px;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 

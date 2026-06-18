@@ -57,6 +57,13 @@ const pillars: Pillar[] = [
   },
 ];
 
+const trustLogos = [
+  "/logos/studio-logo-1.svg",
+  "/logos/studio-logo-2.svg",
+  "/logos/studio-logo-3.svg",
+  "/logos/studio-logo-4.svg",
+];
+
 const fallbackFounders = [
   {
     name: "Rahul Kashyap",
@@ -137,30 +144,11 @@ export default async function CareersPage() {
           </article>
           <div className={styles.trustRow}>
             <div className={styles.avatarStack} aria-hidden="true">
-              <img
-                src="/careers-media/avatar-1.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-2.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-3.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-4.jpg"
-                alt=""
-                loading="lazy"
-              />
+              {trustLogos.map((logo) => (
+                <img key={logo} src={logo} alt="" loading="lazy" />
+              ))}
             </div>
-            <p>
-              Trust by <strong>50k+ clients</strong> &amp; organisations
-            </p>
+            <p>Trust by 50k+ clients &amp; organisations</p>
             <a href="mailto:careers@ripe.studio">Get In Touch</a>
           </div>
         </div>
