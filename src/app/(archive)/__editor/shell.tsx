@@ -707,6 +707,10 @@ function toCssPropertyName(property: string) {
   return property.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase());
 }
 
+function toStylePropertyName(property: string) {
+  return property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+
 function percentageBasisPx(element: Element, property: string) {
   const ownerWindow = element.ownerDocument.defaultView;
   const cssProperty = toCssPropertyName(property);
@@ -3242,9 +3246,10 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     const previewWindow = previewDocument?.defaultView;
     if (!previewDocument || !previewWindow) return null;
 
+    const stateChangedProperties = changedStyleProperties(current.baseStyles, current.styleValues);
     const touchedProperties = pendingStylePropertiesRef.current.size > 0
       ? Array.from(pendingStylePropertiesRef.current)
-      : changedStyleProperties(current.baseStyles, current.styleValues);
+      : stateChangedProperties;
 
     return current.selections.map<EditorDraftInput>((selected) => {
       let element: Element | null = null;
@@ -3260,7 +3265,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       }
 
       const computed = previewWindow.getComputedStyle(element);
-      const changes: EditorChange[] = touchedProperties
+      const inlinePreviewProperties = Array.from((element as HTMLElement).style)
+        .map(toStylePropertyName)
+        .filter((property) => Object.prototype.hasOwnProperty.call(selected.computedStyles, property));
+      const draftProperties = touchedProperties.length > 0 ? touchedProperties : inlinePreviewProperties;
+      const changes: EditorChange[] = draftProperties
         .map<StyleChange | null>((property) => {
           const before = selected.computedStyles[property] ?? "";
           const after = computed[property as keyof CSSStyleDeclaration] as string || "";
@@ -3523,6 +3532,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         syncLatestEditorState({ styleValues: nextStyleValues });
         cachePreviewDraftPayload({ nextStyleValues });
         setStyleValues(nextStyleValues);
+        commitDraft({ nextStyleValues });
       }
       return;
     }
@@ -3552,6 +3562,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         syncLatestEditorState({ textValue: value });
         cachePreviewDraftPayload({ nextTextValue: value });
         setTextValue(value);
+        commitDraft({ nextTextValue: value });
       }
       return;
     }
@@ -3581,6 +3592,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         syncLatestEditorState({ imageValue: value });
         cachePreviewDraftPayload({ nextImageValue: value });
         setImageValue(value);
+        commitDraft({ nextImageValue: value });
       }
       return;
     }
@@ -3627,6 +3639,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       if (currentNotes !== value) {
         syncLatestEditorState({ notes: value });
         setNotes(value);
+        commitDraft({ nextNotes: value });
       }
       return;
     }
