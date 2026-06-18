@@ -477,6 +477,10 @@ function isImageSelection(selection: SelectionMetadata) {
   return selection.target.tag === "img";
 }
 
+function selectionCanEditImage(selection: SelectionMetadata) {
+  return Boolean(selection.capabilities?.canEditImage ?? isImageSelection(selection));
+}
+
 function commonComputedStyles(selections: SelectionMetadata[]) {
   const [firstSelection] = selections;
   if (!firstSelection) return {};
@@ -3163,7 +3167,10 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         target: selected.target,
         styles: stylesPayload,
         text: current.selections.length === 1 && nextTextValue !== selected.text ? nextTextValue : undefined,
-        imageSrc: current.selections.length === 1 && nextImageValue !== selected.imageSrc ? nextImageValue : undefined,
+        imageSrc:
+          current.selections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc
+            ? nextImageValue
+            : undefined,
         hidden: nextHidden,
         deleted: nextDeleted,
       });
@@ -3284,10 +3291,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         })
         .filter((change): change is StyleChange => Boolean(change));
 
-      const editableImage =
-        element instanceof previewWindow.HTMLImageElement
+      const editableImage = selectionCanEditImage(selected)
+        ? element instanceof previewWindow.HTMLImageElement
           ? element
-          : element.querySelector("img");
+          : element.querySelector("img")
+        : null;
       const nextTextValue = selected.capabilities?.canEditText ? (element.textContent || "").trim() : selected.text;
       const nextImageValue =
         editableImage instanceof previewWindow.HTMLImageElement
@@ -3303,7 +3311,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         });
       }
 
-      if (current.selections.length === 1 && nextImageValue !== selected.imageSrc) {
+      if (current.selections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc) {
         changes.push({
           kind: "content",
           field: "imageSrc",
@@ -3377,7 +3385,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               } satisfies ContentChange,
             ]
           : []),
-        ...(draftSelections.length === 1 && nextImageValue !== selected.imageSrc
+        ...(draftSelections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc
           ? [
               {
                 kind: "content",
