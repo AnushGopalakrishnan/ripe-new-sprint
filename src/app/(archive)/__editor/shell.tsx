@@ -157,10 +157,15 @@ type EditorHistorySnapshot = {
 type ApplyEditorPatchesResponse = {
   ok?: boolean;
   applied?: number;
+  appliedPatchIds?: string[];
+  files?: string[];
+  mode?: "override" | "source";
   unsupported?: Array<{ selector: string; changes: string[] }>;
   file?: string;
   message?: string;
 };
+
+type ApplyEditorMode = "override" | "source";
 
 type StyleValueChangeOptions = {
   undo?: "push" | "skip";
@@ -2552,7 +2557,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
-  const [applyState, setApplyState] = useState<"idle" | "applying" | "applied">("idle");
+  const [sourceApplyState, setSourceApplyState] = useState<"idle" | "applying" | "applied">("idle");
+  const [overrideApplyState, setOverrideApplyState] = useState<"idle" | "applying" | "applied">("idle");
   const [inspectorTab, setInspectorTab] = useState("style");
   const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
@@ -3261,15 +3267,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     }
   }
 
-  async function applyPatchesToSource() {
-    if (patches.length === 0 || applyState === "applying") return;
+  async function applyEditorPatches(mode: ApplyEditorMode) {
+    const applying = mode === "source" ? sourceApplyState === "applying" : overrideApplyState === "applying";
+    if (patches.length === 0 || applying) return;
 
+    const setApplyState = mode === "source" ? setSourceApplyState : setOverrideApplyState;
     setApplyState("applying");
     try {
       const response = await fetch("/api/editor/apply", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ patches }),
+        body: JSON.stringify({ mode, patches }),
       });
       const result = (await response.json().catch(() => ({}))) as ApplyEditorPatchesResponse;
 
@@ -3279,18 +3287,44 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
       setApplyState("applied");
       const unsupportedCount = result.unsupported?.reduce((total, item) => total + item.changes.length, 0) ?? 0;
+      if (mode === "source" && result.appliedPatchIds && result.appliedPatchIds.length > 0) {
+        const appliedIds = new Set(result.appliedPatchIds);
+        const nextPatches = patches.filter((patch) => !appliedIds.has(patch.id));
+        setPatches(nextPatches);
+        persistPatches(nextPatches);
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "editor:clear-preview" },
+          window.location.origin,
+        );
+        iframeRef.current?.contentWindow?.location.reload();
+      }
+
       if (unsupportedCount > 0) {
         toast.warning(
-          `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} non-CSS change${unsupportedCount === 1 ? "" : "s"} still need handoff.`,
+          mode === "source"
+            ? `Applied ${result.applied ?? 0} source target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} change${unsupportedCount === 1 ? "" : "s"} still need override or handoff.`
+            : `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} non-CSS change${unsupportedCount === 1 ? "" : "s"} still need handoff.`,
         );
       } else {
-        toast.success(`Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"} to ${result.file ?? "CSS"}`);
+        toast.success(
+          mode === "source"
+            ? `Applied ${result.applied ?? 0} source target${result.applied === 1 ? "" : "s"}${result.files?.length ? ` in ${result.files.length} file${result.files.length === 1 ? "" : "s"}` : ""}`
+            : `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"} to ${result.file ?? "CSS"}`,
+        );
       }
       window.setTimeout(() => setApplyState("idle"), 1600);
     } catch (error) {
       setApplyState("idle");
       toast.error(error instanceof Error ? error.message : "Patch request failed");
     }
+  }
+
+  function applyPatchesToSource() {
+    void applyEditorPatches("source");
+  }
+
+  function applyPatchOverrides() {
+    void applyEditorPatches("override");
   }
 
   return (
@@ -3636,11 +3670,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={patches.length === 0 || applyState === "applying"}
+                                    disabled={patches.length === 0 || sourceApplyState === "applying" || overrideApplyState === "applying"}
                                     onClick={applyPatchesToSource}
                                   >
-                                    <EditorIcon icon={applyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
-                                    {applyState === "applying" ? "Patching..." : applyState === "applied" ? "Patched" : "Patch changes"}
+                                    <EditorIcon icon={sourceApplyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                                    {sourceApplyState === "applying" ? "Applying..." : sourceApplyState === "applied" ? "Applied source" : "Apply source"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={patches.length === 0 || sourceApplyState === "applying" || overrideApplyState === "applying"}
+                                    onClick={applyPatchOverrides}
+                                  >
+                                    <EditorIcon icon={overrideApplyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                                    {overrideApplyState === "applying" ? "Writing..." : overrideApplyState === "applied" ? "Wrote CSS" : "CSS patch"}
                                   </Button>
                                   <Button
                                     type="button"
