@@ -11,7 +11,7 @@ const benefits = {
   },
   headspace: {
     title: "Annual headspace Subscription",
-    image: "/careers-media/mosaic-team.jpg",
+    image: "/careers-media/benefit-headspace.png",
   },
   designerReferrals: {
     title: "Designer Referrals*",
@@ -22,7 +22,7 @@ const benefits = {
   },
   skillshare: {
     title: "Annual Skillshare Subscription",
-    image: "/careers-media/mosaic-blog-1.jpg",
+    image: "/careers-media/benefit-skillshare.png",
   },
   medical: {
     title: "Medical Health Allowance",
@@ -33,7 +33,7 @@ const benefits = {
   },
   weWork: {
     title: "We Work Passes",
-    image: "/careers-media/mosaic-blog-3.jpg",
+    image: "/careers-media/benefit-wework-passes.png",
   },
 } satisfies Record<string, Benefit>;
 
