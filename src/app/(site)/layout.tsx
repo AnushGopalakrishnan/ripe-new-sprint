@@ -31,7 +31,8 @@ export default async function SiteLayout({
       <style
         data-ripe-critical-hero-cards=""
         dangerouslySetInnerHTML={{
-          __html: ".article-cards-wrap.u-align-center{width:100%}.hero_feature,.hero_articles-list{width:100%}",
+          __html:
+            ".article-cards-wrap.u-align-center{width:100%}.hero_feature,.hero_articles-list{width:100%}.nav_wrap,.nav_contain.u-container{display:none!important}",
         }}
       />
       <SmoothScrollProvider />
