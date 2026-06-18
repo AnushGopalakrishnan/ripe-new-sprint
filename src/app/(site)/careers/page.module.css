@@ -151,8 +151,8 @@
 }
 
 .avatarStack img {
-  background: #fff;
-  border: 1px solid #fff;
+  background: #f1ebe2;
+  border: 1px solid #f1ebe2;
   border-radius: 999px;
   display: block;
   filter: brightness(0);
