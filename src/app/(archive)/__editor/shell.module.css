@@ -328,7 +328,7 @@
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: 15px !important;
-  font-weight: 600 !important;
+  font-weight: 400 !important;
   letter-spacing: 0;
   line-height: 1.3 !important;
   margin: 0 !important;
@@ -403,6 +403,24 @@
   border-radius: var(--editor-control-radius);
   color: rgba(255, 255, 255, 0.7);
   font-size: 13px;
+}
+
+.inspector,
+.inspector h1,
+.inspector h2,
+.inspector h3,
+.inspector h4,
+.inspector h5,
+.inspector h6,
+.inspector strong,
+.inspector b,
+.inspector :global([data-slot="button"]),
+.inspector :global([data-slot="badge"]),
+.inspector :global([data-slot="tabs-trigger"]),
+.inspector :global([data-slot="select-trigger"]),
+.inspector :global([data-slot="input"]),
+.inspector :global([data-slot="textarea"]) {
+  font-weight: 400 !important;
 }
 
 .inspector :global([data-slot="input"]::placeholder),
@@ -1111,7 +1129,7 @@
 .emptyStateCopy h3 {
   color: var(--foreground);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.25;
 }
 
@@ -1294,7 +1312,7 @@
   color: rgba(255, 255, 255, 0.72);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.2;
   margin: 0;
 }
@@ -1460,7 +1478,7 @@
 
 .patchDetailHeading span {
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .patchDetailValues {
