@@ -35,6 +35,11 @@
   color: rgb(255, 255, 255);
 }
 
+.cardText {
+  background: #f1ebe2;
+  color: rgb(0, 0, 0);
+}
+
 .cardImage::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.62) 100%);
   content: "";
@@ -56,7 +61,7 @@
 .card h3 {
   color: inherit;
   font-family: "Times New Roman", Times, serif;
-  font-size: clamp(1.5rem, 2.35vw, 2.5rem);
+  font-size: 1.75rem;
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -152,6 +157,6 @@
   }
 
   .card h3 {
-    font-size: clamp(1.5rem, 10vw, 2.25rem);
+    font-size: 1.75rem;
   }
 }
