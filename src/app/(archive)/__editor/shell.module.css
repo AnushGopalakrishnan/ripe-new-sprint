@@ -901,78 +901,294 @@
 }
 
 .colorPopover {
-  background: var(--popover);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: #f7f7f6;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+  color: #1f1f1f;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  left: 0;
-  padding: 10px;
+  gap: 12px;
+  min-width: min(22rem, calc(100vw - 2rem));
+  padding: 12px;
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
   z-index: 50;
 }
 
-.colorPickerRow {
+.colorPopoverHeader {
   align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 64px minmax(0, 1fr);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  margin: -12px -12px 0;
+  padding: 10px 12px;
 }
 
-.nativeColorPicker {
+.colorPopoverTabs {
+  display: flex;
+  gap: 6px;
+}
+
+.colorPopoverTabs button,
+.colorPopoverIconButton {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: 8px;
+  color: #6d6d6d;
   cursor: pointer;
-  height: 48px;
-  padding: 3px;
-  width: 64px;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 10px;
 }
 
-.nativeColorPicker:focus-visible {
-  border-color: transparent;
-  box-shadow: 0 0 0 1px var(--editor-control-ring);
+.colorPopoverTabs button[aria-pressed="true"] {
+  background: #eeeeed;
+  color: #1f1f1f;
+}
+
+.colorPopoverIconButton {
+  color: #1f1f1f;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+.colorSpectrum {
+  --picker-hue: #ff0000;
+  aspect-ratio: 1 / 0.82;
+  background:
+    linear-gradient(to top, #000000, transparent),
+    linear-gradient(to right, #ffffff, transparent),
+    var(--picker-hue);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 9px;
+  cursor: crosshair;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+  width: 100%;
+}
+
+.colorSpectrum::after {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.38) 1px, transparent 1px);
+  background-size: 10px 10px;
+  content: "";
+  inset: 0;
+  opacity: 0.75;
+  pointer-events: none;
+  position: absolute;
+}
+
+.colorSpectrum:focus-visible {
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.22);
   outline: none;
 }
 
-.colorPickerMeta {
+.colorSpectrumHandle {
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+  height: 18px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  z-index: 1;
+}
+
+.figmaColorControls {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.eyedropperButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: #1f1f1f;
+  cursor: pointer;
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.eyedropperButton svg {
+  height: 18px;
+  width: 18px;
+}
+
+.eyedropperButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.figmaColorSliders {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 9px;
+}
+
+.colorSliderLabel {
+  display: block;
+  position: relative;
+}
+
+.colorSliderLabel span {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.hueSlider,
+.alphaSlider {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  display: block;
+  height: 18px;
+  margin: 0;
+  width: 100%;
+}
+
+.hueSlider::-webkit-slider-runnable-track,
+.alphaSlider::-webkit-slider-runnable-track {
+  border-radius: 999px;
+  height: 18px;
+}
+
+.hueSlider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+}
+
+.alphaSlider::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(90deg, transparent, var(--picker-color)),
+    linear-gradient(45deg, #d8d8d8 25%, transparent 25%),
+    linear-gradient(-45deg, #d8d8d8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d8d8d8 75%),
+    linear-gradient(-45deg, transparent 75%, #d8d8d8 75%);
+  background-color: #ffffff;
+  background-position: 0 0, 0 0, 0 6px, 6px -6px, -6px 0;
+  background-size: auto, 12px 12px, 12px 12px, 12px 12px, 12px 12px;
+}
+
+.hueSlider::-webkit-slider-thumb,
+.alphaSlider::-webkit-slider-thumb {
+  appearance: none;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  height: 22px;
+  margin-top: -2px;
+  width: 22px;
+}
+
+.hueSlider:focus-visible,
+.alphaSlider:focus-visible {
+  outline: none;
+}
+
+.hueSlider:focus-visible::-webkit-slider-thumb,
+.alphaSlider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.22), 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.colorValueRow {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 88px;
+}
+
+.colorValueRow label {
+  align-items: center;
+  background: #eeeeed;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
   min-width: 0;
+  overflow: hidden;
 }
 
-.colorPickerMeta span:first-child {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 12px;
+.colorValueRow label:last-child {
+  grid-template-columns: minmax(0, 1fr) 22px;
 }
 
-.colorPickerMeta span:last-child {
+.colorValueRow span {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  color: #1f1f1f;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.colorValueRow label:last-child::after {
+  color: #737373;
+  content: "%";
+  font-size: 13px;
+  padding-right: 10px;
+}
+
+.colorValueRow input {
+  background: transparent;
+  border: 0;
+  color: #1f1f1f;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 13px;
+  height: 34px;
+  min-width: 0;
+  outline: none;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.colorValueRow input[type="number"] {
+  text-align: right;
+}
+
+.colorPageSwatchesHeader {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  color: #1f1f1f;
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.colorPageSwatchesHeader svg {
+  height: 14px;
+  width: 14px;
 }
 
 .colorPresetGrid {
   display: grid;
-  gap: 6px;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(9, 1fr);
 }
 
 .colorPreset {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  height: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 5px;
+  cursor: pointer;
+  height: 22px;
   min-width: 0;
 }
 
 .colorPreset:focus-visible,
 .colorPreset:hover,
 .colorPreset[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 3px rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 2px #f7f7f6, 0 0 0 4px rgba(24, 119, 242, 0.55);
   outline: none;
 }
 

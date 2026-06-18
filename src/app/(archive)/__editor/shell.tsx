@@ -772,6 +772,10 @@ function rgbChannelToHex(channel: string) {
   return value.toString(16).padStart(2, "0");
 }
 
+function rgbToHex(red: number, green: number, blue: number) {
+  return `#${rgbChannelToHex(String(red))}${rgbChannelToHex(String(green))}${rgbChannelToHex(String(blue))}`;
+}
+
 function cssColorToHex(value: string) {
   const cleanValue = value.trim();
   const hex = cleanValue.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -786,6 +790,87 @@ function cssColorToHex(value: string) {
   const rgb = cleanValue.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+[\d.]+%?)?\s*\)$/i);
   if (!rgb) return null;
   return `#${rgbChannelToHex(rgb[1])}${rgbChannelToHex(rgb[2])}${rgbChannelToHex(rgb[3])}`;
+}
+
+function cssColorToRgba(value: string) {
+  const cleanValue = value.trim();
+  const hex = cleanValue.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const hexValue = hex[1].length === 3 ? hex[1].split("").map((part) => part + part).join("") : hex[1];
+    return {
+      red: Number.parseInt(hexValue.slice(0, 2), 16),
+      green: Number.parseInt(hexValue.slice(2, 4), 16),
+      blue: Number.parseInt(hexValue.slice(4, 6), 16),
+      alpha: 1,
+    };
+  }
+
+  const rgb = cleanValue.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)$/i);
+  if (!rgb) return null;
+  const alphaValue = rgb[4]?.endsWith("%") ? Number.parseFloat(rgb[4]) / 100 : Number.parseFloat(rgb[4] ?? "1");
+  return {
+    red: Math.max(0, Math.min(255, Math.round(Number(rgb[1])))),
+    green: Math.max(0, Math.min(255, Math.round(Number(rgb[2])))),
+    blue: Math.max(0, Math.min(255, Math.round(Number(rgb[3])))),
+    alpha: Math.max(0, Math.min(1, Number.isFinite(alphaValue) ? alphaValue : 1)),
+  };
+}
+
+function rgbToHsv(red: number, green: number, blue: number) {
+  const r = red / 255;
+  const g = green / 255;
+  const b = blue / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (max === r) hue = ((g - b) / delta) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue *= 60;
+  }
+
+  if (hue < 0) hue += 360;
+
+  return {
+    hue: Math.round(hue),
+    saturation: max === 0 ? 0 : Math.round((delta / max) * 100),
+    value: Math.round(max * 100),
+  };
+}
+
+function hsvToRgb(hue: number, saturation: number, value: number) {
+  const s = saturation / 100;
+  const v = value / 100;
+  const chroma = v * s;
+  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = v - chroma;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (hue < 60) [r, g, b] = [chroma, x, 0];
+  else if (hue < 120) [r, g, b] = [x, chroma, 0];
+  else if (hue < 180) [r, g, b] = [0, chroma, x];
+  else if (hue < 240) [r, g, b] = [0, x, chroma];
+  else if (hue < 300) [r, g, b] = [x, 0, chroma];
+  else [r, g, b] = [chroma, 0, x];
+
+  return {
+    red: Math.round((r + m) * 255),
+    green: Math.round((g + m) * 255),
+    blue: Math.round((b + m) * 255),
+  };
+}
+
+function rgbaToCssColor(hexValue: string, alphaPercent: number) {
+  const rgba = cssColorToRgba(hexValue);
+  if (!rgba) return hexValue;
+  const alpha = Math.max(0, Math.min(100, alphaPercent)) / 100;
+  if (alpha >= 0.995) return hexValue.toLowerCase();
+  return `rgba(${rgba.red}, ${rgba.green}, ${rgba.blue}, ${formatCssNumber(alpha)})`;
 }
 
 function colorInputText(value: string) {
@@ -1293,10 +1378,16 @@ function ColorStyleInput({
   onChange: StyleValueChange;
 }) {
   const colorControlRef = useRef<HTMLDivElement>(null);
+  const saturationRef = useRef<HTMLDivElement>(null);
   const transactionIdRef = useRef(`color:${id}`);
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(colorInputText(value));
-  const pickerValue = cssColorToHex(value) ?? cssColorToHex(placeholder) ?? "#000000";
+  const pickerRgba = cssColorToRgba(value) ?? cssColorToRgba(placeholder) ?? { red: 0, green: 0, blue: 0, alpha: 1 };
+  const pickerValue = rgbToHex(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
+  const pickerHsv = rgbToHsv(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
+  const alphaPercent = Math.round(pickerRgba.alpha * 100);
+  const pureHueRgb = hsvToRgb(pickerHsv.hue, 100, 100);
+  const pureHue = rgbToHex(pureHueRgb.red, pureHueRgb.green, pureHueRgb.blue);
   const swatchColor = value && isValidCssColor(value) ? value : "transparent";
   const invalid = Boolean(draftValue.trim()) && !isValidCssColor(draftValue);
 
@@ -1336,6 +1427,32 @@ function ColorStyleInput({
   function commitPickerColor(nextValue: string) {
     setDraftValue(nextValue);
     onChange(nextValue);
+  }
+
+  function commitHsvColor(nextHsv: { hue: number; saturation: number; value: number }, nextAlphaPercent = alphaPercent) {
+    const nextRgb = hsvToRgb(nextHsv.hue, nextHsv.saturation, nextHsv.value);
+    const nextHex = rgbToHex(nextRgb.red, nextRgb.green, nextRgb.blue);
+    commitPickerColor(rgbaToCssColor(nextHex, nextAlphaPercent));
+  }
+
+  function updateSaturationFromPointer(event: React.PointerEvent<HTMLDivElement>) {
+    const rect = saturationRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+    commitHsvColor({
+      hue: pickerHsv.hue,
+      saturation: Math.round((x / rect.width) * 100),
+      value: Math.round(100 - (y / rect.height) * 100),
+    });
+  }
+
+  async function sampleScreenColor() {
+    type EyeDropperConstructor = new () => { open: () => Promise<{ sRGBHex: string }> };
+    const EyeDropper = (window as Window & { EyeDropper?: EyeDropperConstructor }).EyeDropper;
+    if (!EyeDropper) return;
+    const result = await new EyeDropper().open().catch(() => null);
+    if (result?.sRGBHex) commitPickerColor(result.sRGBHex);
   }
 
   return (
@@ -1416,21 +1533,122 @@ function ColorStyleInput({
       ) : null}
       {open ? (
         <div className={styles.colorPopover}>
-          <div className={styles.colorPickerRow}>
-            <input
-              type="color"
-              className={styles.nativeColorPicker}
-              disabled={disabled}
-              value={pickerValue}
-              aria-label={`${label} color`}
-              onChange={(event) => commitPickerColor(event.target.value)}
+          <div className={styles.colorPopoverHeader}>
+            <div className={styles.colorPopoverTabs} aria-label={`${label} color source`}>
+              <button type="button" aria-pressed="true">Custom</button>
+              <button type="button">Libraries</button>
+            </div>
+            <button type="button" className={styles.colorPopoverIconButton} aria-label={`Close ${label} color picker`} onClick={() => setOpen(false)}>
+              ×
+            </button>
+          </div>
+
+          <div
+            ref={saturationRef}
+            className={styles.colorSpectrum}
+            style={{ "--picker-hue": pureHue } as React.CSSProperties}
+            role="slider"
+            aria-label={`${label} saturation and brightness`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pickerHsv.value}
+            aria-valuetext={`${pickerHsv.saturation}% saturation, ${pickerHsv.value}% brightness`}
+            tabIndex={0}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              updateSaturationFromPointer(event);
+            }}
+            onPointerMove={(event) => {
+              if (event.buttons !== 1) return;
+              updateSaturationFromPointer(event);
+            }}
+          >
+            <span
+              className={styles.colorSpectrumHandle}
+              style={{
+                left: `${pickerHsv.saturation}%`,
+                top: `${100 - pickerHsv.value}%`,
+                backgroundColor: pickerValue,
+              }}
             />
-            <div className={styles.colorPickerMeta}>
-              <span>{label}</span>
-              <span>{pickerValue}</span>
+          </div>
+
+          <div className={styles.figmaColorControls}>
+            <button
+              type="button"
+              className={styles.eyedropperButton}
+              aria-label={`Sample ${label} from screen`}
+              onClick={sampleScreenColor}
+              disabled={disabled || typeof window === "undefined" || !("EyeDropper" in window)}
+            >
+              <EditorIcon icon={EyeIcon} />
+            </button>
+            <div className={styles.figmaColorSliders}>
+              <label className={styles.colorSliderLabel}>
+                <span>Hue</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="359"
+                  value={pickerHsv.hue}
+                  className={styles.hueSlider}
+                  aria-label={`${label} hue`}
+                  onChange={(event) => {
+                    commitHsvColor({ ...pickerHsv, hue: Number(event.target.value) });
+                  }}
+                />
+              </label>
+              <label className={styles.colorSliderLabel}>
+                <span>Alpha</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={alphaPercent}
+                  className={styles.alphaSlider}
+                  style={{ "--picker-color": pickerValue } as React.CSSProperties}
+                  aria-label={`${label} opacity`}
+                  onChange={(event) => {
+                    commitPickerColor(rgbaToCssColor(pickerValue, Number(event.target.value)));
+                  }}
+                />
+              </label>
             </div>
           </div>
-          <div className={styles.colorPresetGrid} aria-label={`${label} color presets`}>
+
+          <div className={styles.colorValueRow}>
+            <label>
+              <span>Hex</span>
+              <input
+                aria-label={`${label} hex value`}
+                value={pickerValue.slice(1).toUpperCase()}
+                onChange={(event) => {
+                  const nextHex = event.target.value.replace(/[^0-9a-f]/gi, "").slice(0, 6);
+                  if (nextHex.length === 6) commitPickerColor(rgbaToCssColor(`#${nextHex}`, alphaPercent));
+                }}
+              />
+            </label>
+            <label>
+              <span>Opacity</span>
+              <input
+                aria-label={`${label} opacity value`}
+                type="number"
+                min="0"
+                max="100"
+                value={alphaPercent}
+                onChange={(event) => {
+                  commitPickerColor(rgbaToCssColor(pickerValue, Number(event.target.value)));
+                }}
+              />
+            </label>
+          </div>
+
+          <div className={styles.colorPageSwatchesHeader}>
+            <span>On this page</span>
+            <EditorIcon icon={ChevronDownIcon} />
+          </div>
+
+          <div className={styles.colorPresetGrid} aria-label={`${label} page colors`}>
             {colorPresets.map((preset) => (
               <button
                 type="button"
