@@ -30,7 +30,8 @@ import {
   VerticalResizeIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Badge } from "@/components/editor-ui/badge";
 import { Button } from "@/components/editor-ui/button";
@@ -152,6 +153,26 @@ type EditorHistorySnapshot = {
   hidden: boolean;
   deleted: boolean;
   notes: string;
+};
+
+type EditorRuntimeState = EditorHistorySnapshot & {
+  route: string;
+  viewport: ViewportName;
+};
+
+type EditorDraftInput = {
+  changes: EditorChange[];
+  notes: string;
+  target: ElementTarget;
+};
+
+type PreviewDraftPayload = {
+  target: ElementTarget;
+  styles: Record<string, string>;
+  text?: string;
+  imageSrc?: string;
+  hidden?: boolean;
+  deleted?: boolean;
 };
 
 type ApplyEditorPatchesResponse = {
@@ -578,6 +599,35 @@ function parseNumericCssValue(value: string) {
     numberValue,
     unit: explicitUnitless ? "" : typedUnit,
   };
+}
+
+function parseCompoundNumericUnitConversion(value: string, supportedUnits: string[]) {
+  const match = value.trim().match(/^\s*(-?(?:\d+|\d*\.\d+))\s*([a-z%\s]+)\s*$/i);
+  if (!match) return null;
+
+  const numberText = match[1];
+  const numberValue = Number(numberText);
+  if (!Number.isFinite(numberValue)) return null;
+
+  const unitText = match[2].replace(/\s+/g, "").toLowerCase();
+  const targetUnits = supportedUnits.filter(Boolean);
+  const sourceUnits = Array.from(new Set([...targetUnits, ...lengthUnits, ...textLengthUnits, ...lineHeightUnits]))
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+
+  for (const sourceUnit of sourceUnits) {
+    if (!unitText.startsWith(sourceUnit)) continue;
+    const targetUnit = unitText.slice(sourceUnit.length);
+    if (!targetUnit || targetUnit === sourceUnit || !targetUnits.includes(targetUnit)) continue;
+    return {
+      numberText,
+      numberValue,
+      sourceUnit,
+      targetUnit,
+    };
+  }
+
+  return null;
 }
 
 function normalizeCssKeywordValue(value: string, keywords: string[] = []) {
@@ -1398,10 +1448,12 @@ function ColorStyleInput({
   onChange: StyleValueChange;
 }) {
   const colorControlRef = useRef<HTMLDivElement>(null);
+  const colorPopoverRef = useRef<HTMLDivElement>(null);
   const saturationRef = useRef<HTMLDivElement>(null);
   const transactionIdRef = useRef(`color:${id}`);
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(colorInputText(value));
+  const [popoverPosition, setPopoverPosition] = useState<React.CSSProperties>({});
   const pickerRgba = cssColorToRgba(value) ?? cssColorToRgba(placeholder) ?? { red: 0, green: 0, blue: 0, alpha: 1 };
   const pickerValue = rgbToHex(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
   const pickerHsv = rgbToHsv(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
@@ -1421,8 +1473,9 @@ function ColorStyleInput({
 
     function closeIfOutside(event: PointerEvent | FocusEvent) {
       const root = colorControlRef.current;
+      const popover = colorPopoverRef.current;
       const target = event.target instanceof Node ? event.target : null;
-      if (!root || !target || root.contains(target)) return;
+      if (!root || !target || root.contains(target) || popover?.contains(target)) return;
       setOpen(false);
     }
 
@@ -1431,6 +1484,43 @@ function ColorStyleInput({
     return () => {
       document.removeEventListener("pointerdown", closeIfOutside, true);
       document.removeEventListener("focusin", closeIfOutside, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function updatePopoverPosition() {
+      const rect = colorControlRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const viewportPadding = 12;
+      const popoverWidth = Math.min(328, window.innerWidth - viewportPadding * 2);
+      const estimatedHeight = Math.min(470, window.innerHeight - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, rect.right - popoverWidth),
+        window.innerWidth - popoverWidth - viewportPadding,
+      );
+      const preferredTop = rect.bottom + 8;
+      const top =
+        preferredTop + estimatedHeight > window.innerHeight - viewportPadding
+          ? Math.max(viewportPadding, rect.top - estimatedHeight - 8)
+          : preferredTop;
+
+      setPopoverPosition({
+        left,
+        maxHeight: `calc(100vh - ${Math.max(viewportPadding, top)}px - ${viewportPadding}px)`,
+        top,
+        width: popoverWidth,
+      });
+    }
+
+    updatePopoverPosition();
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
     };
   }, [open]);
 
@@ -1551,8 +1641,16 @@ function ColorStyleInput({
           Unsupported color value
         </span>
       ) : null}
-      {open ? (
-        <div className={styles.colorPopover}>
+      {open && typeof document !== "undefined" ? createPortal(
+        <div
+          className={`${styles.editorOverlay} ${styles.colorPopover}`}
+          ref={colorPopoverRef}
+          style={popoverPosition}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            setOpen(false);
+          }}
+        >
           <div className={styles.colorPopoverHeader}>
             <div className={styles.colorPopoverTabs} aria-label={`${label} color source`}>
               <button type="button" aria-pressed="true">Custom</button>
@@ -1681,7 +1779,8 @@ function ColorStyleInput({
               />
             ))}
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );
@@ -1981,11 +2080,39 @@ function NumericStyleInput({
     });
   }
 
+  function commitCompoundUnitConversion(
+    parsed: NonNullable<ReturnType<typeof parseCompoundNumericUnitConversion>>,
+    mode: StyleValueChangeOptions["commit"] = "preview",
+  ) {
+    if (unitConversionDisabled) return false;
+    const convertedValue = onConvertUnit?.({
+      property,
+      value: cssNumericValue(parsed.numberValue, parsed.sourceUnit, property),
+      nextUnit: parsed.targetUnit,
+    });
+    const parsedConvertedValue = convertedValue ? parseNumericCssValue(convertedValue) : null;
+    if (!parsedConvertedValue || !parsedNumericUnitIsSupported(parsedConvertedValue, supportedUnits)) return false;
+
+    const clamped = clampNumber(parsedConvertedValue.numberValue, min, max);
+    const nextNumberText = formatNumericStyleNumber(clamped, property, parsedConvertedValue.unit);
+    setDraftNumber(nextNumberText);
+    onChange(`${nextNumberText}${parsedConvertedValue.unit}`, {
+      commit: mode,
+      transactionId: transactionIdRef.current,
+    });
+    return true;
+  }
+
   function handleInputChange(nextValue: string) {
     skipNextBlurCommitRef.current = false;
     const keyword = normalizeCssKeywordValue(nextValue, supportedKeywords);
     if (keyword) {
       commitKeyword(keyword);
+      return;
+    }
+
+    const parsedCompoundInput = parseCompoundNumericUnitConversion(nextValue, supportedUnits);
+    if (parsedCompoundInput && commitCompoundUnitConversion(parsedCompoundInput, "preview")) {
       return;
     }
 
@@ -2058,6 +2185,10 @@ function NumericStyleInput({
     const keyword = normalizeCssKeywordValue(draftNumber, supportedKeywords);
     if (keyword) {
       commitKeyword(keyword, "commit");
+      return;
+    }
+    const parsedCompoundDraft = parseCompoundNumericUnitConversion(draftNumber, supportedUnits);
+    if (parsedCompoundDraft && commitCompoundUnitConversion(parsedCompoundDraft, "commit")) {
       return;
     }
     const parsedDraft = parseNumericCssValue(draftNumber);
@@ -2560,6 +2691,22 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [systemFontFamilies, setSystemFontFamilies] = useState<string[]>([]);
   const [fontAccessState, setFontAccessState] = useState<FontAccessState>("idle");
   const fieldTransactionSnapshotsRef = useRef<Map<string, EditorHistorySnapshot>>(new Map());
+  const pendingStylePropertiesRef = useRef<Set<string>>(new Set());
+  const previewDraftPayloadsRef = useRef<Map<string, PreviewDraftPayload>>(new Map());
+  const latestEditorStateRef = useRef<EditorRuntimeState>({
+    route,
+    viewport,
+    patches,
+    selection,
+    selections,
+    baseStyles,
+    styleValues,
+    textValue,
+    imageValue,
+    hidden,
+    deleted,
+    notes,
+  });
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
@@ -2601,8 +2748,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     ),
   );
 
-  function snapshotEditorState(): EditorHistorySnapshot {
-    return {
+  function syncLatestEditorState(partial: Partial<EditorRuntimeState>) {
+    latestEditorStateRef.current = {
+      ...latestEditorStateRef.current,
+      ...partial,
+    };
+  }
+
+  useLayoutEffect(() => {
+    syncLatestEditorState({
+      route,
+      viewport,
       patches,
       selection,
       selections,
@@ -2613,6 +2769,22 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       hidden,
       deleted,
       notes,
+    });
+  }, [route, viewport, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
+
+  function snapshotEditorState(): EditorHistorySnapshot {
+    const current = latestEditorStateRef.current;
+    return {
+      patches: current.patches,
+      selection: current.selection,
+      selections: current.selections,
+      baseStyles: current.baseStyles,
+      styleValues: current.styleValues,
+      textValue: current.textValue,
+      imageValue: current.imageValue,
+      hidden: current.hidden,
+      deleted: current.deleted,
+      notes: current.notes,
     };
   }
 
@@ -2661,8 +2833,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function applyHistorySnapshot(snapshot: EditorHistorySnapshot) {
+    syncLatestEditorState(snapshot);
     setPatches(snapshot.patches);
-    persistPatches(snapshot.patches);
+    persistPatches(snapshot.patches, latestEditorStateRef.current.route);
     setSelection(snapshot.selection);
     setSelections(snapshot.selections);
     setBaseStyles(snapshot.baseStyles);
@@ -2728,7 +2901,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   useEffect(() => {
     const draftLoad = window.setTimeout(() => {
-      setPatches(readDrafts(route));
+      const nextPatches = readDrafts(route);
+      syncLatestEditorState({ patches: nextPatches });
+      setPatches(nextPatches);
     }, 0);
     return () => window.clearTimeout(draftLoad);
   }, [route]);
@@ -2739,62 +2914,6 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       window.location.origin,
     );
   }, [selectorEnabled, iframeSrc]);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const message = event.data as { type?: string; selection?: SelectionMetadata; selections?: SelectionMetadata[] };
-      if (message.type === "editor:undo") {
-        undoEditorChange();
-        return;
-      }
-      if (message.type === "editor:redo") {
-        redoEditorChange();
-        return;
-      }
-      if (message.type !== "editor:select" || !message.selection) return;
-
-      const nextSelections = message.selections?.length ? message.selections : [message.selection];
-      const primarySelection = nextSelections[0];
-      const currentPatches = readDrafts(route);
-      const selectablePatches = currentPatches.length > 0 ? currentPatches : patches;
-      const patchesBySelector = new Map(
-        nextSelections.map((candidate) => [
-          candidate.target.selector,
-          selectablePatches.find((patch) => sameTarget(patch.target, candidate.target)),
-        ]),
-      );
-      const patchedBaseSelections = nextSelections.map((candidate) =>
-        patchedBaseSelection(candidate, patchesBySelector.get(candidate.target.selector)),
-      );
-      const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
-        ...candidate,
-        computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
-      }));
-      const nextBaseStyles = commonComputedStyles(patchedBaseSelections);
-      const nextStyleValues = commonComputedStyles(patchedValueSelections);
-      const selectedPatches = nextSelections
-        .map((candidate) => patchesBySelector.get(candidate.target.selector))
-        .filter(Boolean);
-      const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
-      const primaryBaseSelection = patchedBaseSelections[0];
-      setSidebarOpen(true);
-      setSelection(primaryBaseSelection);
-      setSelections(patchedBaseSelections);
-      setBaseStyles(nextBaseStyles);
-      setStyleValues(nextStyleValues);
-      setTextValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "text") : "");
-      setImageValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "imageSrc") : "");
-
-      setHidden(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide")));
-      setDeleted(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete")));
-      setNotes(nextSelections.length === 1 ? primaryPatch?.notes ?? "" : "");
-    };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
-  }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
 
   useEffect(() => {
     if (selections.length === 0) return;
@@ -2850,21 +2969,29 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     };
   }
 
-  function postPreviewPatch(nextStyleValues = styleValues, forcedStyles: Record<string, string> = {}) {
+  function postPreviewPatch(
+    nextStyleValues = styleValues,
+    forcedStyles: Record<string, string> = {},
+    options: { persistable?: boolean } = {},
+  ) {
     if (selections.length === 0) return;
 
     for (const selected of selections) {
+      const payload: PreviewDraftPayload = {
+        target: selected.target,
+        styles: previewStylesPayload(nextStyleValues, forcedStyles),
+        text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
+        imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
+        hidden,
+        deleted,
+      };
+      if (options.persistable !== false) {
+        previewDraftPayloadsRef.current.set(previewDraftKey(selected.target), payload);
+      }
       iframeRef.current?.contentWindow?.postMessage(
         {
           type: "editor:apply-preview",
-          patch: {
-            target: selected.target,
-            styles: previewStylesPayload(nextStyleValues, forcedStyles),
-            text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
-            imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
-            hidden,
-            deleted,
-          },
+          patch: payload,
         },
         window.location.origin,
       );
@@ -2872,7 +2999,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function previewStyle(property: string, value: string) {
-    postPreviewPatch(styleValues, { [property]: value });
+    postPreviewPatch(styleValues, { [property]: value }, { persistable: false });
   }
 
   function restorePreview() {
@@ -2904,9 +3031,26 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   function setRouteAndUrl(nextRoute: string) {
     const normalized = normalizePath(nextRoute);
+    flushPendingDrafts();
     fieldTransactionSnapshotsRef.current.clear();
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
+    const nextPatches = readDrafts(normalized);
+    syncLatestEditorState({
+      route: normalized,
+      patches: nextPatches,
+      selection: null,
+      selections: [],
+      baseStyles: {},
+      styleValues: {},
+      textValue: "",
+      imageValue: "",
+      hidden: false,
+      deleted: false,
+      notes: "",
+    });
     setRoute(normalized);
-    setPatches(readDrafts(normalized));
+    setPatches(nextPatches);
     setSelection(null);
     setSelections([]);
     setBaseStyles({});
@@ -2931,20 +3075,251 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   function updatePatches(updater: (current: EditorPatch[]) => EditorPatch[]) {
     setPatches((current) => {
       const nextPatches = updater(current);
-      persistPatches(nextPatches);
+      syncLatestEditorState({ patches: nextPatches });
+      persistPatches(nextPatches, latestEditorStateRef.current.route);
       return nextPatches;
     });
   }
 
-  function changesForDraft({
-    nextStyleValues = styleValues,
-    nextTextValue = textValue,
-    nextImageValue = imageValue,
-    nextHidden = hidden,
-    nextDeleted = deleted,
-    nextNotes = notes,
-    nextViewport = viewport,
+  function draftMatchesPatch(patch: EditorPatch, draft: EditorDraftInput) {
+    return patch.notes === draft.notes && JSON.stringify(patch.changes) === JSON.stringify(draft.changes);
+  }
+
+  function applyDraftsToPatchList(current: EditorPatch[], drafts: EditorDraftInput[], draftRoute = latestEditorStateRef.current.route) {
+    let nextPatches = current;
+
+    for (const draft of drafts) {
+      const existing = nextPatches.find((patch) => sameTarget(patch.target, draft.target));
+
+      if (draft.changes.length === 0 && !draft.notes.trim()) {
+        if (existing) nextPatches = nextPatches.filter((patch) => !sameTarget(patch.target, draft.target));
+        continue;
+      }
+
+      if (existing && draftMatchesPatch(existing, draft)) continue;
+
+      nextPatches = upsertPatch(nextPatches, {
+        id: existing?.id ?? `${draft.target.route}:${draft.target.selector}`,
+        route: draftRoute,
+        target: draft.target,
+        changes: draft.changes,
+        notes: draft.notes,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return nextPatches;
+  }
+
+  function commitPendingFieldTransactions() {
+    const firstSnapshot = fieldTransactionSnapshotsRef.current.values().next().value;
+    if (!firstSnapshot) return;
+    pushUndoSnapshot(firstSnapshot);
+    fieldTransactionSnapshotsRef.current.clear();
+  }
+
+  function previewDraftKey(target: ElementTarget) {
+    return `${target.route}:${target.selector}`;
+  }
+
+  function clearPreviewDraftPayloads(targets = latestEditorStateRef.current.selections.map((selected) => selected.target)) {
+    for (const target of targets) {
+      previewDraftPayloadsRef.current.delete(previewDraftKey(target));
+    }
+  }
+
+  function cachePreviewDraftPayload({
+    nextStyleValues = latestEditorStateRef.current.styleValues,
+    nextTextValue = latestEditorStateRef.current.textValue,
+    nextImageValue = latestEditorStateRef.current.imageValue,
+    nextHidden = latestEditorStateRef.current.hidden,
+    nextDeleted = latestEditorStateRef.current.deleted,
   }: {
+    nextStyleValues?: Record<string, string>;
+    nextTextValue?: string;
+    nextImageValue?: string;
+    nextHidden?: boolean;
+    nextDeleted?: boolean;
+  } = {}) {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return;
+
+    const stylesPayload = Object.fromEntries(
+      Object.entries(nextStyleValues).filter(([property, value]) => value !== (current.baseStyles[property] ?? "")),
+    );
+
+    for (const selected of current.selections) {
+      previewDraftPayloadsRef.current.set(previewDraftKey(selected.target), {
+        target: selected.target,
+        styles: stylesPayload,
+        text: current.selections.length === 1 && nextTextValue !== selected.text ? nextTextValue : undefined,
+        imageSrc: current.selections.length === 1 && nextImageValue !== selected.imageSrc ? nextImageValue : undefined,
+        hidden: nextHidden,
+        deleted: nextDeleted,
+      });
+    }
+  }
+
+  function previewPayloadDrafts() {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return null;
+
+    const drafts = current.selections.map<EditorDraftInput>((selected) => {
+      const payload = previewDraftPayloadsRef.current.get(previewDraftKey(selected.target));
+      const changes: EditorChange[] = [];
+
+      if (payload) {
+        for (const [property, after] of Object.entries(payload.styles)) {
+          const before = selected.computedStyles[property] ?? "";
+          if (after === before) continue;
+          changes.push({
+            kind: "style",
+            property,
+            before,
+            after,
+            viewport: current.viewport,
+          });
+        }
+
+        if (current.selections.length === 1 && payload.text !== undefined && payload.text !== selected.text) {
+          changes.push({
+            kind: "content",
+            field: "text",
+            before: selected.text,
+            after: payload.text,
+          });
+        }
+
+        if (current.selections.length === 1 && payload.imageSrc !== undefined && payload.imageSrc !== selected.imageSrc) {
+          changes.push({
+            kind: "content",
+            field: "imageSrc",
+            before: selected.imageSrc,
+            after: payload.imageSrc,
+          });
+        }
+
+        if (payload.hidden) {
+          changes.push({
+            kind: "element",
+            action: "hide",
+            before: false,
+            after: true,
+          });
+        }
+
+        if (payload.deleted) {
+          changes.push({
+            kind: "element",
+            action: "delete",
+            before: false,
+            after: true,
+          });
+        }
+      }
+
+      return {
+        changes,
+        notes: current.selections.length === 1 ? current.notes : "",
+        target: selected.target,
+      };
+    });
+
+    return drafts.some((draft) => draft.changes.length > 0 || draft.notes.trim()) ? drafts : null;
+  }
+
+  function livePreviewDraftsFromDom() {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return null;
+
+    const previewDocument = iframeRef.current?.contentDocument;
+    const previewWindow = previewDocument?.defaultView;
+    if (!previewDocument || !previewWindow) return null;
+
+    const touchedProperties = pendingStylePropertiesRef.current.size > 0
+      ? Array.from(pendingStylePropertiesRef.current)
+      : changedStyleProperties(current.baseStyles, current.styleValues);
+
+    return current.selections.map<EditorDraftInput>((selected) => {
+      let element: Element | null = null;
+      try {
+        element = previewDocument.querySelector(selected.target.selector);
+      } catch {}
+      if (!element) {
+        return {
+          changes: [],
+          notes: current.selections.length === 1 ? current.notes : "",
+          target: selected.target,
+        };
+      }
+
+      const computed = previewWindow.getComputedStyle(element);
+      const changes: EditorChange[] = touchedProperties
+        .map<StyleChange | null>((property) => {
+          const before = selected.computedStyles[property] ?? "";
+          const after = computed[property as keyof CSSStyleDeclaration] as string || "";
+          if (after === before) return null;
+          return {
+            kind: "style",
+            property,
+            before,
+            after,
+            viewport: current.viewport,
+          };
+        })
+        .filter((change): change is StyleChange => Boolean(change));
+
+      const editableImage =
+        element instanceof previewWindow.HTMLImageElement
+          ? element
+          : element.querySelector("img");
+      const nextTextValue = selected.capabilities?.canEditText ? (element.textContent || "").trim() : selected.text;
+      const nextImageValue =
+        editableImage instanceof previewWindow.HTMLImageElement
+          ? editableImage.currentSrc || editableImage.src
+          : selected.imageSrc;
+
+      if (current.selections.length === 1 && nextTextValue !== selected.text) {
+        changes.push({
+          kind: "content",
+          field: "text",
+          before: selected.text,
+          after: nextTextValue,
+        });
+      }
+
+      if (current.selections.length === 1 && nextImageValue !== selected.imageSrc) {
+        changes.push({
+          kind: "content",
+          field: "imageSrc",
+          before: selected.imageSrc,
+          after: nextImageValue,
+        });
+      }
+
+      return {
+        changes,
+        notes: current.selections.length === 1 ? current.notes : "",
+        target: selected.target,
+      };
+    });
+  }
+
+  function flushPendingDrafts(currentPatches = latestEditorStateRef.current.patches) {
+    const drafts = previewPayloadDrafts() ?? livePreviewDraftsFromDom() ?? changesForDraft();
+    if (!drafts) return currentPatches;
+
+    const nextPatches = applyDraftsToPatchList(currentPatches, drafts);
+    if (nextPatches === currentPatches) return currentPatches;
+
+    commitPendingFieldTransactions();
+    syncLatestEditorState({ patches: nextPatches });
+    setPatches(nextPatches);
+    persistPatches(nextPatches, latestEditorStateRef.current.route);
+    return nextPatches;
+  }
+
+  function changesForDraft(overrides: {
     nextStyleValues?: Record<string, string>;
     nextTextValue?: string;
     nextImageValue?: string;
@@ -2952,12 +3327,23 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     nextDeleted?: boolean;
     nextNotes?: string;
     nextViewport?: ViewportName;
-  }) {
-    if (selections.length === 0) return null;
+  } = {}) {
+    const current = latestEditorStateRef.current;
+    const draftSelections = current.selections;
+    const draftBaseStyles = current.baseStyles;
+    const nextStyleValues = overrides.nextStyleValues ?? current.styleValues;
+    const nextTextValue = overrides.nextTextValue ?? current.textValue;
+    const nextImageValue = overrides.nextImageValue ?? current.imageValue;
+    const nextHidden = overrides.nextHidden ?? current.hidden;
+    const nextDeleted = overrides.nextDeleted ?? current.deleted;
+    const nextNotes = overrides.nextNotes ?? current.notes;
+    const nextViewport = overrides.nextViewport ?? current.viewport;
 
-    const changedProperties = changedStyleProperties(baseStyles, nextStyleValues);
+    if (draftSelections.length === 0) return null;
 
-    return selections.map((selected) => {
+    const changedProperties = changedStyleProperties(draftBaseStyles, nextStyleValues);
+
+    return draftSelections.map((selected) => {
       const changes: EditorChange[] = [
         ...changedProperties.map<StyleChange>((property) => ({
           kind: "style",
@@ -2966,7 +3352,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           after: nextStyleValues[property] ?? "",
           viewport: nextViewport,
         })),
-        ...(selections.length === 1 && nextTextValue !== selected.text
+        ...(draftSelections.length === 1 && nextTextValue !== selected.text
           ? [
               {
                 kind: "content",
@@ -2976,7 +3362,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               } satisfies ContentChange,
             ]
           : []),
-        ...(selections.length === 1 && nextImageValue !== selected.imageSrc
+        ...(draftSelections.length === 1 && nextImageValue !== selected.imageSrc
           ? [
               {
                 kind: "content",
@@ -3010,7 +3396,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
       return {
         changes,
-        notes: selections.length === 1 ? nextNotes : "",
+        notes: draftSelections.length === 1 ? nextNotes : "",
         target: selected.target,
       };
     });
@@ -3020,36 +3406,101 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     const drafts = changesForDraft(overrides);
     if (!drafts) return;
 
-    updatePatches((current) => {
-      let nextPatches = current;
-
-      for (const draft of drafts) {
-        if (draft.changes.length === 0 && !draft.notes.trim()) {
-          nextPatches = nextPatches.filter((patch) => !sameTarget(patch.target, draft.target));
-          continue;
-        }
-
-        const existing = nextPatches.find((patch) => sameTarget(patch.target, draft.target));
-        nextPatches = upsertPatch(nextPatches, {
-          id: existing?.id ?? `${draft.target.route}:${draft.target.selector}`,
-          route,
-          target: draft.target,
-          changes: draft.changes,
-          notes: draft.notes,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return nextPatches;
-    });
+    updatePatches((current) => applyDraftsToPatchList(current, drafts));
   }
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const message = event.data as { type?: string; selection?: SelectionMetadata; selections?: SelectionMetadata[] };
+      if (message.type === "editor:undo") {
+        undoEditorChange();
+        return;
+      }
+      if (message.type === "editor:redo") {
+        redoEditorChange();
+        return;
+      }
+      if (message.type !== "editor:select" || !message.selection) return;
+
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.dispatchEvent(new Event("change", { bubbles: true }));
+        document.activeElement.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+        document.activeElement.blur();
+      }
+
+      const nextSelections = message.selections?.length ? message.selections : [message.selection];
+      const primarySelection = nextSelections[0];
+      const currentRoute = latestEditorStateRef.current.route;
+      const currentPatches = readDrafts(currentRoute);
+      const selectablePatches = flushPendingDrafts(currentPatches.length > 0 ? currentPatches : latestEditorStateRef.current.patches);
+      clearPreviewDraftPayloads();
+      pendingStylePropertiesRef.current.clear();
+      const patchesBySelector = new Map(
+        nextSelections.map((candidate) => [
+          candidate.target.selector,
+          selectablePatches.find((patch) => sameTarget(patch.target, candidate.target)),
+        ]),
+      );
+      const patchedBaseSelections = nextSelections.map((candidate) =>
+        patchedBaseSelection(candidate, patchesBySelector.get(candidate.target.selector)),
+      );
+      const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
+        ...candidate,
+        computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
+      }));
+      const nextBaseStyles = commonComputedStyles(patchedBaseSelections);
+      const nextStyleValues = commonComputedStyles(patchedValueSelections);
+      const selectedPatches = nextSelections
+        .map((candidate) => patchesBySelector.get(candidate.target.selector))
+        .filter(Boolean);
+      const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
+      const primaryBaseSelection = patchedBaseSelections[0];
+      const nextTextValue = nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "text") : "";
+      const nextImageValue = nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "imageSrc") : "";
+      const nextHidden =
+        nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide"));
+      const nextDeleted =
+        nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete"));
+      const nextNotes = nextSelections.length === 1 ? primaryPatch?.notes ?? "" : "";
+      syncLatestEditorState({
+        patches: selectablePatches,
+        selection: primaryBaseSelection,
+        selections: patchedBaseSelections,
+        baseStyles: nextBaseStyles,
+        styleValues: nextStyleValues,
+        textValue: nextTextValue,
+        imageValue: nextImageValue,
+        hidden: nextHidden,
+        deleted: nextDeleted,
+        notes: nextNotes,
+      });
+      setSidebarOpen(true);
+      setSelection(primaryBaseSelection);
+      setSelections(patchedBaseSelections);
+      setBaseStyles(nextBaseStyles);
+      setStyleValues(nextStyleValues);
+      setTextValue(nextTextValue);
+      setImageValue(nextImageValue);
+
+      setHidden(nextHidden);
+      setDeleted(nextDeleted);
+      setNotes(nextNotes);
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
+  }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
+
   function setViewportAndCommit(nextViewport: ViewportName) {
+    syncLatestEditorState({ viewport: nextViewport });
     setViewport(nextViewport);
   }
 
   function updateStyle(property: string, value: string, options?: StyleValueChangeOptions) {
-    const nextStyleValues = { ...styleValues, [property]: value };
+    const currentStyleValues = latestEditorStateRef.current.styleValues;
+    const nextStyleValues = { ...currentStyleValues, [property]: value };
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3057,21 +3508,29 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (styleValues[property] === value && mode !== "commit") return;
+    if (currentStyleValues[property] === value && mode !== "commit") return;
+    if (currentStyleValues[property] !== value) pendingStylePropertiesRef.current.add(property);
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (styleValues[property] !== value) setStyleValues(nextStyleValues);
+      if (currentStyleValues[property] !== value) {
+        syncLatestEditorState({ styleValues: nextStyleValues });
+        cachePreviewDraftPayload({ nextStyleValues });
+        setStyleValues(nextStyleValues);
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && styleValues[property] !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentStyleValues[property] !== value) pushUndoSnapshot();
+    syncLatestEditorState({ styleValues: nextStyleValues });
+    cachePreviewDraftPayload({ nextStyleValues });
     setStyleValues(nextStyleValues);
     commitDraft({ nextStyleValues });
   }
 
   function updateText(value: string, options?: StyleValueChangeOptions) {
+    const currentTextValue = latestEditorStateRef.current.textValue;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3079,21 +3538,28 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (textValue === value && mode !== "commit") return;
+    if (currentTextValue === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (textValue !== value) setTextValue(value);
+      if (currentTextValue !== value) {
+        syncLatestEditorState({ textValue: value });
+        cachePreviewDraftPayload({ nextTextValue: value });
+        setTextValue(value);
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && textValue !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentTextValue !== value) pushUndoSnapshot();
+    syncLatestEditorState({ textValue: value });
+    cachePreviewDraftPayload({ nextTextValue: value });
     setTextValue(value);
     commitDraft({ nextTextValue: value });
   }
 
   function updateImage(value: string, options?: StyleValueChangeOptions) {
+    const currentImageValue = latestEditorStateRef.current.imageValue;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3101,35 +3567,46 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (imageValue === value && mode !== "commit") return;
+    if (currentImageValue === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (imageValue !== value) setImageValue(value);
+      if (currentImageValue !== value) {
+        syncLatestEditorState({ imageValue: value });
+        cachePreviewDraftPayload({ nextImageValue: value });
+        setImageValue(value);
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && imageValue !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentImageValue !== value) pushUndoSnapshot();
+    syncLatestEditorState({ imageValue: value });
+    cachePreviewDraftPayload({ nextImageValue: value });
     setImageValue(value);
     commitDraft({ nextImageValue: value });
   }
 
   function updateHidden(value: boolean) {
-    if (hidden === value) return;
+    if (latestEditorStateRef.current.hidden === value) return;
     pushUndoSnapshot();
+    syncLatestEditorState({ hidden: value });
+    cachePreviewDraftPayload({ nextHidden: value });
     setHidden(value);
     commitDraft({ nextHidden: value });
   }
 
   function updateDeleted(value: boolean) {
-    if (deleted === value) return;
+    if (latestEditorStateRef.current.deleted === value) return;
     pushUndoSnapshot();
+    syncLatestEditorState({ deleted: value });
+    cachePreviewDraftPayload({ nextDeleted: value });
     setDeleted(value);
     commitDraft({ nextDeleted: value });
   }
 
   function updateNotes(value: string, options?: StyleValueChangeOptions) {
+    const currentNotes = latestEditorStateRef.current.notes;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3137,16 +3614,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (notes === value && mode !== "commit") return;
+    if (currentNotes === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (notes !== value) setNotes(value);
+      if (currentNotes !== value) {
+        syncLatestEditorState({ notes: value });
+        setNotes(value);
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && notes !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentNotes !== value) pushUndoSnapshot();
+    syncLatestEditorState({ notes: value });
     setNotes(value);
     commitDraft({ nextNotes: value });
   }
@@ -3163,12 +3644,21 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         window.location.origin,
       );
     }
+    syncLatestEditorState({
+      styleValues: baseStyles,
+      textValue: selections.length === 1 ? selections[0].text : "",
+      imageValue: selections.length === 1 ? selections[0].imageSrc : "",
+      hidden: false,
+      deleted: false,
+    });
     setStyleValues(baseStyles);
     setTextValue(selections.length === 1 ? selections[0].text : "");
     setImageValue(selections.length === 1 ? selections[0].imageSrc : "");
     setHidden(false);
     setDeleted(false);
     updatePatches((current) => current.filter((patch) => !selections.some((selected) => sameTarget(patch.target, selected.target))));
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
     toast.success("Selection reset");
   }
 
@@ -3179,8 +3669,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     }
 
     pushUndoSnapshot();
+    syncLatestEditorState({
+      patches: [],
+      styleValues: baseStyles,
+      textValue: selection && selections.length === 1 ? selection.text : "",
+      imageValue: selection && selections.length === 1 ? selection.imageSrc : "",
+      hidden: false,
+      deleted: false,
+      notes: "",
+    });
     setPatches([]);
-    persistPatches([]);
+    persistPatches([], latestEditorStateRef.current.route);
     iframeRef.current?.contentWindow?.postMessage(
       { type: "editor:clear-preview" },
       window.location.origin,
@@ -3194,6 +3693,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     setHidden(false);
     setDeleted(false);
     setNotes("");
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
     toast.success("All draft changes reset");
   }
 
@@ -3201,13 +3702,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     pushUndoSnapshot();
 
     const nextPatches = patches.filter((candidate) => !sameTarget(candidate.target, patch.target));
+    syncLatestEditorState({ patches: nextPatches });
     setPatches(nextPatches);
     setExpandedPatchIds((current) => {
       const next = new Set(current);
       next.delete(patch.id);
       return next;
     });
-    persistPatches(nextPatches);
+    persistPatches(nextPatches, latestEditorStateRef.current.route);
     iframeRef.current?.contentWindow?.postMessage(
       { type: "editor:clear-preview", target: patch.target },
       window.location.origin,
@@ -3215,6 +3717,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     reapplyPreviewPatches(nextPatches);
 
     if (sameTarget(selection?.target, patch.target)) {
+      syncLatestEditorState({
+        styleValues: baseStyles,
+        textValue: selection?.text ?? "",
+        imageValue: selection?.imageSrc ?? "",
+        hidden: false,
+        deleted: false,
+        notes: "",
+      });
       setStyleValues(baseStyles);
       setTextValue(selection?.text ?? "");
       setImageValue(selection?.imageSrc ?? "");
@@ -3222,6 +3732,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       setDeleted(false);
       setNotes("");
     }
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads([patch.target]);
 
     toast.success("Draft patch deleted");
   }

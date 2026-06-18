@@ -934,29 +934,36 @@
 }
 
 .colorPopover {
-  background: #f7f7f6;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 18px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
-  color: #1f1f1f;
+  --picker-panel-bg: #212121;
+  --picker-panel-raised: rgba(255, 255, 255, 0.05);
+  --picker-panel-hover: rgba(255, 255, 255, 0.1);
+  --picker-panel-border: rgba(255, 255, 255, 0.1);
+  --picker-panel-hairline: rgba(255, 255, 255, 0.06);
+  --picker-panel-text: rgba(255, 255, 255, 0.86);
+  --picker-panel-muted: rgba(255, 255, 255, 0.54);
+  --picker-panel-soft: rgba(255, 255, 255, 0.36);
+  background: var(--picker-panel-bg);
+  border: 1px solid var(--picker-panel-border);
+  border-radius: 8px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  color: var(--picker-panel-text);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: min(22rem, calc(100vw - 2rem));
-  padding: 12px;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 50;
+  gap: 10px;
+  min-width: 0;
+  overflow: auto;
+  padding: 10px;
+  position: fixed;
+  z-index: 1000;
 }
 
 .colorPopoverHeader {
   align-items: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--picker-panel-hairline);
   display: flex;
   justify-content: space-between;
-  margin: -12px -12px 0;
-  padding: 10px 12px;
+  margin: -10px -10px 0;
+  padding: 8px 10px;
 }
 
 .colorPopoverTabs {
@@ -969,20 +976,29 @@
   background: transparent;
   border: 0;
   border-radius: 8px;
-  color: #6d6d6d;
+  color: var(--picker-panel-muted);
   cursor: pointer;
   font-size: 13px;
-  height: 32px;
-  padding: 0 10px;
+  height: 30px;
+  padding: 0 9px;
 }
 
 .colorPopoverTabs button[aria-pressed="true"] {
-  background: #eeeeed;
-  color: #1f1f1f;
+  background: var(--picker-panel-raised);
+  color: var(--picker-panel-text);
+}
+
+.colorPopoverTabs button:hover,
+.colorPopoverTabs button:focus-visible,
+.colorPopoverIconButton:hover,
+.colorPopoverIconButton:focus-visible {
+  background: var(--picker-panel-hover);
+  color: #ffffff;
+  outline: none;
 }
 
 .colorPopoverIconButton {
-  color: #1f1f1f;
+  color: var(--picker-panel-muted);
   font-size: 24px;
   line-height: 1;
   padding: 0 8px;
@@ -995,8 +1011,8 @@
     linear-gradient(to top, #000000, transparent),
     linear-gradient(to right, #ffffff, transparent),
     var(--picker-hue);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 9px;
+  border: 1px solid var(--picker-panel-border);
+  border-radius: 8px;
   cursor: crosshair;
   overflow: hidden;
   position: relative;
@@ -1015,7 +1031,7 @@
 }
 
 .colorSpectrum:focus-visible {
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.22);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
   outline: none;
 }
 
@@ -1039,15 +1055,23 @@
 
 .eyedropperButton {
   align-items: center;
-  background: transparent;
+  background: var(--picker-panel-raised);
   border: 0;
-  color: #1f1f1f;
+  border-radius: 8px;
+  color: var(--picker-panel-muted);
   cursor: pointer;
   display: flex;
   height: 28px;
   justify-content: center;
   padding: 0;
   width: 28px;
+}
+
+.eyedropperButton:hover,
+.eyedropperButton:focus-visible {
+  background: var(--picker-panel-hover);
+  color: #ffffff;
+  outline: none;
 }
 
 .eyedropperButton svg {
@@ -1133,7 +1157,7 @@
 
 .hueSlider:focus-visible::-webkit-slider-thumb,
 .alphaSlider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.22), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14), 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .colorValueRow {
@@ -1144,7 +1168,7 @@
 
 .colorValueRow label {
   align-items: center;
-  background: #eeeeed;
+  background: var(--picker-panel-raised);
   border-radius: 8px;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
@@ -1157,14 +1181,14 @@
 }
 
 .colorValueRow span {
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  color: #1f1f1f;
+  border-right: 1px solid var(--picker-panel-hairline);
+  color: var(--picker-panel-muted);
   font-size: 13px;
   padding: 8px 10px;
 }
 
 .colorValueRow label:last-child::after {
-  color: #737373;
+  color: var(--picker-panel-muted);
   content: "%";
   font-size: 13px;
   padding-right: 10px;
@@ -1173,7 +1197,7 @@
 .colorValueRow input {
   background: transparent;
   border: 0;
-  color: #1f1f1f;
+  color: var(--picker-panel-text);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 13px;
   height: 34px;
@@ -1189,10 +1213,10 @@
 
 .colorPageSwatchesHeader {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--picker-panel-raised);
+  border: 1px solid transparent;
   border-radius: 8px;
-  color: #1f1f1f;
+  color: var(--picker-panel-text);
   display: flex;
   font-size: 13px;
   justify-content: space-between;
@@ -1211,7 +1235,7 @@
 }
 
 .colorPreset {
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--picker-panel-border);
   border-radius: 5px;
   cursor: pointer;
   height: 22px;
@@ -1221,7 +1245,7 @@
 .colorPreset:focus-visible,
 .colorPreset:hover,
 .colorPreset[aria-pressed="true"] {
-  box-shadow: 0 0 0 2px #f7f7f6, 0 0 0 4px rgba(24, 119, 242, 0.55);
+  box-shadow: 0 0 0 2px var(--picker-panel-bg), 0 0 0 4px rgba(255, 255, 255, 0.3);
   outline: none;
 }
 
