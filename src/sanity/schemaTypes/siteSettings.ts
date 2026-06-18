@@ -42,6 +42,26 @@ export const siteSettingsType = defineType({
       type: "string",
     }),
     defineField({
+      name: "navigationShowreel",
+      title: "Navigation Showreel",
+      type: "object",
+      fields: [
+        defineField({
+          name: "title",
+          title: "Title",
+          type: "string",
+          initialValue: "Ripe Showreel 2026",
+        }),
+        defineField({
+          name: "video",
+          title: "Full Video",
+          description:
+            "Upload or link the showreel video. The menu GIF preview is generated automatically from this video during build.",
+          type: "mediaBlock",
+        }),
+      ],
+    }),
+    defineField({
       name: "location",
       title: "Location",
       type: "string",
