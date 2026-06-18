@@ -280,6 +280,7 @@
   border-radius: 14px;
   box-shadow: var(--editor-soft-shadow);
   color: var(--foreground);
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -296,6 +297,10 @@
   justify-content: space-between;
   min-height: 54px;
   padding: 0 0 8px;
+}
+
+.inspectorHeader > :global([data-slot="badge"]) {
+  flex: 0 0 auto;
 }
 
 .inspectorHeaderTitle {
@@ -1365,6 +1370,13 @@
   padding: 8px;
 }
 
+.targetHeader {
+  align-items: flex-start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+}
+
 .selectionIcon {
   background: rgba(255, 255, 255, 0.06);
   border: 0;
@@ -1379,6 +1391,60 @@
 .selectionIcon svg {
   height: 14px;
   width: 14px;
+}
+
+.targetMeta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.targetKickerRow {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.targetKicker,
+.targetLabel,
+.targetSelector {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.targetKicker {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.targetLabel {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.targetSelector {
+  color: rgba(255, 255, 255, 0.38);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.targetActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.targetActions :global([data-slot="button"]) {
+  height: 28px;
+  min-height: 28px;
+  width: 28px;
 }
 
 .elementActions {
@@ -1452,7 +1518,7 @@
   border: 0;
   border-radius: 8px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 3px;
   width: 100%;
 }
@@ -1471,7 +1537,7 @@
 .inspectorTabPanel {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -1541,12 +1607,81 @@
   min-width: 0;
 }
 
+.reviewPanel,
+.reviewDrafts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.reviewActions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.reviewActions :global([data-slot="button"]) {
+  min-width: 0;
+}
+
+.reviewDrafts {
+  border-top: 1px solid var(--editor-hairline);
+  padding-top: 10px;
+}
+
+.reviewDraftsHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.reviewDraftsHeader h3,
+.reviewDraftsHeader p,
+.reviewEmptyState p {
+  margin: 0;
+}
+
+.reviewDraftsHeader h3 {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.reviewDraftsHeader p,
+.reviewEmptyState p {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
+.reviewDraftsControls {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.reviewEmptyState {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--editor-hairline);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  min-width: 0;
+  padding: 12px;
+}
+
 .patchList {
-  background: transparent;
-  border-color: var(--editor-hairline);
-  border-style: solid;
-  border-width: 1px 0;
-  border-radius: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--editor-hairline);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1561,7 +1696,7 @@
   flex-direction: column;
   gap: 10px;
   min-height: 48px;
-  padding: 8px 0;
+  padding: 8px;
 }
 
 .patchRow:hover,
@@ -1728,6 +1863,38 @@
 
 .patchRow + .patchRow {
   border-top: 1px solid var(--border);
+}
+
+@container (max-width: 340px) {
+  .targetHeader {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .targetActions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .inspectorSectionBody :global(.grid-cols-2),
+  .advancedStyleGrid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .reviewActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reviewDraftsHeader,
+  .patchRowTop,
+  .patchTitleRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .patchActions,
+  .reviewDraftsControls {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 1120px) {

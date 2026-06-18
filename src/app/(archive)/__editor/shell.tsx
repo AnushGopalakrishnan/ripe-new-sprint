@@ -2552,7 +2552,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const selectedHasDraft = selection
     ? patches.some((patch) => selections.some((candidate) => sameTarget(candidate.target, patch.target)))
     : false;
-  const visibleStyleGroups = (Object.keys(fieldGroups) as FieldGroupName[])
+  const styleGroupOrder: FieldGroupName[] = ["typography", "appearance", "spacing", "layout"];
+  const visibleStyleGroups = styleGroupOrder
     .map((group) => ({
       group,
       fields: fieldGroups[group].filter(
@@ -2565,10 +2566,6 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       (field) => fieldVisibleForSelections(field, selections) && advancedStyleProperties.has(field.property),
     ),
   );
-
-  useEffect(() => {
-    if (inspectorTab === "drafts" && patches.length === 0) setInspectorTab("style");
-  }, [inspectorTab, patches.length]);
 
   function snapshotEditorState(): EditorHistorySnapshot {
     return {
@@ -3204,6 +3201,15 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     });
   }
 
+  function toggleAllPatchesExpanded() {
+    setExpandedPatchIds((current) => {
+      if (patches.length > 0 && patches.every((patch) => current.has(patch.id))) {
+        return new Set();
+      }
+      return new Set(patches.map((patch) => patch.id));
+    });
+  }
+
   async function copyStyles() {
     if (patches.length === 0) {
       toast.info("No draft changes to copy");
@@ -3398,33 +3404,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         {route} · {patches.length} drafted
                       </p>
                     </div>
-                    {patches.length > 0 || selectedHasDraft ? (
-                      <div className={styles.inspectorHeaderActions}>
-                        {patches.length > 0 ? (
-                          <>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className={styles.applyPatchButton}
-                              disabled={applyState === "applying"}
-                              onClick={applyPatchesToSource}
-                            >
-                              <EditorIcon icon={applyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
-                              {applyState === "applying" ? "Patching..." : applyState === "applied" ? "Patched" : "Patch changes"}
-                            </Button>
-                            <ToolbarButton label="Reset all changes" onClick={resetAllPreviews}>
-                              <EditorIcon icon={RotateLeft01Icon} />
-                            </ToolbarButton>
-                          </>
-                        ) : null}
-                        {selectedHasDraft ? (
-                          <ToolbarButton label="Reset selected" onClick={resetSelectedPreview}>
-                            <EditorIcon icon={RotateLeft01Icon} />
-                          </ToolbarButton>
-                        ) : null}
-                      </div>
-                    ) : null}
+                    <Badge variant={patches.length > 0 ? "secondary" : "outline"}>
+                      {patches.length} {patches.length === 1 ? "draft" : "drafts"}
+                    </Badge>
                   </div>
                   <Separator />
 
@@ -3451,49 +3433,53 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         </section>
                       ) : (
                         <>
-                          <section className={styles.selectionCard} aria-live="polite">
+                          <section className={`${styles.selectionCard} ${styles.targetHeader}`} aria-live="polite">
                             <div className={styles.selectionIcon}>
                               <EditorIcon icon={CursorPointer02Icon} />
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-xs text-muted-foreground">
-                                {selections.length > 1 ? "Multiple elements" : selection.target.tag}
-                              </p>
-                              <p className="mt-1 truncate text-sm font-medium">{selectionLabel}</p>
+                            <div className={styles.targetMeta}>
+                              <div className={styles.targetKickerRow}>
+                                <p className={styles.targetKicker}>
+                                  {selections.length > 1 ? "Multiple elements" : selection.target.tag}
+                                </p>
+                                <Badge variant={selectedHasDraft ? "secondary" : "outline"}>
+                                  {selectedHasDraft ? "Drafted" : "Clean"}
+                                </Badge>
+                              </div>
+                              <p className={styles.targetLabel}>{selectionLabel}</p>
+                              <p className={styles.targetSelector}>{selection.target.selector}</p>
                             </div>
-                          </section>
-
-                          <details className={styles.elementActionsDisclosure} open={hidden || deleted ? true : undefined}>
-                            <summary>
-                              <span>More</span>
-                              <EditorIcon icon={ChevronDownIcon} aria-hidden="true" />
-                            </summary>
-                            <section className={styles.elementActions} aria-label="Element actions">
-                              <Button
-                                type="button"
-                                variant={hidden ? "secondary" : "outline"}
+                            <div className={styles.targetActions} aria-label="Selection actions">
+                              <ToolbarButton
+                                label="Reset selected"
+                                disabled={!selectedHasDraft}
+                                onClick={resetSelectedPreview}
+                              >
+                                <EditorIcon icon={RotateLeft01Icon} />
+                              </ToolbarButton>
+                              <ToolbarButton
+                                label={hidden ? "Show element" : "Hide element"}
+                                active={hidden}
                                 disabled={deleted}
                                 onClick={() => updateHidden(!hidden)}
                               >
-                                <EditorIcon icon={hidden ? EyeOffIcon : EyeIcon} data-icon="inline-start" />
-                                {hidden ? "Show element" : "Hide element"}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={deleted ? "secondary" : "outline"}
+                                <EditorIcon icon={hidden ? EyeOffIcon : EyeIcon} />
+                              </ToolbarButton>
+                              <ToolbarButton
+                                label={deleted ? "Restore element" : "Delete element"}
+                                active={deleted}
                                 onClick={() => updateDeleted(!deleted)}
                               >
-                                <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
-                                {deleted ? "Restore element" : "Delete element"}
-                              </Button>
-                            </section>
-                          </details>
+                                <EditorIcon icon={Delete02Icon} />
+                              </ToolbarButton>
+                            </div>
+                          </section>
 
                           <Tabs value={inspectorTab} onValueChange={setInspectorTab} className={styles.inspectorTabs}>
                             <TabsList className={styles.inspectorTabsList}>
                               <TabsTrigger value="style">Style</TabsTrigger>
                               <TabsTrigger value="content">Content</TabsTrigger>
-                              {patches.length > 0 ? <TabsTrigger value="drafts">Drafts ({patches.length})</TabsTrigger> : null}
+                              <TabsTrigger value="review">Review</TabsTrigger>
                             </TabsList>
 
                             <TabsContent value="style" className={styles.inspectorTabPanel}>
@@ -3587,8 +3573,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                               </InspectorSection>
                             </TabsContent>
 
-                            {patches.length > 0 ? (
-                              <TabsContent value="drafts" className={styles.inspectorTabPanel}>
+                            <TabsContent value="review" className={styles.inspectorTabPanel}>
+                              <section className={styles.reviewPanel}>
                                 <FieldGroup>
                                   <Field data-disabled={selections.length > 1 ? true : undefined}>
                                     <FieldLabel htmlFor="editor-handoff-note" className="text-xs text-muted-foreground">Handoff note</FieldLabel>
@@ -3603,101 +3589,151 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   </Field>
                                 </FieldGroup>
 
-                                <section className="flex flex-col gap-3">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <h3 className="text-sm font-medium">Draft patches</h3>
-                                    <Badge variant="secondary">{patches.length}</Badge>
-                                  </div>
-                                  <div className={styles.patchList}>
-                                    {patches.map((patch) => {
-                                      const expanded = expandedPatchIds.has(patch.id);
-                                      const formattedChanges = patch.changes.map(formatPatchChange);
-                                      const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-                                      return (
-                                        <div
-                                          className={styles.patchRow}
-                                          data-expanded={expanded ? true : undefined}
-                                          data-patch-row=""
-                                          key={patch.id}
-                                          tabIndex={0}
-                                          aria-expanded={expanded}
-                                          aria-controls={detailsId}
-                                          onClick={() => togglePatchExpanded(patch.id)}
-                                          onKeyDown={(event) => {
-                                            if (event.key !== "Enter" && event.key !== " ") return;
-                                            event.preventDefault();
-                                            togglePatchExpanded(patch.id);
-                                          }}
-                                        >
-                                          <div className={styles.patchRowTop}>
-                                            <div className={styles.patchChevron} aria-hidden="true">
-                                              <EditorIcon icon={ChevronDownIcon} />
-                                            </div>
-                                            <div className={styles.patchMeta}>
-                                              <div className={styles.patchTitleRow}>
-                                                <p className="truncate text-sm font-medium">{patch.target.tag}</p>
-                                                <span className={styles.patchSummary}>{summarizePatchChanges(patch.changes)}</span>
-                                              </div>
-                                              <p className={styles.patchSelector}>{patch.target.selector}</p>
-                                            </div>
-                                            <div className={styles.patchActions}>
-                                              <Badge variant="outline">{patch.changes.length} changes</Badge>
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className={styles.patchDeleteButton}
-                                                aria-label={`Delete draft patch for ${patch.target.tag}`}
-                                                onClick={(event) => {
-                                                  event.stopPropagation();
-                                                  deletePatch(patch);
-                                                }}
-                                              >
-                                                <EditorIcon icon={Delete02Icon} />
-                                              </Button>
-                                            </div>
-                                          </div>
-                                          {expanded ? (
-                                            <div className={styles.patchDetails} id={detailsId}>
-                                              {formattedChanges.length === 0 ? (
-                                                <p className={styles.patchDetailEmpty}>No style/content changes; note only.</p>
-                                              ) : (
-                                                formattedChanges.map((change, index) => (
-                                                  <div className={styles.patchDetailRow} key={`${change.label}-${index}`}>
-                                                    <div className={styles.patchDetailHeading}>
-                                                      <span>{change.label}</span>
-                                                      <Badge variant="outline">{change.meta}</Badge>
-                                                    </div>
-                                                    <div className={styles.patchDetailValues}>
-                                                      <code title={change.before}>{change.before}</code>
-                                                      <span aria-hidden="true">→</span>
-                                                      <code title={change.after}>{change.after}</code>
-                                                    </div>
-                                                  </div>
-                                                ))
-                                              )}
-                                              {patch.notes.trim() ? (
-                                                <div className={styles.patchDetailRow}>
-                                                  <div className={styles.patchDetailHeading}>
-                                                    <span>Note</span>
-                                                    <Badge variant="outline">handoff</Badge>
-                                                  </div>
-                                                  <p className={styles.patchDetailNote}>{truncatePatchValue(patch.notes, 140)}</p>
-                                                </div>
-                                              ) : null}
-                                            </div>
-                                          ) : null}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <Button type="button" onClick={copyStyles}>
+                                <div className={styles.reviewActions}>
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    disabled={patches.length === 0}
+                                    onClick={copyStyles}
+                                  >
                                     <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
                                     {copyState === "copied" ? "Copied handoff" : "Copy handoff"}
                                   </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={patches.length === 0 || applyState === "applying"}
+                                    onClick={applyPatchesToSource}
+                                  >
+                                    <EditorIcon icon={applyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                                    {applyState === "applying" ? "Patching..." : applyState === "applied" ? "Patched" : "Patch changes"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={patches.length === 0}
+                                    onClick={resetAllPreviews}
+                                  >
+                                    <EditorIcon icon={RotateLeft01Icon} data-icon="inline-start" />
+                                    Reset all
+                                  </Button>
+                                </div>
+
+                                <section className={styles.reviewDrafts}>
+                                  <div className={styles.reviewDraftsHeader}>
+                                    <div>
+                                      <h3>Draft patches</h3>
+                                      <p>{patches.length === 0 ? "No changes staged for handoff." : `${patches.length} target${patches.length === 1 ? "" : "s"} ready to review.`}</p>
+                                    </div>
+                                    <div className={styles.reviewDraftsControls}>
+                                      <Badge variant={patches.length > 0 ? "secondary" : "outline"}>{patches.length}</Badge>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={patches.length === 0}
+                                        onClick={toggleAllPatchesExpanded}
+                                      >
+                                        {patches.length > 0 && patches.every((patch) => expandedPatchIds.has(patch.id)) ? "Collapse all" : "Expand all"}
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {patches.length === 0 ? (
+                                    <div className={styles.reviewEmptyState}>
+                                      <div className={styles.emptyStateIcon}>
+                                        <EditorIcon icon={File01Icon} />
+                                      </div>
+                                      <p>Style or content edits will appear here as draft patches.</p>
+                                    </div>
+                                  ) : (
+                                    <div className={styles.patchList}>
+                                      {patches.map((patch) => {
+                                        const expanded = expandedPatchIds.has(patch.id);
+                                        const formattedChanges = patch.changes.map(formatPatchChange);
+                                        const detailsId = `patch-details-${patch.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+                                        return (
+                                          <div
+                                            className={styles.patchRow}
+                                            data-expanded={expanded ? true : undefined}
+                                            data-patch-row=""
+                                            key={patch.id}
+                                            tabIndex={0}
+                                            aria-expanded={expanded}
+                                            aria-controls={detailsId}
+                                            onClick={() => togglePatchExpanded(patch.id)}
+                                            onKeyDown={(event) => {
+                                              if (event.key !== "Enter" && event.key !== " ") return;
+                                              event.preventDefault();
+                                              togglePatchExpanded(patch.id);
+                                            }}
+                                          >
+                                            <div className={styles.patchRowTop}>
+                                              <div className={styles.patchChevron} aria-hidden="true">
+                                                <EditorIcon icon={ChevronDownIcon} />
+                                              </div>
+                                              <div className={styles.patchMeta}>
+                                                <div className={styles.patchTitleRow}>
+                                                  <p className="truncate text-sm font-medium">{patch.target.tag}</p>
+                                                  <span className={styles.patchSummary}>{summarizePatchChanges(patch.changes)}</span>
+                                                </div>
+                                                <p className={styles.patchSelector}>{patch.target.selector}</p>
+                                              </div>
+                                              <div className={styles.patchActions}>
+                                                <Badge variant="outline">{patch.changes.length} changes</Badge>
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className={styles.patchDeleteButton}
+                                                  aria-label={`Delete draft patch for ${patch.target.tag}`}
+                                                  onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    deletePatch(patch);
+                                                  }}
+                                                >
+                                                  <EditorIcon icon={Delete02Icon} />
+                                                </Button>
+                                              </div>
+                                            </div>
+                                            {expanded ? (
+                                              <div className={styles.patchDetails} id={detailsId}>
+                                                {formattedChanges.length === 0 ? (
+                                                  <p className={styles.patchDetailEmpty}>No style/content changes; note only.</p>
+                                                ) : (
+                                                  formattedChanges.map((change, index) => (
+                                                    <div className={styles.patchDetailRow} key={`${change.label}-${index}`}>
+                                                      <div className={styles.patchDetailHeading}>
+                                                        <span>{change.label}</span>
+                                                        <Badge variant="outline">{change.meta}</Badge>
+                                                      </div>
+                                                      <div className={styles.patchDetailValues}>
+                                                        <code title={change.before}>{change.before}</code>
+                                                        <span aria-hidden="true">-&gt;</span>
+                                                        <code title={change.after}>{change.after}</code>
+                                                      </div>
+                                                    </div>
+                                                  ))
+                                                )}
+                                                {patch.notes.trim() ? (
+                                                  <div className={styles.patchDetailRow}>
+                                                    <div className={styles.patchDetailHeading}>
+                                                      <span>Note</span>
+                                                      <Badge variant="outline">handoff</Badge>
+                                                    </div>
+                                                    <p className={styles.patchDetailNote}>{truncatePatchValue(patch.notes, 140)}</p>
+                                                  </div>
+                                                ) : null}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </section>
-                              </TabsContent>
-                            ) : null}
+                              </section>
+                            </TabsContent>
                           </Tabs>
                         </>
                       )}
