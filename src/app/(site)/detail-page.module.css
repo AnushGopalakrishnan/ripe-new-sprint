@@ -926,7 +926,8 @@
   width: 100%;
 }
 
-.detailLongFormPlayer > hls-video {
+.detailLongFormPlayer > hls-video,
+.detailLongFormPlayer > video {
   background: #000000;
   height: 100%;
   left: 0;

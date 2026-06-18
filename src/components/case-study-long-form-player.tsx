@@ -30,6 +30,10 @@ function clampUnit(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
+function isHlsSource(src: string) {
+  return /\.m3u8(?:[?#]|$)/i.test(src);
+}
+
 function PlayIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
@@ -131,6 +135,7 @@ export function CaseStudyLongFormPlayer({
   const progress = duration > 0 ? clampUnit(currentTime / duration) * 100 : 0;
   const effectiveMuted = muted || volume === 0;
   const volumePercent = Math.round(volume * 100);
+  const shouldUseHlsElement = isHlsSource(src);
 
   const wakeControls = () => {
     setHover("active");
@@ -341,19 +346,34 @@ export function CaseStudyLongFormPlayer({
       }}
       onPointerMove={wakeControls}
     >
-      <hls-video
-        ref={(element) => {
-          videoRef.current = element as HTMLVideoElement | null;
-        }}
-        className={mediaClassName}
-        src={src}
-        poster={poster}
-        preload={preload}
-        playsInline
-        crossOrigin="anonymous"
-        tabIndex={-1}
-        suppressHydrationWarning
-      />
+      {shouldUseHlsElement ? (
+        <hls-video
+          ref={(element) => {
+            videoRef.current = element as HTMLVideoElement | null;
+          }}
+          className={mediaClassName}
+          src={src}
+          poster={poster}
+          preload={preload}
+          playsInline
+          crossOrigin="anonymous"
+          tabIndex={-1}
+          suppressHydrationWarning
+        />
+      ) : (
+        <video
+          ref={(element) => {
+            videoRef.current = element;
+          }}
+          className={mediaClassName}
+          src={src}
+          poster={poster}
+          preload={preload}
+          playsInline
+          tabIndex={-1}
+          suppressHydrationWarning
+        />
+      )}
       {poster ? <img className={styles.detailLongFormPoster} src={poster} alt="" aria-hidden="true" /> : null}
       <div className={styles.detailLongFormShade} aria-hidden="true" />
       <button

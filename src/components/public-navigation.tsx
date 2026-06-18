@@ -3,9 +3,15 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { Flip } from "gsap/Flip";
+import detailStyles from "@/app/(site)/detail-page.module.css";
+import { CaseStudyLongFormPlayer } from "@/components/case-study-long-form-player";
 import styles from "@/components/public-navigation.module.css";
 import type { NavLink, NavigationShowreel, SocialLink } from "@/types/content";
+
+gsap.registerPlugin(Flip);
 
 const fallbackPrimaryLinks: NavLink[] = [
   { label: "Work", href: "/work-new" },
@@ -62,6 +68,10 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
   const [playerOpen, setPlayerOpen] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
   const previousPathnameRef = useRef(pathname);
+  const showreelVideoRef = useRef<HTMLVideoElement | null>(null);
+  const showreelTileRef = useRef<HTMLButtonElement | null>(null);
+  const showreelPlayerRef = useRef<HTMLDivElement | null>(null);
+  const showreelFlipStateRef = useRef<ReturnType<typeof Flip.getState> | null>(null);
   const active = open || closing;
   const primaryLinks = normalizeLinks(navLinks, fallbackPrimaryLinks);
   const secondaryLinks = normalizeLinks(socialLinks, fallbackSocialLinks);
@@ -69,6 +79,17 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
   const ctaHref = `mailto:${email}`;
   const showreelTitle = navigationShowreel?.title?.trim() || fallbackShowreel.title;
   const showreelVideo = navigationShowreel?.video?.src ? navigationShowreel.video : fallbackShowreel.video;
+  const handleShowreelLoadedMetadata = useCallback(() => undefined, []);
+
+  const openShowreelPlayer = useCallback(() => {
+    if (showreelTileRef.current && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      showreelFlipStateRef.current = Flip.getState(showreelTileRef.current);
+    } else {
+      showreelFlipStateRef.current = null;
+    }
+
+    setPlayerOpen(true);
+  }, []);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current === null) return;
@@ -142,6 +163,33 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
   useEffect(() => {
     return () => clearCloseTimer();
   }, [clearCloseTimer]);
+
+  useLayoutEffect(() => {
+    if (!playerOpen || !showreelPlayerRef.current) return;
+
+    const state = showreelFlipStateRef.current;
+    showreelFlipStateRef.current = null;
+
+    const overlay = showreelPlayerRef.current.parentElement;
+    if (overlay) {
+      gsap.fromTo(
+        overlay,
+        { opacity: 0 },
+        { opacity: 1, duration: state ? 0.2 : 0.01, ease: "power2.out" },
+      );
+    }
+
+    if (!state) return;
+
+    Flip.from(state, {
+      targets: showreelPlayerRef.current,
+      duration: 0.72,
+      ease: "power3.inOut",
+      absolute: true,
+      scale: true,
+      prune: true,
+    });
+  }, [playerOpen]);
 
   return (
     <>
@@ -217,9 +265,11 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
           <div className={`${styles.panelColumn} ${styles.showreelColumn}`}>
             <button
+              ref={showreelTileRef}
               aria-label="Play Ripe showreel"
               className={styles.showreelButton}
-              onClick={() => setPlayerOpen(true)}
+              data-flip-id="navigation-showreel"
+              onClick={openShowreelPlayer}
               type="button"
             >
               <img alt="" className={styles.showreelPreview} src={generatedShowreelPreviewSrc} />
@@ -245,7 +295,7 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
               onClick={() => setPlayerOpen(false)}
               type="button"
             />
-            <div className={styles.playerShell}>
+            <div ref={showreelPlayerRef} className={styles.playerShell} data-flip-id="navigation-showreel">
               <button
                 aria-label="Close showreel"
                 className={styles.playerCloseButton}
@@ -255,13 +305,14 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
                 <span />
                 <span />
               </button>
-              <video
-                autoPlay
-                className={styles.playerVideo}
-                controls
-                playsInline
-                poster={showreelVideo.poster || generatedShowreelPreviewSrc}
+              <CaseStudyLongFormPlayer
+                styles={detailStyles}
+                mediaClassName={styles.playerVideo}
                 src={showreelVideo.src}
+                poster={showreelVideo.poster || generatedShowreelPreviewSrc}
+                preload="auto"
+                videoRef={showreelVideoRef}
+                onLoadedMetadata={handleShowreelLoadedMetadata}
               />
             </div>
           </div>
