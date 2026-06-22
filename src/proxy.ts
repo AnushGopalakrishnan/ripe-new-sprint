@@ -38,6 +38,7 @@ function shouldRewriteToMirror(pathname: string) {
 }
 
 function shouldServeExportAsset(pathname: string) {
+  if (pathname === "/fonts/home-feed-sans.woff2") return false;
   return /^(?:\/css\/|\/fonts\/|\/images\/|\/js\/|\/vendor\/)/.test(pathname);
 }
 
