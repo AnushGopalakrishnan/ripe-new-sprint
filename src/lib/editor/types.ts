@@ -92,6 +92,8 @@ export type EditorMessage =
   | { type: "editor:select"; selection: SelectionMetadata; selections?: SelectionMetadata[] }
   | { type: "editor:comment-anchor"; selection: SelectionMetadata; anchor: { x: number; y: number } }
   | { type: "editor:comment-select"; id: string }
+  | { type: "editor:comment-update"; id: string; note: string }
+  | { type: "editor:toggle-comment-view" }
   | { type: "editor:undo" }
   | { type: "editor:redo" }
   | {
@@ -109,4 +111,5 @@ export type EditorMessage =
   | { type: "editor:request-dom" }
   | { type: "editor:set-enabled"; enabled: boolean }
   | { type: "editor:set-comment-mode"; enabled: boolean }
+  | { type: "editor:set-comment-view"; enabled: boolean }
   | { type: "editor:set-comments"; comments: EditorComment[] };

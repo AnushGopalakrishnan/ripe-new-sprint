@@ -54,6 +54,10 @@
 
 ## What Exists Today
 
+### Visual Editor
+
+- Update on 2026-06-22: visual editor comments now behave like on-canvas Figma-style comments. Pressing `Shift+C` is the single comments toggle: off hides all comment bubbles and disables creating new comments; on shows existing bubbles and allows clicking the preview to create comments. Clicking inside the preview creates one anchored comment card at the click position, focuses its inline textarea, syncs typed text into the sidebar comment list/localStorage, and then collapses to a numbered bubble after blur/hover-out. Only one comment dialog can be open at a time; opening another bubble/comment closes the previous dialog. Implementation lives in `src/lib/editor/bridge-source.ts`, `src/app/(archive)/__editor/shell.tsx`, and the editor message types.
+
 ### Public Navigation
 
 - Update on 2026-06-18: all public `(site)` routes now mount a custom app-owned navbar from `src/components/public-navigation.tsx` in `src/app/(site)/layout.tsx`. It replaces/suppresses the mirrored Webflow `.nav_wrap`/`.nav_contain` layer via `src/components/public-navigation.module.css`, uses hardcoded Ripe links, no search/cart UI, a fixed transparent wordmark + two-line burger header, and a full-viewport sage overlay with desktop three-column and mobile stacked link layouts. The component locks body/html scroll while open, closes on Escape, route change, close button, and link click, and keeps shadcn/ui out of the public site.

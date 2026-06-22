@@ -5,14 +5,18 @@ export const bridgeScript = String.raw`
 
   let enabled = true;
   let commentMode = false;
+  let commentView = true;
   let hoverTarget = null;
   let selectedSelections = [];
   let editorComments = [];
+  let expandedCommentId = null;
+  let focusedCommentId = null;
   let redrawFrame = 0;
   const previews = new Map();
   const hoverBox = document.createElement("div");
   const selectBoxes = new Map();
   const commentMarkers = new Map();
+  const focusedEmptyComments = new Set();
 
   const selectionPurple = "#7c3aed";
   const textStyleTags = new Set([
@@ -67,6 +71,24 @@ export const bridgeScript = String.raw`
   function mountCommentMarker(marker) {
     Object.assign(marker.style, {
       alignItems: "center",
+      background: "transparent",
+      border: "0",
+      boxSizing: "border-box",
+      color: "#0a0a0a",
+      display: "none",
+      fontFamily: "Arial, sans-serif",
+      pointerEvents: "auto",
+      position: "fixed",
+      transform: "translate(-50%, -50%)",
+      zIndex: "2147483647",
+    });
+    marker.dataset.ripeEditorCommentMarker = "true";
+    document.documentElement.appendChild(marker);
+  }
+
+  function styleCommentBubble(button) {
+    Object.assign(button.style, {
+      alignItems: "center",
       background: "#facc15",
       border: "1px solid rgba(0,0,0,0.48)",
       borderRadius: "999px",
@@ -74,22 +96,52 @@ export const bridgeScript = String.raw`
       boxSizing: "border-box",
       color: "#0a0a0a",
       cursor: "pointer",
-      display: "none",
+      display: "flex",
       fontFamily: "Arial, sans-serif",
       fontSize: "11px",
       fontWeight: "700",
       height: "24px",
       justifyContent: "center",
       lineHeight: "1",
-      pointerEvents: "auto",
-      position: "fixed",
-      transform: "translate(-50%, -50%)",
+      padding: "0",
       width: "24px",
-      zIndex: "2147483647",
     });
-    marker.dataset.ripeEditorCommentMarker = "true";
-    marker.type = "button";
-    document.documentElement.appendChild(marker);
+  }
+
+  function styleCommentPanel(panel) {
+    Object.assign(panel.style, {
+      background: "#ffffff",
+      border: "1px solid rgba(0,0,0,0.16)",
+      borderRadius: "10px",
+      boxShadow: "0 18px 44px rgba(0,0,0,0.22)",
+      boxSizing: "border-box",
+      color: "#151515",
+      display: "none",
+      fontFamily: "Inter, Arial, sans-serif",
+      left: "14px",
+      minHeight: "92px",
+      padding: "10px",
+      position: "absolute",
+      top: "14px",
+      width: "260px",
+    });
+  }
+
+  function styleCommentTextarea(textarea) {
+    Object.assign(textarea.style, {
+      background: "#ffffff",
+      border: "1px solid rgba(0,0,0,0.14)",
+      borderRadius: "7px",
+      boxSizing: "border-box",
+      color: "#151515",
+      display: "block",
+      font: "13px/1.4 Inter, Arial, sans-serif",
+      minHeight: "64px",
+      outline: "none",
+      padding: "8px",
+      resize: "vertical",
+      width: "100%",
+    });
   }
 
   function cssEscape(value) {
@@ -389,11 +441,92 @@ export const bridgeScript = String.raw`
   function ensureCommentMarker(comment) {
     const existing = commentMarkers.get(comment.id);
     if (existing) return existing;
-    const marker = document.createElement("button");
+    const marker = document.createElement("div");
     mountCommentMarker(marker);
-    marker.addEventListener("click", (event) => {
-      stopPageAction(event);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    styleCommentBubble(button);
+
+    const panel = document.createElement("div");
+    styleCommentPanel(panel);
+
+    const header = document.createElement("div");
+    Object.assign(header.style, {
+      alignItems: "center",
+      display: "flex",
+      font: "700 12px/1.2 Inter, Arial, sans-serif",
+      justifyContent: "space-between",
+      marginBottom: "8px",
+    });
+
+    const title = document.createElement("span");
+    title.textContent = "Comment";
+
+    const hint = document.createElement("span");
+    Object.assign(hint.style, {
+      color: "rgba(0,0,0,0.45)",
+      font: "11px/1.2 Inter, Arial, sans-serif",
+    });
+    hint.textContent = "Local";
+
+    const textarea = document.createElement("textarea");
+    styleCommentTextarea(textarea);
+    textarea.placeholder = "Write a comment...";
+
+    header.append(title, hint);
+    panel.append(header, textarea);
+    marker.append(button, panel);
+
+    marker.__ripeButton = button;
+    marker.__ripePanel = panel;
+    marker.__ripeTextarea = textarea;
+
+    function expand() {
+      if (expandedCommentId && expandedCommentId !== comment.id) {
+        const previousMarker = commentMarkers.get(expandedCommentId);
+        if (previousMarker && previousMarker.__ripeTextarea === document.activeElement) {
+          previousMarker.__ripeTextarea.blur();
+        }
+        focusedCommentId = focusedCommentId === expandedCommentId ? null : focusedCommentId;
+      }
+      expandedCommentId = comment.id;
+      syncCommentMarkers();
       post({ type: "editor:comment-select", id: comment.id });
+    }
+
+    function collapseIfComplete() {
+      if (focusedCommentId === comment.id) return;
+      const latestComment = editorComments.find((candidate) => candidate.id === comment.id);
+      if (!latestComment || !String(latestComment.note || "").trim()) return;
+      if (expandedCommentId === comment.id) {
+        expandedCommentId = null;
+        syncCommentMarkers();
+      }
+    }
+
+    button.addEventListener("click", (event) => {
+      stopPageAction(event);
+      expand();
+      window.setTimeout(() => textarea.focus(), 0);
+    });
+    marker.addEventListener("pointerenter", () => {
+      expand();
+    });
+    marker.addEventListener("pointerleave", () => {
+      collapseIfComplete();
+    });
+    textarea.addEventListener("focus", () => {
+      focusedCommentId = comment.id;
+      expandedCommentId = comment.id;
+      syncCommentMarkers();
+    });
+    textarea.addEventListener("input", () => {
+      post({ type: "editor:comment-update", id: comment.id, note: textarea.value });
+    });
+    textarea.addEventListener("blur", () => {
+      focusedCommentId = focusedCommentId === comment.id ? null : focusedCommentId;
+      collapseIfComplete();
     });
     commentMarkers.set(comment.id, marker);
     return marker;
@@ -409,8 +542,11 @@ export const bridgeScript = String.raw`
 
     editorComments.forEach((comment, index) => {
       const marker = ensureCommentMarker(comment);
+      const button = marker.__ripeButton;
+      const panel = marker.__ripePanel;
+      const textarea = marker.__ripeTextarea;
       const element = findByTarget(comment.target);
-      if (!element) {
+      if (!commentView || !element) {
         marker.style.display = "none";
         return;
       }
@@ -420,12 +556,23 @@ export const bridgeScript = String.raw`
         return;
       }
       const anchor = comment.anchor || { x: 0.5, y: 0.5 };
-      marker.textContent = String(index + 1);
-      marker.setAttribute("aria-label", "Editor comment " + (index + 1));
-      marker.title = comment.note || "Editor comment";
+      const note = String(comment.note || "");
+      const expanded = expandedCommentId === comment.id || focusedCommentId === comment.id;
+      if (button) {
+        button.textContent = String(index + 1);
+        button.setAttribute("aria-label", "Editor comment " + (index + 1));
+        button.title = note || "Editor comment";
+      }
+      if (panel) panel.style.display = expanded ? "block" : "none";
+      if (textarea && textarea.value !== note && document.activeElement !== textarea) textarea.value = note;
       marker.style.display = "flex";
       marker.style.left = rect.left + rect.width * Number(anchor.x || 0.5) + "px";
       marker.style.top = rect.top + rect.height * Number(anchor.y || 0.5) + "px";
+
+      if (expanded && !note.trim() && !focusedEmptyComments.has(comment.id) && textarea) {
+        focusedEmptyComments.add(comment.id);
+        window.setTimeout(() => textarea.focus(), 0);
+      }
     });
   }
 
@@ -590,12 +737,20 @@ export const bridgeScript = String.raw`
   }
 
   function onKeyDown(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    const isTyping = isEditableControl(target);
+    if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && String(event.key || "").toLowerCase() === "c") {
+      stopPageAction(event);
+      post({ type: "editor:toggle-comment-view" });
+      return;
+    }
+
     if (
       event.key === "Enter" &&
       !event.metaKey &&
       !event.ctrlKey &&
       !event.altKey &&
-      !isEditableControl(event.target instanceof Element ? event.target : null)
+      !isTyping
     ) {
       const handled = navigateSelectionHierarchy(event.shiftKey ? "parent" : "children");
       if (handled) stopPageAction(event);
@@ -704,9 +859,27 @@ export const bridgeScript = String.raw`
     if (message.type === "editor:set-comment-mode") {
       commentMode = Boolean(message.enabled);
       document.documentElement.style.cursor = commentMode ? "crosshair" : "";
+      syncCommentMarkers();
+    }
+    if (message.type === "editor:set-comment-view") {
+      commentView = Boolean(message.enabled);
+      if (!commentView) {
+        expandedCommentId = null;
+        focusedCommentId = null;
+        if (document.activeElement && document.activeElement.closest("[data-ripe-editor-comment-marker]")) {
+          document.activeElement.blur();
+        }
+      }
+      syncCommentMarkers();
     }
     if (message.type === "editor:set-comments") {
+      const previousIds = new Set(editorComments.map((comment) => comment.id));
       editorComments = Array.isArray(message.comments) ? message.comments : [];
+      const newEmptyComment = editorComments.find((comment) => !previousIds.has(comment.id) && !String(comment.note || "").trim());
+      if (newEmptyComment) {
+        expandedCommentId = newEmptyComment.id;
+        focusedCommentId = newEmptyComment.id;
+      }
       syncCommentMarkers();
     }
     if (message.type === "editor:set-enabled") {

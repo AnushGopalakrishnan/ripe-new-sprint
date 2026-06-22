@@ -2743,7 +2743,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [route, setRoute] = useState(normalizedInitialPath);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectorEnabled, setSelectorEnabled] = useState(true);
-  const [commentMode, setCommentMode] = useState(false);
+  const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
@@ -2956,6 +2956,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         setSidebarOpen((open) => !open);
         return;
       }
+      if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        setCommentsEnabled((enabled) => !enabled);
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
         event.stopPropagation();
@@ -3001,10 +3008,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "editor:set-comment-mode", enabled: commentMode },
+      { type: "editor:set-comment-mode", enabled: commentsEnabled },
       window.location.origin,
     );
-  }, [commentMode, iframeSrc]);
+  }, [commentsEnabled, iframeSrc]);
+
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comment-view", enabled: commentsEnabled },
+      window.location.origin,
+    );
+  }, [commentsEnabled, iframeSrc]);
 
   useEffect(() => {
     iframeRef.current?.contentWindow?.postMessage(
@@ -3200,6 +3214,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     };
     updateComments((current) => [...current, nextComment]);
     setActiveCommentId(id);
+    setCommentsEnabled(true);
     setInspectorTab("comments");
     setSidebarOpen(true);
     toast.success("Comment anchored");
@@ -3576,6 +3591,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         selections?: SelectionMetadata[];
         anchor?: EditorComment["anchor"];
         id?: string;
+        note?: string;
       };
       if (message.type === "editor:undo") {
         undoEditorChange();
@@ -3589,6 +3605,15 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         setActiveCommentId(message.id);
         setInspectorTab("comments");
         setSidebarOpen(true);
+        return;
+      }
+      if (message.type === "editor:comment-update" && message.id && typeof message.note === "string") {
+        updateCommentNote(message.id, message.note);
+        setActiveCommentId(message.id);
+        return;
+      }
+      if (message.type === "editor:toggle-comment-view") {
+        setCommentsEnabled((enabled) => !enabled);
         return;
       }
       if (message.type === "editor:comment-anchor" && message.selection && message.anchor) {
@@ -4129,9 +4154,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
             </ToolbarButton>
 
             <ToolbarButton
-              label={commentMode ? "Disable comment mode" : "Enable comment mode"}
-              active={commentMode}
-              onClick={() => setCommentMode((enabled) => !enabled)}
+              label={commentsEnabled ? "Hide comments" : "Show comments"}
+              active={commentsEnabled}
+              onClick={() => setCommentsEnabled((enabled) => !enabled)}
             >
               <EditorIcon icon={ClipboardIcon} />
             </ToolbarButton>
@@ -4162,7 +4187,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                       window.location.origin,
                     );
                     iframeRef.current?.contentWindow?.postMessage(
-                      { type: "editor:set-comment-mode", enabled: commentMode },
+                      { type: "editor:set-comment-mode", enabled: commentsEnabled },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comment-view", enabled: commentsEnabled },
                       window.location.origin,
                     );
                     iframeRef.current?.contentWindow?.postMessage(
@@ -4225,11 +4254,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                           </Button>
                           <Button
                             type="button"
-                            variant={commentMode ? "secondary" : "outline"}
-                            onClick={() => setCommentMode((enabled) => !enabled)}
+                            variant={commentsEnabled ? "secondary" : "outline"}
+                            onClick={() => setCommentsEnabled((enabled) => !enabled)}
                           >
                             <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
-                            {commentMode ? "Comment mode on" : "Comment mode"}
+                            {commentsEnabled ? "Comments on" : "Comments off"}
                           </Button>
                           {comments.length > 0 ? (
                             <section className={styles.reviewDrafts}>
@@ -4417,7 +4446,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                 <InspectorSection
                                   icon={ClipboardIcon}
                                   title="Comments"
-                                  description={commentMode ? "Click the preview to anchor a comment." : "Enable comment mode, then click the preview."}
+                                  description={commentsEnabled ? "Click the preview to anchor a comment." : "Show comments to anchor new comments."}
                                 >
                                   <FieldGroup>
                                     <Field data-disabled={!activeComment ? true : undefined}>
@@ -4439,11 +4468,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <div className={styles.reviewActions}>
                                     <Button
                                       type="button"
-                                      variant={commentMode ? "secondary" : "outline"}
-                                      onClick={() => setCommentMode((enabled) => !enabled)}
+                                      variant={commentsEnabled ? "secondary" : "outline"}
+                                      onClick={() => setCommentsEnabled((enabled) => !enabled)}
                                     >
                                       <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
-                                      {commentMode ? "Comment mode on" : "Comment mode"}
+                                      {commentsEnabled ? "Comments on" : "Comments off"}
                                     </Button>
                                     <Button
                                       type="button"
