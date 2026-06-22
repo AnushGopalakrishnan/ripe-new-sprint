@@ -4174,7 +4174,12 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         <ResizablePanelGroup orientation="horizontal" className={styles.workspace}>
           <ResizablePanel minSize="280px" className={styles.previewPanel}>
             <main className={styles.stage}>
-              <div className={styles.canvasChrome} style={{ "--canvas-width": `${viewportWidth}px` } as React.CSSProperties}>
+              <div
+                className={styles.canvasChrome}
+                data-route={route}
+                data-viewport={viewportSizes[viewport].label}
+                style={{ "--canvas-width": `${viewportWidth}px` } as React.CSSProperties}
+              >
                 <iframe
                   ref={iframeRef}
                   key={iframeSrc}
@@ -4210,9 +4215,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               <ResizableHandle withHandle />
               <ResizablePanel
                 className={styles.inspectorPanel}
-                defaultSize="320px"
-                minSize="280px"
-                maxSize="440px"
+                defaultSize="360px"
+                minSize="320px"
+                maxSize="480px"
                 groupResizeBehavior="preserve-pixel-size"
               >
                 <aside className={styles.inspector} aria-label="Visual editor inspector">

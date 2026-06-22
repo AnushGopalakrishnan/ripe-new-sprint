@@ -57,6 +57,7 @@
 ### Visual Editor
 
 - Update on 2026-06-22: visual editor comments now behave like on-canvas Figma-style comments. Pressing `Shift+C` is the single comments toggle: off hides all comment bubbles and disables creating new comments; on shows existing bubbles and allows clicking the preview to create comments. Clicking inside the preview creates one anchored comment card at the click position, focuses its inline textarea, syncs typed text into the sidebar comment list/localStorage, and then collapses to a numbered bubble after blur/hover-out. Only one comment dialog can be open at a time; opening another bubble/comment closes the previous dialog. Implementation lives in `src/lib/editor/bridge-source.ts`, `src/app/(archive)/__editor/shell.tsx`, and the editor message types.
+- Design review pass on 2026-06-22: the visual editor shell was restyled from mixed light/dark prototype UI into a unified dark product workspace. Topbar, route controls, viewport controls, canvas frame, inspector dock, empty/selected states, tabs, sections, review lists, and mobile bottom-sheet behavior were tightened in `src/app/(archive)/__editor/shell.module.css`; inspector default width is now 360px in `src/app/(archive)/__editor/shell.tsx`. `src/proxy.ts` now lets `/fonts/home-feed-sans.woff2` serve from `public/fonts` instead of rewriting it to the mirror, removing editor preview console noise.
 
 ### Public Navigation
 
