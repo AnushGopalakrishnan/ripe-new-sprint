@@ -7,7 +7,6 @@ import CareersMosaic from "./careers-mosaic";
 type Pillar = {
   title: string;
   body: string;
-  featured?: boolean;
 };
 
 const filmstripMedia = [
@@ -45,7 +44,6 @@ const pillars: Pillar[] = [
   {
     title: "Collective Progression",
     body: "Individual brilliance matters, but shared knowledge transforms. We are building a community of creators who elevate each other.",
-    featured: true,
   },
   {
     title: "Human Ambition",
@@ -159,7 +157,7 @@ export default async function CareersPage() {
               />
             </div>
             <p>
-              Trust by <strong>50k+ clients</strong> &amp; organisations
+              Trust by 50k+ clients &amp; organisations
             </p>
             <a href="mailto:careers@ripe.studio">Get In Touch</a>
           </div>
@@ -170,9 +168,11 @@ export default async function CareersPage() {
         <h2>The pillars that Ripe is built on</h2>
         <div className={styles.pillarsGrid}>
           {pillars.map((pillar, index) => (
-            <article key={`${pillar.title}-${index}`} className={pillar.featured ? styles.pillarCardFeatured : styles.pillarCard}>
-              <span className={styles.pillarIcon}>*</span>
-              <h3>{pillar.title}</h3>
+            <article key={`${pillar.title}-${index}`} className={styles.pillarCard}>
+              <div className={styles.pillarCardHeader}>
+                <span className={styles.pillarIcon}>*</span>
+                <h3>{pillar.title}</h3>
+              </div>
               <p>{pillar.body}</p>
             </article>
           ))}
