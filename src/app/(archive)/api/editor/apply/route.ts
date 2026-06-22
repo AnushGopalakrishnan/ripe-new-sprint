@@ -1,13 +1,19 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import postcss, { type Declaration, type Rule } from "postcss";
 import type { EditorChange, EditorPatch, StyleChange } from "@/lib/editor/types";
 
 type ApplyRequest = {
+  mode?: "override" | "source";
   patches?: EditorPatch[];
 };
 
 const outputPath = path.join(process.cwd(), "public", "editor-patches.css");
+const sourceSearchRoots = [
+  path.join(process.cwd(), "src", "app", "(site)"),
+  path.join(process.cwd(), "src", "components"),
+];
 
 function toCssProperty(property: string) {
   return property.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
@@ -100,19 +106,266 @@ function buildEditorPatchCss(patches: EditorPatch[]) {
   };
 }
 
+function unsupportedSourceChange(change: EditorChange) {
+  if (change.kind === "content") return change.field;
+  if (change.kind === "element") return change.action;
+  if (change.kind === "style" && change.viewport !== "desktop") return `${change.property} (${change.viewport})`;
+  return null;
+}
+
+function compiledCssModuleLocalName(className: string) {
+  const parts = className.split("__");
+  if (parts.length < 3) return null;
+  const localName = parts.at(-1)?.trim();
+  return localName || null;
+}
+
+function classTokensFromSelector(selector: string) {
+  const tokens: string[] = [];
+  const pattern = /\.([_a-zA-Z][_a-zA-Z0-9-]*(?:__[_a-zA-Z0-9-]+){2,})/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(selector))) tokens.push(match[1]);
+  return tokens;
+}
+
+function sourceLocalClasses(patch: EditorPatch) {
+  const classNames = [
+    ...patch.target.classes,
+    ...classTokensFromSelector(patch.target.selector),
+  ];
+  return Array.from(
+    new Set(
+      classNames
+        .map(compiledCssModuleLocalName)
+        .filter((className): className is string => Boolean(className)),
+    ),
+  );
+}
+
+async function findCssModuleFiles(root: string) {
+  const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await findCssModuleFiles(entryPath)));
+    } else if (entry.isFile() && entry.name.endsWith(".module.css")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
+}
+
+async function projectCssModuleFiles() {
+  const files = await Promise.all(sourceSearchRoots.map(findCssModuleFiles));
+  return files.flat();
+}
+
+function selectorHasClass(selector: string, className: string) {
+  return new RegExp(`\\.${className}(?![-_a-zA-Z0-9])`).test(selector);
+}
+
+function selectorTargetsTagAfterClass(selector: string, className: string, tag: string) {
+  return new RegExp(`\\.${className}(?:[-_a-zA-Z0-9.#:[\\]()="'%\\s>+~]*)\\b${tag}\\b`).test(selector);
+}
+
+function selectorSpecificityScore(selector: string) {
+  const classCount = (selector.match(/\.[_a-zA-Z][_a-zA-Z0-9-]*/g) ?? []).length;
+  const tagCount = (selector.match(/(^|[\s>+~])[_a-zA-Z][_a-zA-Z0-9-]*(?=[\s.#:[>+~]|$)/g) ?? []).length;
+  return classCount * 10 + tagCount;
+}
+
+type SourceRuleMatch = {
+  filePath: string;
+  rule: Rule;
+  score: number;
+  selector: string;
+};
+
+function scoreSourceRule(rule: Rule, patch: EditorPatch, localClasses: string[]) {
+  if (localClasses.length === 0) return null;
+
+  const targetTag = patch.target.tag.toLowerCase();
+  const targetLocalClasses = patch.target.classes
+    .map(compiledCssModuleLocalName)
+    .filter((className): className is string => Boolean(className));
+
+  let bestScore = 0;
+  let bestSelector = "";
+  const selectors = postcss.list.comma(rule.selector);
+
+  for (const selector of selectors) {
+    for (const [index, className] of localClasses.entries()) {
+      if (!selectorHasClass(selector, className)) continue;
+
+      let score = 20 + index;
+      if (targetLocalClasses.includes(className)) score += 50;
+      if (selectorTargetsTagAfterClass(selector, className, targetTag)) score += 35;
+      if (selector.trim() === `.${className}`) score += targetLocalClasses.includes(className) ? 40 : 5;
+      score += selectorSpecificityScore(selector) / 100;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestSelector = selector;
+      }
+    }
+  }
+
+  if (bestScore === 0) return null;
+  return { score: bestScore, selector: bestSelector };
+}
+
+function declarationFor(rule: Rule, property: string) {
+  return rule.nodes?.find(
+    (node): node is Declaration => node.type === "decl" && node.prop === property,
+  ) ?? null;
+}
+
+function setRuleDeclaration(rule: Rule, change: StyleChange) {
+  const property = toCssProperty(change.property);
+  const value = cssValue(change.after);
+  const existing = declarationFor(rule, property);
+
+  if (!value) {
+    existing?.remove();
+    return;
+  }
+
+  if (existing) {
+    existing.value = value;
+    existing.important = false;
+    return;
+  }
+
+  rule.append({ prop: property, value });
+}
+
+async function loadCssRoots(files: string[]) {
+  const roots = new Map<string, postcss.Root>();
+  for (const filePath of files) {
+    const css = await fs.readFile(filePath, "utf8");
+    roots.set(filePath, postcss.parse(css, { from: filePath }));
+  }
+  return roots;
+}
+
+function resolveSourceRule(
+  roots: Map<string, postcss.Root>,
+  patch: EditorPatch,
+): SourceRuleMatch | { unsupported: string } {
+  const localClasses = sourceLocalClasses(patch);
+  if (localClasses.length === 0) return { unsupported: "source selector" };
+
+  const matches: SourceRuleMatch[] = [];
+  for (const [filePath, root] of roots) {
+    root.walkRules((rule) => {
+      const scored = scoreSourceRule(rule, patch, localClasses);
+      if (!scored) return;
+      matches.push({
+        filePath,
+        rule,
+        score: scored.score,
+        selector: scored.selector,
+      });
+    });
+  }
+
+  if (matches.length === 0) return { unsupported: "source selector" };
+
+  matches.sort((left, right) => right.score - left.score);
+  const [best, second] = matches;
+  if (second && Math.abs(best.score - second.score) < 0.001 && best.filePath !== second.filePath) {
+    return { unsupported: "ambiguous source selector" };
+  }
+
+  return best;
+}
+
+async function applyPatchesToCssModules(patches: EditorPatch[]) {
+  const cssFiles = await projectCssModuleFiles();
+  const roots = await loadCssRoots(cssFiles);
+  const unsupported: Array<{ selector: string; changes: string[] }> = [];
+  const changedFiles = new Set<string>();
+  const appliedPatchIds = new Set<string>();
+  let applied = 0;
+
+  for (const patch of patches) {
+    const sourceResult = resolveSourceRule(roots, patch);
+    const unsupportedChanges: string[] = [];
+
+    if ("unsupported" in sourceResult) {
+      unsupportedChanges.push(...patch.changes.map((change) => unsupportedSourceChange(change) ?? "style"));
+    } else {
+      let appliedChanges = 0;
+      for (const change of patch.changes) {
+        const unsupportedChange = unsupportedSourceChange(change);
+        if (unsupportedChange) {
+          unsupportedChanges.push(unsupportedChange);
+          continue;
+        }
+        if (change.kind !== "style") continue;
+        setRuleDeclaration(sourceResult.rule, change);
+        appliedChanges += 1;
+      }
+
+      if (appliedChanges > 0) {
+        changedFiles.add(sourceResult.filePath);
+        applied += 1;
+      }
+      if (unsupportedChanges.length === 0 && appliedChanges === patch.changes.length) {
+        appliedPatchIds.add(patch.id);
+      }
+    }
+
+    if (unsupportedChanges.length > 0) {
+      unsupported.push({
+        selector: patch.target.selector,
+        changes: unsupportedChanges,
+      });
+    }
+  }
+
+  for (const filePath of changedFiles) {
+    const root = roots.get(filePath);
+    if (!root) continue;
+    await fs.writeFile(filePath, root.toString(), "utf8");
+  }
+
+  return {
+    applied,
+    appliedPatchIds: Array.from(appliedPatchIds),
+    files: Array.from(changedFiles).map((filePath) => path.relative(process.cwd(), filePath)),
+    unsupported,
+  };
+}
+
 export async function POST(request: Request) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ message: "Editor patching is disabled in production." }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as ApplyRequest;
+  const mode = body.mode ?? "override";
   const patches = Array.isArray(body.patches) ? body.patches : [];
+
+  if (mode === "source") {
+    const result = await applyPatchesToCssModules(patches);
+    return NextResponse.json({
+      ok: true,
+      mode,
+      ...result,
+    });
+  }
+
   const result = buildEditorPatchCss(patches);
 
   await fs.writeFile(outputPath, result.css, "utf8");
 
   return NextResponse.json({
     ok: true,
+    mode,
     applied: result.applied,
     unsupported: result.unsupported,
     file: "public/editor-patches.css",

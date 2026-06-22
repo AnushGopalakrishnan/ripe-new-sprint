@@ -30,7 +30,8 @@ import {
   VerticalResizeIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Badge } from "@/components/editor-ui/badge";
 import { Button } from "@/components/editor-ui/button";
@@ -100,8 +101,10 @@ import { createClipboardSpec, formatClipboardSpec } from "@/lib/editor/clipboard
 import type {
   ContentChange,
   ElementChange,
+  EditorComment,
   EditorChange,
   EditorPatch,
+  EditorPatchScope,
   ElementTarget,
   MirrorRoute,
   SelectionMetadata,
@@ -154,13 +157,46 @@ type EditorHistorySnapshot = {
   notes: string;
 };
 
+type EditorRuntimeState = EditorHistorySnapshot & {
+  editScope: EditorPatchScope;
+  route: string;
+  viewport: ViewportName;
+};
+
+type EditScopeChoice =
+  | { kind: "element" }
+  | { kind: "class"; className: string }
+  | { kind: "tag"; tagName: string };
+
+type EditorDraftInput = {
+  changes: EditorChange[];
+  notes: string;
+  scope?: EditorPatchScope;
+  target: ElementTarget;
+};
+
+type PreviewDraftPayload = {
+  target: ElementTarget;
+  scope?: EditorPatchScope;
+  styles: Record<string, string>;
+  text?: string;
+  imageSrc?: string;
+  hidden?: boolean;
+  deleted?: boolean;
+};
+
 type ApplyEditorPatchesResponse = {
   ok?: boolean;
   applied?: number;
+  appliedPatchIds?: string[];
+  files?: string[];
+  mode?: "override" | "source";
   unsupported?: Array<{ selector: string; changes: string[] }>;
   file?: string;
   message?: string;
 };
+
+type ApplyEditorMode = "override" | "source";
 
 type StyleValueChangeOptions = {
   undo?: "push" | "skip";
@@ -210,6 +246,33 @@ const marginKeywords = ["auto"];
 const genericFontFamilies = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui"]);
 const textOnlyStyleProperties = new Set(["fontFamily", "fontSize", "lineHeight", "letterSpacing", "fontWeight", "textAlign", "color"]);
 const nonTextTargetTags = new Set(["img", "picture", "video", "source", "canvas", "svg", "path"]);
+const textStyleTargetTags = new Set([
+  "a",
+  "b",
+  "blockquote",
+  "button",
+  "cite",
+  "dd",
+  "dt",
+  "em",
+  "figcaption",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "i",
+  "label",
+  "legend",
+  "li",
+  "p",
+  "small",
+  "span",
+  "strong",
+  "summary",
+  "time",
+]);
 const fallbackFontFamilies = [
   "Graphik",
   "Plantin MT Pro",
@@ -327,6 +390,10 @@ function storageKey(route: string) {
   return `ripe-editor:drafts:${route}`;
 }
 
+function commentsStorageKey(route: string) {
+  return `ripe-editor:comments:${route}`;
+}
+
 function readDrafts(route: string) {
   if (typeof window === "undefined") return [];
   try {
@@ -337,8 +404,87 @@ function readDrafts(route: string) {
   }
 }
 
+function readComments(route: string) {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = window.localStorage.getItem(commentsStorageKey(route));
+    return stored ? sanitizeComments(JSON.parse(stored) as EditorComment[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function sanitizeComments(comments: EditorComment[]) {
+  return comments.filter((comment) => comment.note.trim().length > 0);
+}
+
 function sameTarget(left?: ElementTarget, right?: ElementTarget) {
   return Boolean(left && right && left.selector === right.selector && left.route === right.route);
+}
+
+function cssClassSelector(className: string) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return `.${CSS.escape(className)}`;
+  return `.${className.replace(/[^a-zA-Z0-9_-]/g, "\\$&")}`;
+}
+
+function patchScopeKey(scope?: EditorPatchScope) {
+  if (!scope || scope.kind === "element") return "element";
+  if (scope.kind === "tag") return `tag:${scope.tagName}`;
+  return `class:${scope.className}`;
+}
+
+function patchKey(target: ElementTarget, scope?: EditorPatchScope) {
+  return `${target.route}:${target.selector}:${patchScopeKey(scope)}`;
+}
+
+function patchIdentityKey(target: ElementTarget, scope?: EditorPatchScope) {
+  if (scope?.kind === "tag") return `${target.route}:tag:${scope.tagName}`;
+  if (scope?.kind === "class") return `${target.route}:class:${scope.className}`;
+  return patchKey(target, scope);
+}
+
+function samePatchScope(left?: EditorPatchScope, right?: EditorPatchScope) {
+  return patchScopeKey(left) === patchScopeKey(right);
+}
+
+function isBroadScope(scope?: EditorPatchScope) {
+  return scope?.kind === "class" || scope?.kind === "tag";
+}
+
+function patchAppliesToSelection(patch: EditorPatch, selection: SelectionMetadata) {
+  if (patch.route !== selection.target.route) return false;
+  if (patch.scope?.kind === "tag") return patch.scope.tagName === selection.target.tag;
+  if (patch.scope?.kind === "class") return selection.target.classes.includes(patch.scope.className);
+  return sameTarget(patch.target, selection.target);
+}
+
+function samePatchTarget(patch: EditorPatch, draft: EditorDraftInput) {
+  if (isBroadScope(patch.scope) && isBroadScope(draft.scope)) {
+    return patch.route === draft.target.route && samePatchScope(patch.scope, draft.scope);
+  }
+  return sameTarget(patch.target, draft.target) && samePatchScope(patch.scope, draft.scope);
+}
+
+function classScopeForSelection(selection: SelectionMetadata, className: string): EditorPatchScope {
+  return {
+    kind: "class",
+    className,
+    selector: cssClassSelector(className),
+    matchCount: selection.target.classCounts?.[className] ?? 0,
+  };
+}
+
+function tagScopeForSelection(selection: SelectionMetadata): EditorPatchScope {
+  return {
+    kind: "tag",
+    tagName: selection.target.tag,
+    selector: selection.target.tag,
+    matchCount: selection.target.tagCount ?? 0,
+  };
+}
+
+function isGeneratedClassName(className: string) {
+  return className.includes("__") || /_[a-zA-Z0-9]{5,}_/.test(className);
 }
 
 function changedStyleProperties(base: Record<string, string>, values: Record<string, string>) {
@@ -348,7 +494,7 @@ function changedStyleProperties(base: Record<string, string>, values: Record<str
 }
 
 function upsertPatch(patches: EditorPatch[], patch: EditorPatch) {
-  const index = patches.findIndex((candidate) => sameTarget(candidate.target, patch.target));
+  const index = patches.findIndex((candidate) => candidate.id === patch.id);
   if (index === -1) return [...patches, patch];
   return patches.map((candidate, candidateIndex) => (candidateIndex === index ? patch : candidate));
 }
@@ -375,6 +521,7 @@ function previewPayloadForPatch(patch: EditorPatch) {
 
   return {
     target: patch.target,
+    scope: patch.scope,
     styles,
     text,
     imageSrc,
@@ -447,8 +594,30 @@ function isTextCompatibleSelection(selection: SelectionMetadata) {
   return !nonTextTargetTags.has(selection.target.tag);
 }
 
+function isTextStyleCompatibleSelection(selection: SelectionMetadata) {
+  return textStyleTargetTags.has(selection.target.tag);
+}
+
+function selectionCanEditText(selection: SelectionMetadata | undefined) {
+  if (!selection) return false;
+  const capability = selection.capabilities?.canEditText;
+  if (typeof capability === "boolean") return capability;
+  return isTextCompatibleSelection(selection);
+}
+
+function selectionCanStyleText(selection: SelectionMetadata) {
+  const capability = selection.capabilities?.canStyleText;
+  if (typeof capability === "boolean") return capability;
+  if (selection.capabilities?.canEditText) return true;
+  return isTextStyleCompatibleSelection(selection);
+}
+
 function isImageSelection(selection: SelectionMetadata) {
   return selection.target.tag === "img";
+}
+
+function selectionCanEditImage(selection: SelectionMetadata) {
+  return Boolean(selection.capabilities?.canEditImage ?? isImageSelection(selection));
 }
 
 function commonComputedStyles(selections: SelectionMetadata[]) {
@@ -468,7 +637,7 @@ function commonComputedStyles(selections: SelectionMetadata[]) {
 function fieldVisibleForSelections(field: FieldConfig, selections: SelectionMetadata[]) {
   if (selections.length === 0) return true;
   if (!textOnlyStyleProperties.has(field.property)) return true;
-  return selections.every((selection) => selection.capabilities?.canEditText ?? isTextCompatibleSelection(selection));
+  return selections.every(selectionCanStyleText);
 }
 
 const patchPropertyLabels: Record<string, string> = {
@@ -580,6 +749,35 @@ function parseNumericCssValue(value: string) {
   };
 }
 
+function parseCompoundNumericUnitConversion(value: string, supportedUnits: string[]) {
+  const match = value.trim().match(/^\s*(-?(?:\d+|\d*\.\d+))\s*([a-z%\s]+)\s*$/i);
+  if (!match) return null;
+
+  const numberText = match[1];
+  const numberValue = Number(numberText);
+  if (!Number.isFinite(numberValue)) return null;
+
+  const unitText = match[2].replace(/\s+/g, "").toLowerCase();
+  const targetUnits = supportedUnits.filter(Boolean);
+  const sourceUnits = Array.from(new Set([...targetUnits, ...lengthUnits, ...textLengthUnits, ...lineHeightUnits]))
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+
+  for (const sourceUnit of sourceUnits) {
+    if (!unitText.startsWith(sourceUnit)) continue;
+    const targetUnit = unitText.slice(sourceUnit.length);
+    if (!targetUnit || targetUnit === sourceUnit || !targetUnits.includes(targetUnit)) continue;
+    return {
+      numberText,
+      numberValue,
+      sourceUnit,
+      targetUnit,
+    };
+  }
+
+  return null;
+}
+
 function normalizeCssKeywordValue(value: string, keywords: string[] = []) {
   const normalizedValue = value.trim().toLowerCase();
   if (!normalizedValue) return null;
@@ -650,6 +848,10 @@ function cssNumericValue(numberValue: number, unit: string, property?: string) {
 
 function toCssPropertyName(property: string) {
   return property.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase());
+}
+
+function toStylePropertyName(property: string) {
+  return property.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 function percentageBasisPx(element: Element, property: string) {
@@ -1398,10 +1600,12 @@ function ColorStyleInput({
   onChange: StyleValueChange;
 }) {
   const colorControlRef = useRef<HTMLDivElement>(null);
+  const colorPopoverRef = useRef<HTMLDivElement>(null);
   const saturationRef = useRef<HTMLDivElement>(null);
   const transactionIdRef = useRef(`color:${id}`);
   const [open, setOpen] = useState(false);
   const [draftValue, setDraftValue] = useState(colorInputText(value));
+  const [popoverPosition, setPopoverPosition] = useState<React.CSSProperties>({});
   const pickerRgba = cssColorToRgba(value) ?? cssColorToRgba(placeholder) ?? { red: 0, green: 0, blue: 0, alpha: 1 };
   const pickerValue = rgbToHex(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
   const pickerHsv = rgbToHsv(pickerRgba.red, pickerRgba.green, pickerRgba.blue);
@@ -1421,8 +1625,9 @@ function ColorStyleInput({
 
     function closeIfOutside(event: PointerEvent | FocusEvent) {
       const root = colorControlRef.current;
+      const popover = colorPopoverRef.current;
       const target = event.target instanceof Node ? event.target : null;
-      if (!root || !target || root.contains(target)) return;
+      if (!root || !target || root.contains(target) || popover?.contains(target)) return;
       setOpen(false);
     }
 
@@ -1431,6 +1636,43 @@ function ColorStyleInput({
     return () => {
       document.removeEventListener("pointerdown", closeIfOutside, true);
       document.removeEventListener("focusin", closeIfOutside, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function updatePopoverPosition() {
+      const rect = colorControlRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const viewportPadding = 12;
+      const popoverWidth = Math.min(328, window.innerWidth - viewportPadding * 2);
+      const estimatedHeight = Math.min(470, window.innerHeight - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, rect.right - popoverWidth),
+        window.innerWidth - popoverWidth - viewportPadding,
+      );
+      const preferredTop = rect.bottom + 8;
+      const top =
+        preferredTop + estimatedHeight > window.innerHeight - viewportPadding
+          ? Math.max(viewportPadding, rect.top - estimatedHeight - 8)
+          : preferredTop;
+
+      setPopoverPosition({
+        left,
+        maxHeight: `calc(100vh - ${Math.max(viewportPadding, top)}px - ${viewportPadding}px)`,
+        top,
+        width: popoverWidth,
+      });
+    }
+
+    updatePopoverPosition();
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
     };
   }, [open]);
 
@@ -1551,8 +1793,16 @@ function ColorStyleInput({
           Unsupported color value
         </span>
       ) : null}
-      {open ? (
-        <div className={styles.colorPopover}>
+      {open && typeof document !== "undefined" ? createPortal(
+        <div
+          className={`${styles.editorOverlay} ${styles.colorPopover}`}
+          ref={colorPopoverRef}
+          style={popoverPosition}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            setOpen(false);
+          }}
+        >
           <div className={styles.colorPopoverHeader}>
             <div className={styles.colorPopoverTabs} aria-label={`${label} color source`}>
               <button type="button" aria-pressed="true">Custom</button>
@@ -1681,7 +1931,8 @@ function ColorStyleInput({
               />
             ))}
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );
@@ -1981,11 +2232,39 @@ function NumericStyleInput({
     });
   }
 
+  function commitCompoundUnitConversion(
+    parsed: NonNullable<ReturnType<typeof parseCompoundNumericUnitConversion>>,
+    mode: StyleValueChangeOptions["commit"] = "preview",
+  ) {
+    if (unitConversionDisabled) return false;
+    const convertedValue = onConvertUnit?.({
+      property,
+      value: cssNumericValue(parsed.numberValue, parsed.sourceUnit, property),
+      nextUnit: parsed.targetUnit,
+    });
+    const parsedConvertedValue = convertedValue ? parseNumericCssValue(convertedValue) : null;
+    if (!parsedConvertedValue || !parsedNumericUnitIsSupported(parsedConvertedValue, supportedUnits)) return false;
+
+    const clamped = clampNumber(parsedConvertedValue.numberValue, min, max);
+    const nextNumberText = formatNumericStyleNumber(clamped, property, parsedConvertedValue.unit);
+    setDraftNumber(nextNumberText);
+    onChange(`${nextNumberText}${parsedConvertedValue.unit}`, {
+      commit: mode,
+      transactionId: transactionIdRef.current,
+    });
+    return true;
+  }
+
   function handleInputChange(nextValue: string) {
     skipNextBlurCommitRef.current = false;
     const keyword = normalizeCssKeywordValue(nextValue, supportedKeywords);
     if (keyword) {
       commitKeyword(keyword);
+      return;
+    }
+
+    const parsedCompoundInput = parseCompoundNumericUnitConversion(nextValue, supportedUnits);
+    if (parsedCompoundInput && commitCompoundUnitConversion(parsedCompoundInput, "preview")) {
       return;
     }
 
@@ -2058,6 +2337,10 @@ function NumericStyleInput({
     const keyword = normalizeCssKeywordValue(draftNumber, supportedKeywords);
     if (keyword) {
       commitKeyword(keyword, "commit");
+      return;
+    }
+    const parsedCompoundDraft = parseCompoundNumericUnitConversion(draftNumber, supportedUnits);
+    if (parsedCompoundDraft && commitCompoundUnitConversion(parsedCompoundDraft, "commit")) {
       return;
     }
     const parsedDraft = parseNumericCssValue(draftNumber);
@@ -2414,6 +2697,7 @@ function SmartTextarea({
   placeholder,
   disabled,
   onChange,
+  onCommit,
 }: {
   id: string;
   label: string;
@@ -2421,6 +2705,7 @@ function SmartTextarea({
   placeholder: string;
   disabled: boolean;
   onChange: EditorValueChange;
+  onCommit?: (value: string) => void;
 }) {
   const transactionIdRef = useRef(`textarea:${id}`);
   const lineCount = value.length ? value.split(/\r\n|\r|\n/).length : 0;
@@ -2441,6 +2726,7 @@ function SmartTextarea({
             commit: "commit",
             transactionId: transactionIdRef.current,
           });
+          onCommit?.(event.currentTarget.value);
         }}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -2457,6 +2743,7 @@ function SmartTextarea({
               commit: "commit",
               transactionId: transactionIdRef.current,
             });
+            onCommit?.(event.currentTarget.value);
             event.currentTarget.blur();
           }
         }}
@@ -2539,6 +2826,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [route, setRoute] = useState(normalizedInitialPath);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectorEnabled, setSelectorEnabled] = useState(true);
+  const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [routesOpen, setRoutesOpen] = useState(false);
   const [viewport, setViewport] = useState<ViewportName>("desktop");
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
@@ -2551,8 +2839,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [deleted, setDeleted] = useState(false);
   const [notes, setNotes] = useState("");
   const [patches, setPatches] = useState<EditorPatch[]>([]);
+  const [comments, setComments] = useState<EditorComment[]>([]);
+  const handoffComments = comments.filter((comment) => comment.note.trim().length > 0);
+  const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
+  const [editScopeChoice, setEditScopeChoice] = useState<EditScopeChoice>({ kind: "element" });
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
-  const [applyState, setApplyState] = useState<"idle" | "applying" | "applied">("idle");
+  const [sourceApplyState, setSourceApplyState] = useState<"idle" | "applying" | "applied">("idle");
+  const [overrideApplyState, setOverrideApplyState] = useState<"idle" | "applying" | "applied">("idle");
   const [inspectorTab, setInspectorTab] = useState("style");
   const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
@@ -2560,6 +2853,23 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   const [systemFontFamilies, setSystemFontFamilies] = useState<string[]>([]);
   const [fontAccessState, setFontAccessState] = useState<FontAccessState>("idle");
   const fieldTransactionSnapshotsRef = useRef<Map<string, EditorHistorySnapshot>>(new Map());
+  const pendingStylePropertiesRef = useRef<Set<string>>(new Set());
+  const previewDraftPayloadsRef = useRef<Map<string, PreviewDraftPayload>>(new Map());
+  const latestEditorStateRef = useRef<EditorRuntimeState>({
+    route,
+    viewport,
+    patches,
+    selection,
+    selections,
+    baseStyles,
+    styleValues,
+    textValue,
+    imageValue,
+    hidden,
+    deleted,
+    notes,
+    editScope: { kind: "element" },
+  });
 
   const iframeSrc = useMemo(() => canvasPath(route), [route]);
   const viewportWidth = viewportSizes[viewport].width;
@@ -2570,7 +2880,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       : selection.target.textSnippet || selection.target.selector
     : "Select an element in the preview";
   const canEditContent = selections.length === 1;
-  const canEditTextContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditText ?? isTextCompatibleSelection(selections[0]));
+  const canEditTextContent = canEditContent && selectionCanEditText(selections[0]);
   const canEditImageContent = canEditContent && Boolean(selections[0]?.capabilities?.canEditImage ?? isImageSelection(selections[0]));
 
   const routeOptions = useMemo(() => {
@@ -2583,9 +2893,48 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     if (!currentCollectionKey) return [];
     return routeOptions.filter((candidate) => candidate.collection?.key === currentCollectionKey);
   }, [currentCollectionKey, routeOptions]);
+  const classScopeOptions = useMemo(() => {
+    if (!selection || selections.length !== 1) return [];
+    const rawOptions = selection.target.classes
+      .filter((className) => className && !className.startsWith("ripe-editor"))
+      .map((className) => ({
+        className,
+        generated: isGeneratedClassName(className),
+        matchCount: selection.target.classCounts?.[className] ?? 0,
+      }));
+    const preferredOptions = rawOptions.filter((option) => !option.generated);
+    return (preferredOptions.length > 0 ? preferredOptions : rawOptions)
+      .sort((left, right) => right.matchCount - left.matchCount || left.className.localeCompare(right.className));
+  }, [selection, selections.length]);
+  const activeEditScope = useMemo<EditorPatchScope>(() => {
+    if (
+      selection &&
+      selections.length === 1 &&
+      editScopeChoice.kind === "tag" &&
+      editScopeChoice.tagName === selection.target.tag
+    ) {
+      return tagScopeForSelection(selection);
+    }
+    if (
+      selection &&
+      selections.length === 1 &&
+      editScopeChoice.kind === "class" &&
+      selection.target.classes.includes(editScopeChoice.className)
+    ) {
+      return classScopeForSelection(selection, editScopeChoice.className);
+    }
+    return { kind: "element" };
+  }, [editScopeChoice, selection, selections.length]);
+  const activeClassScope = activeEditScope.kind === "class" ? activeEditScope : null;
+  const activeTagScope = activeEditScope.kind === "tag" ? activeEditScope : null;
+  const editScopeValue = activeClassScope ? `class:${activeClassScope.className}` : activeTagScope ? `tag:${activeTagScope.tagName}` : "element";
   const selectedHasDraft = selection
-    ? patches.some((patch) => selections.some((candidate) => sameTarget(candidate.target, patch.target)))
+    ? patches.some((patch) => selections.some((candidate) => patchAppliesToSelection(patch, candidate) && samePatchScope(patch.scope, activeEditScope)))
     : false;
+  const selectedComments = selection
+    ? handoffComments.filter((comment) => selections.some((candidate) => sameTarget(candidate.target, comment.target)))
+    : [];
+  const activeComment = comments.find((comment) => comment.id === activeCommentId) ?? selectedComments[0] ?? null;
   const styleGroupOrder: FieldGroupName[] = ["typography", "appearance", "spacing", "layout"];
   const visibleStyleGroups = styleGroupOrder
     .map((group) => ({
@@ -2601,8 +2950,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     ),
   );
 
-  function snapshotEditorState(): EditorHistorySnapshot {
-    return {
+  function syncLatestEditorState(partial: Partial<EditorRuntimeState>) {
+    latestEditorStateRef.current = {
+      ...latestEditorStateRef.current,
+      ...partial,
+    };
+  }
+
+  useLayoutEffect(() => {
+    syncLatestEditorState({
+      route,
+      viewport,
       patches,
       selection,
       selections,
@@ -2613,6 +2971,74 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       hidden,
       deleted,
       notes,
+      editScope: latestEditorStateRef.current.editScope,
+    });
+  }, [route, viewport, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes, activeEditScope]);
+
+  useEffect(() => {
+    if (editScopeChoice.kind === "element") return;
+    if (
+      !selection ||
+      selections.length !== 1 ||
+      (editScopeChoice.kind === "class" && !selection.target.classes.includes(editScopeChoice.className)) ||
+      (editScopeChoice.kind === "tag" && editScopeChoice.tagName !== selection.target.tag)
+    ) {
+      setEditScopeChoice({ kind: "element" });
+      syncLatestEditorState({ editScope: { kind: "element" } });
+    }
+  }, [editScopeChoice, selection, selections.length]);
+
+  function scopedPatchForSelection(scope: EditorPatchScope, nextPatches = latestEditorStateRef.current.patches) {
+    const currentSelection = latestEditorStateRef.current.selection;
+    if (!currentSelection) return undefined;
+    return nextPatches.find((patch) => patchAppliesToSelection(patch, currentSelection) && samePatchScope(patch.scope, scope));
+  }
+
+  function updateEditScope(value: string) {
+    const nextPatches = flushPendingDrafts();
+    const currentSelection = latestEditorStateRef.current.selection;
+    let nextChoice: EditScopeChoice = { kind: "element" };
+    let nextScope: EditorPatchScope = { kind: "element" };
+
+    if (currentSelection && value.startsWith("class:")) {
+      const className = value.slice("class:".length);
+      if (currentSelection.target.classes.includes(className)) {
+        nextChoice = { kind: "class", className };
+        nextScope = classScopeForSelection(currentSelection, className);
+      }
+    } else if (currentSelection && value.startsWith("tag:")) {
+      const tagName = value.slice("tag:".length);
+      if (tagName === currentSelection.target.tag) {
+        nextChoice = { kind: "tag", tagName };
+        nextScope = tagScopeForSelection(currentSelection);
+      }
+    }
+
+    const scopedPatch = scopedPatchForSelection(nextScope, nextPatches);
+    const nextStyleValues = patchedStyleValues(baseStyles, scopedPatch);
+    setEditScopeChoice(nextChoice);
+    setStyleValues(nextStyleValues);
+    setNotes(selections.length === 1 ? scopedPatch?.notes ?? "" : "");
+    syncLatestEditorState({
+      editScope: nextScope,
+      styleValues: nextStyleValues,
+      notes: selections.length === 1 ? scopedPatch?.notes ?? "" : "",
+    });
+  }
+
+  function snapshotEditorState(): EditorHistorySnapshot {
+    const current = latestEditorStateRef.current;
+    return {
+      patches: current.patches,
+      selection: current.selection,
+      selections: current.selections,
+      baseStyles: current.baseStyles,
+      styleValues: current.styleValues,
+      textValue: current.textValue,
+      imageValue: current.imageValue,
+      hidden: current.hidden,
+      deleted: current.deleted,
+      notes: current.notes,
     };
   }
 
@@ -2661,8 +3087,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function applyHistorySnapshot(snapshot: EditorHistorySnapshot) {
+    syncLatestEditorState(snapshot);
     setPatches(snapshot.patches);
-    persistPatches(snapshot.patches);
+    persistPatches(snapshot.patches, latestEditorStateRef.current.route);
     setSelection(snapshot.selection);
     setSelections(snapshot.selections);
     setBaseStyles(snapshot.baseStyles);
@@ -2692,43 +3119,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTyping = Boolean(
-        target?.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']"),
-      );
-      if (event.key === "`" && !isTyping) {
-        event.preventDefault();
-        setSidebarOpen((open) => !open);
-        return;
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
-        if (event.shiftKey) redoEditorChange();
-        else undoEditorChange();
-        return;
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
-        redoEditorChange();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown, true);
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown, true);
-      document.removeEventListener("keydown", handleKeyDown, true);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Undo/redo handlers intentionally read the current editor state listed below.
-  }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
-
-  useEffect(() => {
     const draftLoad = window.setTimeout(() => {
-      setPatches(readDrafts(route));
+      const nextPatches = readDrafts(route);
+      const nextComments = readComments(route);
+      syncLatestEditorState({ patches: nextPatches });
+      setPatches(nextPatches);
+      setComments(nextComments);
+      setActiveCommentId(null);
     }, 0);
     return () => window.clearTimeout(draftLoad);
   }, [route]);
@@ -2741,60 +3138,32 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }, [selectorEnabled, iframeSrc]);
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const message = event.data as { type?: string; selection?: SelectionMetadata; selections?: SelectionMetadata[] };
-      if (message.type === "editor:undo") {
-        undoEditorChange();
-        return;
-      }
-      if (message.type === "editor:redo") {
-        redoEditorChange();
-        return;
-      }
-      if (message.type !== "editor:select" || !message.selection) return;
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-edit-scope", scope: activeEditScope },
+      window.location.origin,
+    );
+  }, [activeEditScope, iframeSrc]);
 
-      const nextSelections = message.selections?.length ? message.selections : [message.selection];
-      const primarySelection = nextSelections[0];
-      const currentPatches = readDrafts(route);
-      const selectablePatches = currentPatches.length > 0 ? currentPatches : patches;
-      const patchesBySelector = new Map(
-        nextSelections.map((candidate) => [
-          candidate.target.selector,
-          selectablePatches.find((patch) => sameTarget(patch.target, candidate.target)),
-        ]),
-      );
-      const patchedBaseSelections = nextSelections.map((candidate) =>
-        patchedBaseSelection(candidate, patchesBySelector.get(candidate.target.selector)),
-      );
-      const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
-        ...candidate,
-        computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
-      }));
-      const nextBaseStyles = commonComputedStyles(patchedBaseSelections);
-      const nextStyleValues = commonComputedStyles(patchedValueSelections);
-      const selectedPatches = nextSelections
-        .map((candidate) => patchesBySelector.get(candidate.target.selector))
-        .filter(Boolean);
-      const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
-      const primaryBaseSelection = patchedBaseSelections[0];
-      setSidebarOpen(true);
-      setSelection(primaryBaseSelection);
-      setSelections(patchedBaseSelections);
-      setBaseStyles(nextBaseStyles);
-      setStyleValues(nextStyleValues);
-      setTextValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "text") : "");
-      setImageValue(nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "imageSrc") : "");
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comment-mode", enabled: commentsEnabled },
+      window.location.origin,
+    );
+  }, [commentsEnabled, iframeSrc]);
 
-      setHidden(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide")));
-      setDeleted(nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete")));
-      setNotes(nextSelections.length === 1 ? primaryPatch?.notes ?? "" : "");
-    };
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comment-view", enabled: commentsEnabled },
+      window.location.origin,
+    );
+  }, [commentsEnabled, iframeSrc]);
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
-  }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "editor:set-comments", comments },
+      window.location.origin,
+    );
+  }, [comments, iframeSrc]);
 
   useEffect(() => {
     if (selections.length === 0) return;
@@ -2802,6 +3171,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     const stylesPayload = Object.fromEntries(
       Object.entries(styleValues).filter(([property, value]) => value !== (baseStyles[property] ?? "")),
     );
+    const currentEditScope = latestEditorStateRef.current.editScope;
+    const stylesScope = Object.keys(stylesPayload).length > 0 && currentEditScope.kind !== "element" ? currentEditScope : undefined;
 
     for (const selected of selections) {
       iframeRef.current?.contentWindow?.postMessage(
@@ -2809,6 +3180,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           type: "editor:apply-preview",
           patch: {
             target: selected.target,
+            scope: stylesScope,
             styles: stylesPayload,
             text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
             imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
@@ -2819,7 +3191,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         window.location.origin,
       );
     }
-  }, [baseStyles, deleted, hidden, imageValue, selections, styleValues, textValue]);
+  }, [activeEditScope, baseStyles, deleted, hidden, imageValue, selections, styleValues, textValue]);
 
   async function loadSystemFonts() {
     if (fontAccessState === "loading" || fontAccessState === "loaded") return;
@@ -2850,21 +3222,33 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     };
   }
 
-  function postPreviewPatch(nextStyleValues = styleValues, forcedStyles: Record<string, string> = {}) {
+  function postPreviewPatch(
+    nextStyleValues = styleValues,
+    forcedStyles: Record<string, string> = {},
+    options: { persistable?: boolean } = {},
+  ) {
     if (selections.length === 0) return;
 
     for (const selected of selections) {
+      const stylesPayload = previewStylesPayload(nextStyleValues, forcedStyles);
+      const currentEditScope = latestEditorStateRef.current.editScope;
+      const stylesScope = Object.keys(stylesPayload).length > 0 && currentEditScope.kind !== "element" ? currentEditScope : undefined;
+      const payload: PreviewDraftPayload = {
+        target: selected.target,
+        scope: stylesScope,
+        styles: stylesPayload,
+        text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
+        imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
+        hidden,
+        deleted,
+      };
+      if (options.persistable !== false) {
+        previewDraftPayloadsRef.current.set(previewDraftKey(selected.target, payload.scope), payload);
+      }
       iframeRef.current?.contentWindow?.postMessage(
         {
           type: "editor:apply-preview",
-          patch: {
-            target: selected.target,
-            styles: previewStylesPayload(nextStyleValues, forcedStyles),
-            text: selections.length === 1 && textValue !== selected.text ? textValue : undefined,
-            imageSrc: selections.length === 1 && imageValue !== selected.imageSrc ? imageValue : undefined,
-            hidden,
-            deleted,
-          },
+          patch: payload,
         },
         window.location.origin,
       );
@@ -2872,7 +3256,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   function previewStyle(property: string, value: string) {
-    postPreviewPatch(styleValues, { [property]: value });
+    postPreviewPatch(styleValues, { [property]: value }, { persistable: false });
   }
 
   function restorePreview() {
@@ -2904,9 +3288,29 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
   function setRouteAndUrl(nextRoute: string) {
     const normalized = normalizePath(nextRoute);
+    flushPendingDrafts();
     fieldTransactionSnapshotsRef.current.clear();
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
+    const nextPatches = readDrafts(normalized);
+    const nextComments = readComments(normalized);
+    syncLatestEditorState({
+      route: normalized,
+      patches: nextPatches,
+      selection: null,
+      selections: [],
+      baseStyles: {},
+      styleValues: {},
+      textValue: "",
+      imageValue: "",
+      hidden: false,
+      deleted: false,
+      notes: "",
+    });
     setRoute(normalized);
-    setPatches(readDrafts(normalized));
+    setPatches(nextPatches);
+    setComments(nextComments);
+    setActiveCommentId(null);
     setSelection(null);
     setSelections([]);
     setBaseStyles({});
@@ -2928,23 +3332,389 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     } catch {}
   }
 
+  function persistComments(nextComments: EditorComment[], nextRoute = route) {
+    try {
+      window.localStorage.setItem(commentsStorageKey(nextRoute), JSON.stringify(sanitizeComments(nextComments)));
+    } catch {}
+  }
+
+  function updateComments(updater: (current: EditorComment[]) => EditorComment[]) {
+    setComments((current) => {
+      const nextComments = updater(current);
+      persistComments(nextComments);
+      return nextComments;
+    });
+  }
+
+  function createCommentForSelection(nextSelection: SelectionMetadata, anchor: EditorComment["anchor"]) {
+    const timestamp = new Date().toISOString();
+    const id = `${nextSelection.target.route}:${nextSelection.target.selector}:${timestamp}`;
+    const nextComment: EditorComment = {
+      id,
+      route: latestEditorStateRef.current.route,
+      target: nextSelection.target,
+      note: "",
+      anchor,
+      timestamp,
+    };
+    updateComments((current) => [...current, nextComment]);
+    setActiveCommentId(id);
+    setCommentsEnabled(true);
+    setInspectorTab("comments");
+    setSidebarOpen(true);
+    toast.success("Comment anchored");
+  }
+
+  function updateCommentNote(commentId: string, value: string) {
+    updateComments((current) =>
+      current.map((comment) =>
+        comment.id === commentId
+          ? { ...comment, note: value, timestamp: new Date().toISOString() }
+          : comment,
+      ),
+    );
+  }
+
+  function discardEmptyComment(commentId: string) {
+    updateComments((current) => {
+      const comment = current.find((candidate) => candidate.id === commentId);
+      if (!comment || comment.note.trim().length > 0) return current;
+      return current.filter((candidate) => candidate.id !== commentId);
+    });
+    setActiveCommentId((current) => (current === commentId ? null : current));
+  }
+
+  function discardEmptyComments() {
+    updateComments((current) => current.filter((comment) => comment.note.trim().length > 0));
+    setActiveCommentId((current) => {
+      if (!current) return current;
+      const comment = comments.find((candidate) => candidate.id === current);
+      return comment && comment.note.trim().length === 0 ? null : current;
+    });
+  }
+
+  function toggleCommentsEnabled() {
+    setCommentsEnabled((enabled) => {
+      if (enabled) discardEmptyComments();
+      return !enabled;
+    });
+  }
+
+  function deleteComment(commentId: string) {
+    updateComments((current) => current.filter((comment) => comment.id !== commentId));
+    setActiveCommentId((current) => (current === commentId ? null : current));
+    toast.success("Comment deleted");
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = Boolean(
+        target?.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']"),
+      );
+      if (event.key === "`" && !isTyping) {
+        event.preventDefault();
+        setSidebarOpen((open) => !open);
+        return;
+      }
+      if (event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        toggleCommentsEnabled();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        if (event.shiftKey) redoEditorChange();
+        else undoEditorChange();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+        redoEditorChange();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Undo/redo handlers intentionally read the current editor state listed below.
+  }, [undoStack, redoStack, patches, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
+
   function updatePatches(updater: (current: EditorPatch[]) => EditorPatch[]) {
     setPatches((current) => {
       const nextPatches = updater(current);
-      persistPatches(nextPatches);
+      syncLatestEditorState({ patches: nextPatches });
+      persistPatches(nextPatches, latestEditorStateRef.current.route);
       return nextPatches;
     });
   }
 
-  function changesForDraft({
-    nextStyleValues = styleValues,
-    nextTextValue = textValue,
-    nextImageValue = imageValue,
-    nextHidden = hidden,
-    nextDeleted = deleted,
-    nextNotes = notes,
-    nextViewport = viewport,
+  function draftMatchesPatch(patch: EditorPatch, draft: EditorDraftInput) {
+    return patch.notes === draft.notes
+      && samePatchScope(patch.scope, draft.scope)
+      && JSON.stringify(patch.changes) === JSON.stringify(draft.changes);
+  }
+
+  function applyDraftsToPatchList(current: EditorPatch[], drafts: EditorDraftInput[], draftRoute = latestEditorStateRef.current.route) {
+    let nextPatches = current;
+
+    for (const draft of drafts) {
+      const existing = nextPatches.find((patch) => samePatchTarget(patch, draft));
+
+      if (draft.changes.length === 0 && !draft.notes.trim()) {
+        if (existing) nextPatches = nextPatches.filter((patch) => !samePatchTarget(patch, draft));
+        continue;
+      }
+
+      if (existing && draftMatchesPatch(existing, draft)) continue;
+
+      nextPatches = upsertPatch(nextPatches, {
+        id: existing?.id ?? patchIdentityKey(draft.target, draft.scope),
+        route: draftRoute,
+        target: draft.target,
+        scope: draft.scope,
+        changes: draft.changes,
+        notes: draft.notes,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return nextPatches;
+  }
+
+  function commitPendingFieldTransactions() {
+    const firstSnapshot = fieldTransactionSnapshotsRef.current.values().next().value;
+    if (!firstSnapshot) return;
+    pushUndoSnapshot(firstSnapshot);
+    fieldTransactionSnapshotsRef.current.clear();
+  }
+
+  function previewDraftKey(target: ElementTarget, scope?: EditorPatchScope) {
+    return patchKey(target, scope);
+  }
+
+  function clearPreviewDraftPayloads(targets = latestEditorStateRef.current.selections.map((selected) => selected.target)) {
+    for (const target of targets) {
+      for (const key of Array.from(previewDraftPayloadsRef.current.keys())) {
+        if (key.startsWith(`${target.route}:${target.selector}:`)) previewDraftPayloadsRef.current.delete(key);
+      }
+    }
+  }
+
+  function cachePreviewDraftPayload({
+    nextStyleValues = latestEditorStateRef.current.styleValues,
+    nextTextValue = latestEditorStateRef.current.textValue,
+    nextImageValue = latestEditorStateRef.current.imageValue,
+    nextHidden = latestEditorStateRef.current.hidden,
+    nextDeleted = latestEditorStateRef.current.deleted,
   }: {
+    nextStyleValues?: Record<string, string>;
+    nextTextValue?: string;
+    nextImageValue?: string;
+    nextHidden?: boolean;
+    nextDeleted?: boolean;
+  } = {}) {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return;
+
+    const stylesPayload = Object.fromEntries(
+      Object.entries(nextStyleValues).filter(([property, value]) => value !== (current.baseStyles[property] ?? "")),
+    );
+    const previewScope = Object.keys(stylesPayload).length > 0 && current.editScope.kind !== "element" ? current.editScope : undefined;
+
+    for (const selected of current.selections) {
+      previewDraftPayloadsRef.current.set(previewDraftKey(selected.target, previewScope), {
+        target: selected.target,
+        scope: previewScope,
+        styles: stylesPayload,
+        text: current.selections.length === 1 && nextTextValue !== selected.text ? nextTextValue : undefined,
+        imageSrc:
+          current.selections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc
+            ? nextImageValue
+            : undefined,
+        hidden: nextHidden,
+        deleted: nextDeleted,
+      });
+    }
+  }
+
+  function previewPayloadDrafts() {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return null;
+
+    const drafts = current.selections.map<EditorDraftInput>((selected) => {
+      const payload = previewDraftPayloadsRef.current.get(previewDraftKey(selected.target, current.editScope))
+        ?? previewDraftPayloadsRef.current.get(previewDraftKey(selected.target));
+      const changes: EditorChange[] = [];
+
+      if (payload) {
+        for (const [property, after] of Object.entries(payload.styles)) {
+          const before = selected.computedStyles[property] ?? "";
+          if (after === before) continue;
+          changes.push({
+            kind: "style",
+            property,
+            before,
+            after,
+            viewport: current.viewport,
+          });
+        }
+
+        if (current.selections.length === 1 && payload.text !== undefined && payload.text !== selected.text) {
+          changes.push({
+            kind: "content",
+            field: "text",
+            before: selected.text,
+            after: payload.text,
+          });
+        }
+
+        if (current.selections.length === 1 && payload.imageSrc !== undefined && payload.imageSrc !== selected.imageSrc) {
+          changes.push({
+            kind: "content",
+            field: "imageSrc",
+            before: selected.imageSrc,
+            after: payload.imageSrc,
+          });
+        }
+
+        if (payload.hidden) {
+          changes.push({
+            kind: "element",
+            action: "hide",
+            before: false,
+            after: true,
+          });
+        }
+
+        if (payload.deleted) {
+          changes.push({
+            kind: "element",
+            action: "delete",
+            before: false,
+            after: true,
+          });
+        }
+      }
+
+      return {
+        changes,
+        notes: current.selections.length === 1 ? current.notes : "",
+        scope: payload?.scope,
+        target: selected.target,
+      };
+    });
+
+    return drafts.some((draft) => draft.changes.length > 0 || draft.notes.trim()) ? drafts : null;
+  }
+
+  function livePreviewDraftsFromDom() {
+    const current = latestEditorStateRef.current;
+    if (current.selections.length === 0) return null;
+
+    const previewDocument = iframeRef.current?.contentDocument;
+    const previewWindow = previewDocument?.defaultView;
+    if (!previewDocument || !previewWindow) return null;
+
+    const stateChangedProperties = changedStyleProperties(current.baseStyles, current.styleValues);
+    const touchedProperties = pendingStylePropertiesRef.current.size > 0
+      ? Array.from(pendingStylePropertiesRef.current)
+      : stateChangedProperties;
+
+    return current.selections.map<EditorDraftInput>((selected) => {
+      let element: Element | null = null;
+      try {
+        element = previewDocument.querySelector(selected.target.selector);
+      } catch {}
+      if (!element) {
+        return {
+          changes: [],
+          notes: current.selections.length === 1 ? current.notes : "",
+          target: selected.target,
+        };
+      }
+
+      const computed = previewWindow.getComputedStyle(element);
+      const inlinePreviewProperties = Array.from((element as HTMLElement).style)
+        .map(toStylePropertyName)
+        .filter((property) => Object.prototype.hasOwnProperty.call(selected.computedStyles, property));
+      const draftProperties = touchedProperties.length > 0 ? touchedProperties : inlinePreviewProperties;
+      const changes: EditorChange[] = draftProperties
+        .map<StyleChange | null>((property) => {
+          const before = selected.computedStyles[property] ?? "";
+          const after = computed[property as keyof CSSStyleDeclaration] as string || "";
+          if (after === before) return null;
+          return {
+            kind: "style",
+            property,
+            before,
+            after,
+            viewport: current.viewport,
+          };
+        })
+        .filter((change): change is StyleChange => Boolean(change));
+
+      const editableImage = selectionCanEditImage(selected)
+        ? element instanceof previewWindow.HTMLImageElement
+          ? element
+          : element.querySelector("img")
+        : null;
+      const nextTextValue = selectionCanEditText(selected) ? (element.textContent || "").trim() : selected.text;
+      const nextImageValue =
+        editableImage instanceof previewWindow.HTMLImageElement
+          ? editableImage.currentSrc || editableImage.src
+          : selected.imageSrc;
+
+      if (current.selections.length === 1 && nextTextValue !== selected.text) {
+        changes.push({
+          kind: "content",
+          field: "text",
+          before: selected.text,
+          after: nextTextValue,
+        });
+      }
+
+      if (current.selections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc) {
+        changes.push({
+          kind: "content",
+          field: "imageSrc",
+          before: selected.imageSrc,
+          after: nextImageValue,
+        });
+      }
+
+      return {
+        changes,
+        notes: current.selections.length === 1 ? current.notes : "",
+        scope: changes.some((change) => change.kind === "style") && current.editScope.kind !== "element" ? current.editScope : undefined,
+        target: selected.target,
+      };
+    });
+  }
+
+  function flushPendingDrafts(currentPatches = latestEditorStateRef.current.patches) {
+    const drafts = previewPayloadDrafts() ?? livePreviewDraftsFromDom() ?? changesForDraft();
+    if (!drafts) return currentPatches;
+
+    const nextPatches = applyDraftsToPatchList(currentPatches, drafts);
+    if (nextPatches === currentPatches) return currentPatches;
+
+    commitPendingFieldTransactions();
+    syncLatestEditorState({ patches: nextPatches });
+    setPatches(nextPatches);
+    persistPatches(nextPatches, latestEditorStateRef.current.route);
+    return nextPatches;
+  }
+
+  function changesForDraft(overrides: {
     nextStyleValues?: Record<string, string>;
     nextTextValue?: string;
     nextImageValue?: string;
@@ -2952,12 +3722,24 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     nextDeleted?: boolean;
     nextNotes?: string;
     nextViewport?: ViewportName;
-  }) {
-    if (selections.length === 0) return null;
+  } = {}) {
+    const current = latestEditorStateRef.current;
+    const draftSelections = current.selections;
+    const draftBaseStyles = current.baseStyles;
+    const nextStyleValues = overrides.nextStyleValues ?? current.styleValues;
+    const nextTextValue = overrides.nextTextValue ?? current.textValue;
+    const nextImageValue = overrides.nextImageValue ?? current.imageValue;
+    const nextHidden = overrides.nextHidden ?? current.hidden;
+    const nextDeleted = overrides.nextDeleted ?? current.deleted;
+    const nextNotes = overrides.nextNotes ?? current.notes;
+    const nextViewport = overrides.nextViewport ?? current.viewport;
 
-    const changedProperties = changedStyleProperties(baseStyles, nextStyleValues);
+    if (draftSelections.length === 0) return null;
 
-    return selections.map((selected) => {
+    const changedProperties = changedStyleProperties(draftBaseStyles, nextStyleValues);
+    const draftScope = changedProperties.length > 0 && current.editScope.kind !== "element" ? current.editScope : undefined;
+
+    return draftSelections.map((selected) => {
       const changes: EditorChange[] = [
         ...changedProperties.map<StyleChange>((property) => ({
           kind: "style",
@@ -2966,7 +3748,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
           after: nextStyleValues[property] ?? "",
           viewport: nextViewport,
         })),
-        ...(selections.length === 1 && nextTextValue !== selected.text
+        ...(draftSelections.length === 1 && nextTextValue !== selected.text
           ? [
               {
                 kind: "content",
@@ -2976,7 +3758,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               } satisfies ContentChange,
             ]
           : []),
-        ...(selections.length === 1 && nextImageValue !== selected.imageSrc
+        ...(draftSelections.length === 1 && selectionCanEditImage(selected) && nextImageValue !== selected.imageSrc
           ? [
               {
                 kind: "content",
@@ -3010,7 +3792,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
       return {
         changes,
-        notes: selections.length === 1 ? nextNotes : "",
+        notes: draftSelections.length === 1 ? nextNotes : "",
+        scope: draftScope,
         target: selected.target,
       };
     });
@@ -3020,36 +3803,157 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     const drafts = changesForDraft(overrides);
     if (!drafts) return;
 
-    updatePatches((current) => {
-      let nextPatches = current;
-
-      for (const draft of drafts) {
-        if (draft.changes.length === 0 && !draft.notes.trim()) {
-          nextPatches = nextPatches.filter((patch) => !sameTarget(patch.target, draft.target));
-          continue;
-        }
-
-        const existing = nextPatches.find((patch) => sameTarget(patch.target, draft.target));
-        nextPatches = upsertPatch(nextPatches, {
-          id: existing?.id ?? `${draft.target.route}:${draft.target.selector}`,
-          route,
-          target: draft.target,
-          changes: draft.changes,
-          notes: draft.notes,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return nextPatches;
-    });
+    updatePatches((current) => applyDraftsToPatchList(current, drafts));
   }
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const message = event.data as {
+        type?: string;
+        selection?: SelectionMetadata;
+        selections?: SelectionMetadata[];
+        anchor?: EditorComment["anchor"];
+        id?: string;
+        note?: string;
+      };
+      if (message.type === "editor:undo") {
+        undoEditorChange();
+        return;
+      }
+      if (message.type === "editor:redo") {
+        redoEditorChange();
+        return;
+      }
+      if (message.type === "editor:comment-select" && message.id) {
+        setActiveCommentId(message.id);
+        setInspectorTab("comments");
+        setSidebarOpen(true);
+        return;
+      }
+      if (message.type === "editor:comment-update" && message.id && typeof message.note === "string") {
+        updateCommentNote(message.id, message.note);
+        setActiveCommentId(message.id);
+        return;
+      }
+      if (message.type === "editor:comment-discard-empty" && message.id) {
+        discardEmptyComment(message.id);
+        return;
+      }
+      if (message.type === "editor:toggle-comment-view") {
+        toggleCommentsEnabled();
+        return;
+      }
+      if (message.type === "editor:comment-anchor" && message.selection && message.anchor) {
+        flushPendingDrafts();
+        clearPreviewDraftPayloads();
+        pendingStylePropertiesRef.current.clear();
+        const nextSelection = message.selection;
+        const nextBaseStyles = commonComputedStyles([nextSelection]);
+        syncLatestEditorState({
+          selection: nextSelection,
+          selections: [nextSelection],
+          baseStyles: nextBaseStyles,
+          styleValues: nextBaseStyles,
+          textValue: nextSelection.text,
+          imageValue: nextSelection.imageSrc,
+          hidden: false,
+          deleted: false,
+          notes: "",
+        });
+        setSelection(nextSelection);
+        setSelections([nextSelection]);
+        setBaseStyles(nextBaseStyles);
+        setStyleValues(nextBaseStyles);
+        setTextValue(nextSelection.text);
+        setImageValue(nextSelection.imageSrc);
+        setHidden(false);
+        setDeleted(false);
+        setNotes("");
+        createCommentForSelection(nextSelection, message.anchor);
+        return;
+      }
+      if (message.type !== "editor:select" || !message.selection) return;
+
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.dispatchEvent(new Event("change", { bubbles: true }));
+        document.activeElement.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+        document.activeElement.blur();
+      }
+
+      const nextSelections = message.selections?.length ? message.selections : [message.selection];
+      const primarySelection = nextSelections[0];
+      const currentRoute = latestEditorStateRef.current.route;
+      const currentPatches = readDrafts(currentRoute);
+      const selectablePatches = flushPendingDrafts(currentPatches.length > 0 ? currentPatches : latestEditorStateRef.current.patches);
+      const currentEditScope = latestEditorStateRef.current.editScope;
+      clearPreviewDraftPayloads();
+      pendingStylePropertiesRef.current.clear();
+      const patchesBySelector = new Map(
+        nextSelections.map((candidate) => [
+          candidate.target.selector,
+          selectablePatches.find((patch) => patchAppliesToSelection(patch, candidate) && samePatchScope(patch.scope, currentEditScope)),
+        ]),
+      );
+      const patchedBaseSelections = nextSelections.map((candidate) =>
+        patchedBaseSelection(candidate, patchesBySelector.get(candidate.target.selector)),
+      );
+      const patchedValueSelections = patchedBaseSelections.map((candidate) => ({
+        ...candidate,
+        computedStyles: patchedStyleValues(candidate.computedStyles, patchesBySelector.get(candidate.target.selector)),
+      }));
+      const nextBaseStyles = commonComputedStyles(patchedBaseSelections);
+      const nextStyleValues = commonComputedStyles(patchedValueSelections);
+      const selectedPatches = nextSelections
+        .map((candidate) => patchesBySelector.get(candidate.target.selector))
+        .filter(Boolean);
+      const primaryPatch = patchesBySelector.get(primarySelection.target.selector);
+      const primaryBaseSelection = patchedBaseSelections[0];
+      const nextTextValue = nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "text") : "";
+      const nextImageValue = nextSelections.length === 1 ? patchedContentValue(primaryBaseSelection, primaryPatch, "imageSrc") : "";
+      const nextHidden =
+        nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "hide"));
+      const nextDeleted =
+        nextSelections.length > 0 && selectedPatches.length === nextSelections.length && selectedPatches.every((patch) => elementActionValue(patch, "delete"));
+      const nextNotes = nextSelections.length === 1 ? primaryPatch?.notes ?? "" : "";
+      syncLatestEditorState({
+        patches: selectablePatches,
+        selection: primaryBaseSelection,
+        selections: patchedBaseSelections,
+        baseStyles: nextBaseStyles,
+        styleValues: nextStyleValues,
+        textValue: nextTextValue,
+        imageValue: nextImageValue,
+        hidden: nextHidden,
+        deleted: nextDeleted,
+        notes: nextNotes,
+      });
+      setSidebarOpen(true);
+      setSelection(primaryBaseSelection);
+      setSelections(patchedBaseSelections);
+      setBaseStyles(nextBaseStyles);
+      setStyleValues(nextStyleValues);
+      setTextValue(nextTextValue);
+      setImageValue(nextImageValue);
+
+      setHidden(nextHidden);
+      setDeleted(nextDeleted);
+      setNotes(nextNotes);
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Preview iframe undo/redo messages intentionally read the current editor state listed below.
+  }, [patches, undoStack, redoStack, selection, selections, baseStyles, styleValues, textValue, imageValue, hidden, deleted, notes]);
+
   function setViewportAndCommit(nextViewport: ViewportName) {
+    syncLatestEditorState({ viewport: nextViewport });
     setViewport(nextViewport);
   }
 
   function updateStyle(property: string, value: string, options?: StyleValueChangeOptions) {
-    const nextStyleValues = { ...styleValues, [property]: value };
+    const currentStyleValues = latestEditorStateRef.current.styleValues;
+    const nextStyleValues = { ...currentStyleValues, [property]: value };
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3057,21 +3961,30 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (styleValues[property] === value && mode !== "commit") return;
+    if (currentStyleValues[property] === value && mode !== "commit") return;
+    if (currentStyleValues[property] !== value) pendingStylePropertiesRef.current.add(property);
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (styleValues[property] !== value) setStyleValues(nextStyleValues);
+      if (currentStyleValues[property] !== value) {
+        syncLatestEditorState({ styleValues: nextStyleValues });
+        cachePreviewDraftPayload({ nextStyleValues });
+        setStyleValues(nextStyleValues);
+        commitDraft({ nextStyleValues });
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && styleValues[property] !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentStyleValues[property] !== value) pushUndoSnapshot();
+    syncLatestEditorState({ styleValues: nextStyleValues });
+    cachePreviewDraftPayload({ nextStyleValues });
     setStyleValues(nextStyleValues);
     commitDraft({ nextStyleValues });
   }
 
   function updateText(value: string, options?: StyleValueChangeOptions) {
+    const currentTextValue = latestEditorStateRef.current.textValue;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3079,21 +3992,29 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (textValue === value && mode !== "commit") return;
+    if (currentTextValue === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (textValue !== value) setTextValue(value);
+      if (currentTextValue !== value) {
+        syncLatestEditorState({ textValue: value });
+        cachePreviewDraftPayload({ nextTextValue: value });
+        setTextValue(value);
+        commitDraft({ nextTextValue: value });
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && textValue !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentTextValue !== value) pushUndoSnapshot();
+    syncLatestEditorState({ textValue: value });
+    cachePreviewDraftPayload({ nextTextValue: value });
     setTextValue(value);
     commitDraft({ nextTextValue: value });
   }
 
   function updateImage(value: string, options?: StyleValueChangeOptions) {
+    const currentImageValue = latestEditorStateRef.current.imageValue;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3101,35 +4022,47 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (imageValue === value && mode !== "commit") return;
+    if (currentImageValue === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (imageValue !== value) setImageValue(value);
+      if (currentImageValue !== value) {
+        syncLatestEditorState({ imageValue: value });
+        cachePreviewDraftPayload({ nextImageValue: value });
+        setImageValue(value);
+        commitDraft({ nextImageValue: value });
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && imageValue !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentImageValue !== value) pushUndoSnapshot();
+    syncLatestEditorState({ imageValue: value });
+    cachePreviewDraftPayload({ nextImageValue: value });
     setImageValue(value);
     commitDraft({ nextImageValue: value });
   }
 
   function updateHidden(value: boolean) {
-    if (hidden === value) return;
+    if (latestEditorStateRef.current.hidden === value) return;
     pushUndoSnapshot();
+    syncLatestEditorState({ hidden: value });
+    cachePreviewDraftPayload({ nextHidden: value });
     setHidden(value);
     commitDraft({ nextHidden: value });
   }
 
   function updateDeleted(value: boolean) {
-    if (deleted === value) return;
+    if (latestEditorStateRef.current.deleted === value) return;
     pushUndoSnapshot();
+    syncLatestEditorState({ deleted: value });
+    cachePreviewDraftPayload({ nextDeleted: value });
     setDeleted(value);
     commitDraft({ nextDeleted: value });
   }
 
   function updateNotes(value: string, options?: StyleValueChangeOptions) {
+    const currentNotes = latestEditorStateRef.current.notes;
     const mode = options?.commit ?? "commit";
 
     if (mode === "cancel") {
@@ -3137,16 +4070,21 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
 
-    if (notes === value && mode !== "commit") return;
+    if (currentNotes === value && mode !== "commit") return;
 
     if (mode === "preview") {
       beginFieldTransaction(options?.transactionId);
-      if (notes !== value) setNotes(value);
+      if (currentNotes !== value) {
+        syncLatestEditorState({ notes: value });
+        setNotes(value);
+        commitDraft({ nextNotes: value });
+      }
       return;
     }
 
     const transactionCommitted = commitFieldTransaction(options?.transactionId);
-    if (!transactionCommitted && options?.undo !== "skip" && notes !== value) pushUndoSnapshot();
+    if (!transactionCommitted && options?.undo !== "skip" && currentNotes !== value) pushUndoSnapshot();
+    syncLatestEditorState({ notes: value });
     setNotes(value);
     commitDraft({ nextNotes: value });
   }
@@ -3157,18 +4095,30 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       return;
     }
     pushUndoSnapshot();
+    const resetScope = activeEditScope.kind !== "element" ? activeEditScope : undefined;
     for (const selected of selections) {
       iframeRef.current?.contentWindow?.postMessage(
-        { type: "editor:clear-preview", target: selected.target },
+        { type: "editor:clear-preview", target: selected.target, scope: resetScope },
         window.location.origin,
       );
     }
+    syncLatestEditorState({
+      styleValues: baseStyles,
+      textValue: selections.length === 1 ? selections[0].text : "",
+      imageValue: selections.length === 1 ? selections[0].imageSrc : "",
+      hidden: false,
+      deleted: false,
+    });
     setStyleValues(baseStyles);
     setTextValue(selections.length === 1 ? selections[0].text : "");
     setImageValue(selections.length === 1 ? selections[0].imageSrc : "");
     setHidden(false);
     setDeleted(false);
-    updatePatches((current) => current.filter((patch) => !selections.some((selected) => sameTarget(patch.target, selected.target))));
+    updatePatches((current) => current.filter((patch) => !selections.some((selected) => (
+      patchAppliesToSelection(patch, selected) && samePatchScope(patch.scope, activeEditScope)
+    ))));
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
     toast.success("Selection reset");
   }
 
@@ -3179,8 +4129,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     }
 
     pushUndoSnapshot();
+    syncLatestEditorState({
+      patches: [],
+      styleValues: baseStyles,
+      textValue: selection && selections.length === 1 ? selection.text : "",
+      imageValue: selection && selections.length === 1 ? selection.imageSrc : "",
+      hidden: false,
+      deleted: false,
+      notes: "",
+    });
     setPatches([]);
-    persistPatches([]);
+    persistPatches([], latestEditorStateRef.current.route);
     iframeRef.current?.contentWindow?.postMessage(
       { type: "editor:clear-preview" },
       window.location.origin,
@@ -3194,20 +4153,28 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     setHidden(false);
     setDeleted(false);
     setNotes("");
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads();
     toast.success("All draft changes reset");
   }
 
   function deletePatch(patch: EditorPatch) {
     pushUndoSnapshot();
 
-    const nextPatches = patches.filter((candidate) => !sameTarget(candidate.target, patch.target));
+    const nextPatches = patches.filter((candidate) => {
+      if (isBroadScope(candidate.scope) || isBroadScope(patch.scope)) {
+        return !(candidate.route === patch.route && samePatchScope(candidate.scope, patch.scope));
+      }
+      return !sameTarget(candidate.target, patch.target);
+    });
+    syncLatestEditorState({ patches: nextPatches });
     setPatches(nextPatches);
     setExpandedPatchIds((current) => {
       const next = new Set(current);
       next.delete(patch.id);
       return next;
     });
-    persistPatches(nextPatches);
+    persistPatches(nextPatches, latestEditorStateRef.current.route);
     iframeRef.current?.contentWindow?.postMessage(
       { type: "editor:clear-preview", target: patch.target },
       window.location.origin,
@@ -3215,6 +4182,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     reapplyPreviewPatches(nextPatches);
 
     if (sameTarget(selection?.target, patch.target)) {
+      syncLatestEditorState({
+        styleValues: baseStyles,
+        textValue: selection?.text ?? "",
+        imageValue: selection?.imageSrc ?? "",
+        hidden: false,
+        deleted: false,
+        notes: "",
+      });
       setStyleValues(baseStyles);
       setTextValue(selection?.text ?? "");
       setImageValue(selection?.imageSrc ?? "");
@@ -3222,6 +4197,8 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
       setDeleted(false);
       setNotes("");
     }
+    pendingStylePropertiesRef.current.clear();
+    clearPreviewDraftPayloads([patch.target]);
 
     toast.success("Draft patch deleted");
   }
@@ -3245,13 +4222,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
   }
 
   async function copyStyles() {
-    if (patches.length === 0) {
-      toast.info("No draft changes to copy");
+    if (patches.length === 0 && handoffComments.length === 0) {
+      toast.info("No draft changes or comments to copy");
       return;
     }
 
     try {
-      const spec = createClipboardSpec(patches);
+      const spec = createClipboardSpec(patches, handoffComments);
       await navigator.clipboard.writeText(formatClipboardSpec(spec));
       setCopyState("copied");
       toast.success("Handoff copied");
@@ -3261,15 +4238,17 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
     }
   }
 
-  async function applyPatchesToSource() {
-    if (patches.length === 0 || applyState === "applying") return;
+  async function applyEditorPatches(mode: ApplyEditorMode) {
+    const applying = mode === "source" ? sourceApplyState === "applying" : overrideApplyState === "applying";
+    if (patches.length === 0 || applying) return;
 
+    const setApplyState = mode === "source" ? setSourceApplyState : setOverrideApplyState;
     setApplyState("applying");
     try {
       const response = await fetch("/api/editor/apply", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ patches }),
+        body: JSON.stringify({ mode, patches }),
       });
       const result = (await response.json().catch(() => ({}))) as ApplyEditorPatchesResponse;
 
@@ -3279,18 +4258,44 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
 
       setApplyState("applied");
       const unsupportedCount = result.unsupported?.reduce((total, item) => total + item.changes.length, 0) ?? 0;
+      if (mode === "source" && result.appliedPatchIds && result.appliedPatchIds.length > 0) {
+        const appliedIds = new Set(result.appliedPatchIds);
+        const nextPatches = patches.filter((patch) => !appliedIds.has(patch.id));
+        setPatches(nextPatches);
+        persistPatches(nextPatches);
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "editor:clear-preview" },
+          window.location.origin,
+        );
+        iframeRef.current?.contentWindow?.location.reload();
+      }
+
       if (unsupportedCount > 0) {
         toast.warning(
-          `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} non-CSS change${unsupportedCount === 1 ? "" : "s"} still need handoff.`,
+          mode === "source"
+            ? `Applied ${result.applied ?? 0} source target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} change${unsupportedCount === 1 ? "" : "s"} still need override or handoff.`
+            : `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"}; ${unsupportedCount} non-CSS change${unsupportedCount === 1 ? "" : "s"} still need handoff.`,
         );
       } else {
-        toast.success(`Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"} to ${result.file ?? "CSS"}`);
+        toast.success(
+          mode === "source"
+            ? `Applied ${result.applied ?? 0} source target${result.applied === 1 ? "" : "s"}${result.files?.length ? ` in ${result.files.length} file${result.files.length === 1 ? "" : "s"}` : ""}`
+            : `Patched ${result.applied ?? 0} target${result.applied === 1 ? "" : "s"} to ${result.file ?? "CSS"}`,
+        );
       }
       window.setTimeout(() => setApplyState("idle"), 1600);
     } catch (error) {
       setApplyState("idle");
       toast.error(error instanceof Error ? error.message : "Patch request failed");
     }
+  }
+
+  function applyPatchesToSource() {
+    void applyEditorPatches("source");
+  }
+
+  function applyPatchOverrides() {
+    void applyEditorPatches("override");
   }
 
   return (
@@ -3386,6 +4391,14 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
             </ToolbarButton>
 
             <ToolbarButton
+              label={commentsEnabled ? "Hide comments" : "Show comments"}
+              active={commentsEnabled}
+              onClick={toggleCommentsEnabled}
+            >
+              <EditorIcon icon={ClipboardIcon} />
+            </ToolbarButton>
+
+            <ToolbarButton
               label={sidebarOpen ? "Close inspector" : "Open inspector"}
               active={sidebarOpen}
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -3398,7 +4411,12 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
         <ResizablePanelGroup orientation="horizontal" className={styles.workspace}>
           <ResizablePanel minSize="280px" className={styles.previewPanel}>
             <main className={styles.stage}>
-              <div className={styles.canvasChrome} style={{ "--canvas-width": `${viewportWidth}px` } as React.CSSProperties}>
+              <div
+                className={styles.canvasChrome}
+                data-route={route}
+                data-viewport={viewportSizes[viewport].label}
+                style={{ "--canvas-width": `${viewportWidth}px` } as React.CSSProperties}
+              >
                 <iframe
                   ref={iframeRef}
                   key={iframeSrc}
@@ -3408,6 +4426,22 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                   onLoad={() => {
                     iframeRef.current?.contentWindow?.postMessage(
                       { type: "editor:set-enabled", enabled: selectorEnabled },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-edit-scope", scope: activeEditScope },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comment-mode", enabled: commentsEnabled },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comment-view", enabled: commentsEnabled },
+                      window.location.origin,
+                    );
+                    iframeRef.current?.contentWindow?.postMessage(
+                      { type: "editor:set-comments", comments },
                       window.location.origin,
                     );
                     reapplyPreviewPatches(patches);
@@ -3422,9 +4456,9 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
               <ResizableHandle withHandle />
               <ResizablePanel
                 className={styles.inspectorPanel}
-                defaultSize="320px"
-                minSize="280px"
-                maxSize="440px"
+                defaultSize="360px"
+                minSize="320px"
+                maxSize="480px"
                 groupResizeBehavior="preserve-pixel-size"
               >
                 <aside className={styles.inspector} aria-label="Visual editor inspector">
@@ -3435,11 +4469,11 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                         <h2 className="truncate text-sm font-medium">Visual edits</h2>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {route} · {patches.length} drafted
+                        {route} · {patches.length} drafted · {handoffComments.length} comments
                       </p>
                     </div>
-                    <Badge variant={patches.length > 0 ? "secondary" : "outline"}>
-                      {patches.length} {patches.length === 1 ? "draft" : "drafts"}
+                    <Badge variant={patches.length > 0 || handoffComments.length > 0 ? "secondary" : "outline"}>
+                      {patches.length + handoffComments.length}
                     </Badge>
                   </div>
                   <Separator />
@@ -3464,6 +4498,46 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                             <EditorIcon icon={CursorPointer02Icon} data-icon="inline-start" />
                             {selectorEnabled ? "Selector enabled" : "Enable selector"}
                           </Button>
+                          <Button
+                            type="button"
+                            variant={commentsEnabled ? "secondary" : "outline"}
+                            onClick={toggleCommentsEnabled}
+                          >
+                            <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
+                            {commentsEnabled ? "Comments on" : "Comments off"}
+                          </Button>
+                          {handoffComments.length > 0 ? (
+                            <section className={styles.reviewDrafts}>
+                              <div className={styles.reviewDraftsHeader}>
+                                <div>
+                                  <h3>Anchored comments</h3>
+                                  <p>{handoffComments.length} comment{handoffComments.length === 1 ? "" : "s"} on this route.</p>
+                                </div>
+                                <Badge variant="secondary">{handoffComments.length}</Badge>
+                              </div>
+                              <div className={styles.patchList}>
+                                {handoffComments.map((comment, index) => (
+                                  <button
+                                    type="button"
+                                    className={styles.commentRow}
+                                    data-active={comment.id === activeComment?.id ? true : undefined}
+                                    key={comment.id}
+                                    onClick={() => {
+                                      setActiveCommentId(comment.id);
+                                      setInspectorTab("comments");
+                                    }}
+                                  >
+                                    <span className={styles.commentMarker}>{index + 1}</span>
+                                    <span className={styles.commentMeta}>
+                                      <span className={styles.commentTitle}>{comment.target.tag}</span>
+                                      <span className={styles.commentSelector}>{comment.target.selector}</span>
+                                      <span className={styles.commentNote}>{comment.note.trim()}</span>
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </section>
+                          ) : null}
                         </section>
                       ) : (
                         <>
@@ -3479,9 +4553,52 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                 <Badge variant={selectedHasDraft ? "secondary" : "outline"}>
                                   {selectedHasDraft ? "Drafted" : "Clean"}
                                 </Badge>
+                                {selectedComments.length > 0 ? (
+                                  <Badge variant="secondary">
+                                    {selectedComments.length} comment{selectedComments.length === 1 ? "" : "s"}
+                                  </Badge>
+                                ) : null}
                               </div>
                               <p className={styles.targetLabel}>{selectionLabel}</p>
                               <p className={styles.targetSelector}>{selection.target.selector}</p>
+                              <div className={styles.scopeControl}>
+                                <span className={styles.scopeLabel}>Scope</span>
+                                <Select value={editScopeValue} onValueChange={updateEditScope}>
+                                  <SelectTrigger size="sm" className={styles.scopeSelectTrigger} aria-label="Edit scope">
+                                    <SelectValue placeholder="This element" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      <SelectItem value="element">This element</SelectItem>
+                                      <SelectItem value={`tag:${selection.target.tag}`}>
+                                        All {selection.target.tag} tags · {selection.target.tagCount ?? 0} element{(selection.target.tagCount ?? 0) === 1 ? "" : "s"}
+                                      </SelectItem>
+                                      {classScopeOptions.map((option) => (
+                                        <SelectItem value={`class:${option.className}`} key={option.className}>
+                                          .{option.className} · {option.matchCount} element{option.matchCount === 1 ? "" : "s"}{option.generated ? " · generated" : ""}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {activeClassScope ? (
+                                <p className={styles.scopeWarning}>
+                                  This class appears on {activeClassScope.matchCount} element{activeClassScope.matchCount === 1 ? "" : "s"} across this page. Style edits affect every match; content and element actions stay on the selected element.
+                                </p>
+                              ) : activeTagScope ? (
+                                <p className={styles.scopeWarning}>
+                                  This tag appears on {activeTagScope.matchCount} element{activeTagScope.matchCount === 1 ? "" : "s"} across this page. Style edits affect every matching {activeTagScope.tagName}; content and element actions stay on the selected element.
+                                </p>
+                              ) : classScopeOptions.length > 0 ? (
+                                <p className={styles.scopeHint}>
+                                  Switch to a tag or class to style every matching element on this page.
+                                </p>
+                              ) : (
+                                <p className={styles.scopeHint}>
+                                  Switch to a tag to style every matching {selection.target.tag} on this page.
+                                </p>
+                              )}
                             </div>
                             <div className={styles.targetActions} aria-label="Selection actions">
                               <ToolbarButton
@@ -3513,6 +4630,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                             <TabsList className={styles.inspectorTabsList}>
                               <TabsTrigger value="style">Style</TabsTrigger>
                               <TabsTrigger value="content">Content</TabsTrigger>
+                              <TabsTrigger value="comments">Comments</TabsTrigger>
                               <TabsTrigger value="review">Review</TabsTrigger>
                             </TabsList>
 
@@ -3607,6 +4725,102 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                               </InspectorSection>
                             </TabsContent>
 
+                            <TabsContent value="comments" className={styles.inspectorTabPanel}>
+                              <section className={styles.reviewPanel}>
+                                <InspectorSection
+                                  icon={ClipboardIcon}
+                                  title="Comments"
+                                  description={commentsEnabled ? "Click the preview to anchor a comment." : "Show comments to anchor new comments."}
+                                >
+                                  <FieldGroup>
+                                    <Field data-disabled={!activeComment ? true : undefined}>
+                                      <FieldLabel htmlFor="editor-active-comment" className="text-xs text-muted-foreground">
+                                        Active comment
+                                      </FieldLabel>
+                                      <SmartTextarea
+                                        id="editor-active-comment"
+                                        label="Active comment"
+                                        disabled={!activeComment}
+                                        value={activeComment?.note ?? ""}
+                                        placeholder={activeComment ? "Describe what should change here" : "No comment selected"}
+                                        onChange={(value) => {
+                                          if (activeComment) updateCommentNote(activeComment.id, value);
+                                        }}
+                                        onCommit={(value) => {
+                                          if (activeComment && !value.trim()) discardEmptyComment(activeComment.id);
+                                        }}
+                                      />
+                                    </Field>
+                                  </FieldGroup>
+                                  <div className={styles.reviewActions}>
+                                    <Button
+                                      type="button"
+                                      variant={commentsEnabled ? "secondary" : "outline"}
+                                      onClick={toggleCommentsEnabled}
+                                    >
+                                      <EditorIcon icon={ClipboardIcon} data-icon="inline-start" />
+                                      {commentsEnabled ? "Comments on" : "Comments off"}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      disabled={!activeComment}
+                                      onClick={() => {
+                                        if (activeComment) deleteComment(activeComment.id);
+                                      }}
+                                    >
+                                      <EditorIcon icon={Delete02Icon} data-icon="inline-start" />
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </InspectorSection>
+
+                                <section className={styles.reviewDrafts}>
+                                  <div className={styles.reviewDraftsHeader}>
+                                    <div>
+                                      <h3>Anchored comments</h3>
+                                      <p>{handoffComments.length === 0 ? "No comments for this route." : `${handoffComments.length} comment${handoffComments.length === 1 ? "" : "s"} ready for handoff.`}</p>
+                                    </div>
+                                    <Badge variant={handoffComments.length > 0 ? "secondary" : "outline"}>{handoffComments.length}</Badge>
+                                  </div>
+
+                                  {handoffComments.length === 0 ? (
+                                    <div className={styles.reviewEmptyState}>
+                                      <div className={styles.emptyStateIcon}>
+                                        <EditorIcon icon={ClipboardIcon} />
+                                      </div>
+                                      <p>Turn on comment mode and click any section or element in the preview.</p>
+                                    </div>
+                                  ) : (
+                                    <div className={styles.patchList}>
+                                      {handoffComments.map((comment, index) => (
+                                        <button
+                                          type="button"
+                                          className={styles.commentRow}
+                                          data-active={comment.id === activeComment?.id ? true : undefined}
+                                          key={comment.id}
+                                          onClick={() => {
+                                            setActiveCommentId(comment.id);
+                                            setInspectorTab("comments");
+                                          }}
+                                        >
+                                          <span className={styles.commentMarker}>{index + 1}</span>
+                                          <span className={styles.commentMeta}>
+                                            <span className={styles.commentTitle}>{comment.target.tag}</span>
+                                            <span className={styles.commentSelector}>{comment.target.selector}</span>
+                                            <span className={styles.commentNote}>{comment.note.trim()}</span>
+                                          </span>
+                                          <span className={styles.commentAnchor}>
+                                            {Math.round(comment.anchor.x * 100)}% / {Math.round(comment.anchor.y * 100)}%
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </section>
+                              </section>
+                            </TabsContent>
+
                             <TabsContent value="review" className={styles.inspectorTabPanel}>
                               <section className={styles.reviewPanel}>
                                 <FieldGroup>
@@ -3627,7 +4841,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <Button
                                     type="button"
                                     variant="secondary"
-                                    disabled={patches.length === 0}
+                                    disabled={patches.length === 0 && handoffComments.length === 0}
                                     onClick={copyStyles}
                                   >
                                     <EditorIcon icon={copyState === "copied" ? CopyCheckIcon : ClipboardIcon} data-icon="inline-start" />
@@ -3636,11 +4850,20 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <Button
                                     type="button"
                                     variant="outline"
-                                    disabled={patches.length === 0 || applyState === "applying"}
+                                    disabled={patches.length === 0 || sourceApplyState === "applying" || overrideApplyState === "applying"}
                                     onClick={applyPatchesToSource}
                                   >
-                                    <EditorIcon icon={applyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
-                                    {applyState === "applying" ? "Patching..." : applyState === "applied" ? "Patched" : "Patch changes"}
+                                    <EditorIcon icon={sourceApplyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                                    {sourceApplyState === "applying" ? "Applying..." : sourceApplyState === "applied" ? "Applied source" : "Apply source"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={patches.length === 0 || sourceApplyState === "applying" || overrideApplyState === "applying"}
+                                    onClick={applyPatchOverrides}
+                                  >
+                                    <EditorIcon icon={overrideApplyState === "applied" ? CopyCheckIcon : File01Icon} data-icon="inline-start" />
+                                    {overrideApplyState === "applying" ? "Writing..." : overrideApplyState === "applied" ? "Wrote CSS" : "CSS patch"}
                                   </Button>
                                   <Button
                                     type="button"
@@ -3657,7 +4880,13 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                   <div className={styles.reviewDraftsHeader}>
                                     <div>
                                       <h3>Draft patches</h3>
-                                      <p>{patches.length === 0 ? "No changes staged for handoff." : `${patches.length} target${patches.length === 1 ? "" : "s"} ready to review.`}</p>
+                                      <p>
+                                        {patches.length === 0
+                                          ? handoffComments.length === 0
+                                            ? "No changes or comments staged for handoff."
+                                            : `${handoffComments.length} anchored comment${handoffComments.length === 1 ? "" : "s"} ready for handoff.`
+                                          : `${patches.length} target${patches.length === 1 ? "" : "s"} ready to review.`}
+                                      </p>
                                     </div>
                                     <div className={styles.reviewDraftsControls}>
                                       <Badge variant={patches.length > 0 ? "secondary" : "outline"}>{patches.length}</Badge>
@@ -3678,7 +4907,7 @@ export function EditorShell({ initialPath, routes }: EditorShellProps) {
                                       <div className={styles.emptyStateIcon}>
                                         <EditorIcon icon={File01Icon} />
                                       </div>
-                                      <p>Style or content edits will appear here as draft patches.</p>
+                                      <p>Style edits appear here. Comments are copied into the handoff from the Comments tab.</p>
                                     </div>
                                   ) : (
                                     <div className={styles.patchList}>

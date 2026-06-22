@@ -7,7 +7,7 @@
 
 .gridTop {
   display: grid;
-  gap: 16px;
+  gap: 1.5rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -16,422 +16,87 @@
 .columnRight {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1.5rem;
 }
 
 .card {
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-}
-
-.topTag {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  left: 16px;
-  position: absolute;
-  right: 16px;
-  top: 16px;
-  z-index: 3;
-}
-
-.pulseWrap {
-  height: 14px;
-  position: relative;
-  width: 14px;
-}
-
-.pulseDot {
-  background: rgb(29, 61, 243);
-  border-radius: 999px;
-  display: block;
-  height: 14px;
-  position: relative;
-  width: 14px;
-  z-index: 2;
-}
-
-.pulseCore {
+  align-items: flex-end;
   background: rgb(245, 245, 245);
-  border-radius: 999px;
-  height: 4px;
-  left: 50%;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
+  border-radius: 1rem;
+  color: rgb(0, 0, 0);
+  display: flex;
+  overflow: hidden;
+  padding: 1.5rem;
+  position: relative;
 }
 
-.pulseRing {
-  animation: ringPulse 2s ease-in-out infinite;
-  background: rgb(29, 61, 243);
-  border-radius: 999px;
-  height: 14px;
-  left: 50%;
-  opacity: 0.2;
+.cardImage {
+  background: #1b1b1b;
+  color: rgb(255, 255, 255);
+}
+
+.cardText {
+  background: #f1ebe2;
+  color: rgb(0, 0, 0);
+}
+
+.cardImage::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.62) 100%);
+  content: "";
+  inset: 0;
   position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 14px;
   z-index: 1;
 }
 
-@keyframes ringPulse {
-  0% {
-    opacity: 0.28;
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  70% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.7);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(1.7);
-  }
-}
-
-.topTagText {
-  color: rgb(0, 0, 0);
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.topTagMeta {
-  color: rgba(135, 135, 135, 1);
-  font-family: "Fragment Mono", monospace;
-  font-size: 10px;
-  line-height: 1;
-  margin-left: auto;
-  text-transform: uppercase;
-}
-
-.topTagLight .topTagText {
-  color: rgb(255, 255, 255);
-}
-
-.topTagLight .topTagMeta {
-  color: rgb(235, 235, 235);
-}
-
-.topTagLight .pulseDot {
-  background: rgb(255, 255, 255);
-}
-
-.topTagLight .pulseCore {
-  background: rgb(29, 61, 243);
-}
-
-.topTagLight .pulseRing {
-  background: rgb(255, 255, 255);
-}
-
-.cardAbout {
-  align-items: center;
-  background: rgb(245, 245, 245);
-  display: flex;
-  flex-direction: column;
-  height: 360px;
-  justify-content: center;
-  padding: 32px;
-}
-
-.cardAbout p {
-  color: rgb(0, 0, 0);
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 18px;
-  line-height: 1.2;
-  max-width: 30ch;
-  text-align: center;
-}
-
-.cardAbout a {
-  color: rgb(0, 0, 0);
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 14px;
-  margin-top: 18px;
-  outline: none;
-  position: relative;
-  text-decoration: none;
-  transition: color 220ms ease, transform 220ms ease;
-}
-
-.cardAbout a::after {
-  background: rgb(0, 0, 0);
-  bottom: -1px;
-  content: "";
-  height: 1px;
-  left: 0;
-  opacity: 0;
-  position: absolute;
-  transform: scaleX(0.2);
-  transform-origin: left center;
-  transition: opacity 240ms ease, transform 240ms ease;
-  width: 100%;
-}
-
-.cardAbout:hover a::after,
-.cardAbout a:hover::after,
-.cardAbout a:focus-visible::after {
-  opacity: 1;
-  transform: scaleX(1);
-}
-
-.cardAbout a:hover,
-.cardAbout a:focus-visible {
-  color: rgb(29, 61, 243);
-  transform: translateY(-2px);
-}
-
-.cardAbout a:focus-visible {
-  outline: 2px solid rgb(29, 61, 243);
-  outline-offset: 5px;
-}
-
-.cardTestimonial {
-  align-items: center;
-  background: rgb(29, 61, 243);
-  color: rgb(255, 255, 255);
-  display: flex;
-  flex-direction: column;
-  height: 379px;
-  justify-content: center;
-  padding: 0 32px;
-}
-
-.cardTestimonial blockquote {
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 18px;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.testimonialAuthor {
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 13px;
-  line-height: 1;
-  margin-top: 18px;
-}
-
-.testimonialRole {
-  color: rgb(245, 245, 245);
-  font-family: "Inter Display", "Inter", sans-serif;
-  font-size: 13px;
-  line-height: 1;
-  margin-top: 4px;
-}
-
-.dots {
-  align-items: center;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 50px;
-  bottom: 16px;
-  display: flex;
-  gap: 6px;
-  left: 50%;
-  padding: 10px;
-  position: absolute;
-  transform: translateX(-50%);
-}
-
-.dot,
-.dotActive {
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  height: 6px;
-  padding: 0;
-  width: 6px;
-}
-
-.dot {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.dotActive {
-  background: rgb(255, 255, 255);
-}
-
-.cardImageTall {
-  background: rgb(245, 245, 245);
-  height: 620px;
-}
-
-.cardImageTall img,
-.cardBlog img {
+.card img {
+  border-radius: 1rem;
   display: block;
   height: 100%;
+  inset: 0;
   object-fit: cover;
+  position: absolute;
   width: 100%;
 }
 
-.hoverTitle {
-  color: rgb(255, 255, 255);
-  filter: blur(3px);
+.card h3 {
+  color: inherit;
   font-family: "Times New Roman", Times, serif;
-  font-size: 46px;
+  font-size: 1.75rem;
   font-weight: 400;
-  left: 50%;
-  line-height: 1.2;
-  opacity: 0;
-  position: absolute;
-  text-align: center;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  transition: filter 280ms ease, opacity 280ms ease;
-  width: calc(100% - 48px);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0;
+  max-width: 12ch;
+  position: relative;
   z-index: 2;
 }
 
-.hoverArrow {
-  align-items: center;
-  backdrop-filter: blur(5px);
-  background: rgba(235, 235, 235, 0.2);
-  border-radius: 999px;
-  bottom: 16px;
-  color: rgb(255, 255, 255);
-  display: inline-flex;
-  font-size: 14px;
-  height: 24px;
-  justify-content: center;
-  opacity: 0;
-  position: absolute;
-  right: 16px;
-  transition: opacity 280ms ease;
-  width: 24px;
-  z-index: 3;
+.cardAbout {
+  height: 360px;
 }
 
-.cardImageTall:hover .hoverTitle {
-  filter: blur(0);
-  opacity: 1;
+.cardTestimonial {
+  height: 490px;
 }
 
-.cardImageTall:hover .hoverArrow {
-  opacity: 1;
+.cardImageTall {
+  height: 620px;
 }
 
-.cardServices {
-  align-items: center;
-  background: rgb(245, 245, 245);
-  display: flex;
-  height: 230px;
-  justify-content: center;
-}
-
-.typeWord {
-  color: rgb(0, 0, 0);
-  font-family: "Times New Roman", Times, serif;
-  font-size: 42px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.typeCursor {
-  animation: blink 1s step-end infinite;
-  color: rgb(135, 135, 135);
-}
-
-@keyframes blink {
-  from,
-  to {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0;
-  }
-}
-
+.cardServices,
 .cardClients {
-  align-items: center;
-  background: rgb(29, 61, 243);
-  display: flex;
   height: 230px;
-  justify-content: center;
-}
-
-.logoTicker {
-  height: 65px;
-  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
-  overflow: hidden;
-  width: 100%;
-}
-
-.logoTrack {
-  animation: ticker 20s linear infinite;
-  display: flex;
-  width: max-content;
-}
-
-.logoRow {
-  align-items: center;
-  display: flex;
-  gap: 32px;
-  padding-right: 32px;
-}
-
-.logoRow img {
-  display: block;
-  height: 40px;
-  object-fit: contain;
-  width: auto;
-}
-
-.logoRow img:nth-child(1) {
-  height: 35px;
-  width: 91px;
-}
-
-.logoRow img:nth-child(2) {
-  height: 40px;
-  width: 40px;
-}
-
-.logoRow img:nth-child(3) {
-  height: 40px;
-  width: 100px;
-}
-
-.logoRow img:nth-child(4) {
-  height: 40px;
-  width: 60px;
-}
-
-.logoRow img:nth-child(5) {
-  height: 44px;
-  width: 86px;
-}
-
-.logoRow img:nth-child(6) {
-  height: 32px;
-  width: 78px;
-}
-
-@keyframes ticker {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(-50%);
-  }
 }
 
 .gridBottom {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 16px;
+  gap: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.5rem;
 }
 
 .cardBlog {
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1.5583 / 1;
 }
 
 @media (max-width: 1199px) and (min-width: 810px) {
@@ -443,7 +108,7 @@
   .columnCenter,
   .columnRight {
     display: grid;
-    gap: 12px;
+    gap: 1.5rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -455,10 +120,6 @@
     height: auto;
     min-height: 387px;
   }
-
-  .gridBottom {
-    gap: 12px;
-  }
 }
 
 @media (max-width: 809px) {
@@ -467,54 +128,35 @@
   }
 
   .gridTop {
-    gap: 8px;
+    gap: 0.75rem;
     grid-template-columns: 1fr;
   }
 
   .columnLeft,
   .columnCenter,
   .columnRight {
-    gap: 8px;
+    gap: 0.75rem;
   }
 
-  .cardAbout {
-    height: 200px;
-    padding: 24px;
+  .gridBottom {
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+    margin-top: 0.75rem;
   }
 
-  .cardAbout p {
-    font-size: 16px;
-  }
-
-  .cardTestimonial {
-    height: 200px;
-    padding: 0 22px;
-  }
-
-  .cardTestimonial blockquote {
-    font-size: 16px;
-  }
-
+  .cardAbout,
+  .cardTestimonial,
   .cardImageTall,
   .cardServices,
   .cardClients {
     height: 200px;
   }
 
-  .hoverTitle {
-    font-size: 30px;
+  .card {
+    padding: 1.25rem;
   }
 
-  .typeWord {
-    font-size: 32px;
-  }
-
-  .gridBottom {
-    gap: 8px;
-    grid-template-columns: 1fr;
-  }
-
-  .cardBlog {
-    aspect-ratio: 1.5583 / 1;
+  .card h3 {
+    font-size: 1.75rem;
   }
 }

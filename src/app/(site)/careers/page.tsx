@@ -55,6 +55,13 @@ const pillars: Pillar[] = [
   },
 ];
 
+const trustLogos = [
+  "/logos/trust-logo-1.svg",
+  "/logos/trust-logo-2.svg",
+  "/logos/trust-logo-3.svg",
+  "/logos/trust-logo-4.svg",
+];
+
 const fallbackFounders = [
   {
     name: "Rahul Kashyap",
@@ -135,26 +142,9 @@ export default async function CareersPage() {
           </article>
           <div className={styles.trustRow}>
             <div className={styles.avatarStack} aria-hidden="true">
-              <img
-                src="/careers-media/avatar-1.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-2.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-3.jpg"
-                alt=""
-                loading="lazy"
-              />
-              <img
-                src="/careers-media/avatar-4.jpg"
-                alt=""
-                loading="lazy"
-              />
+              {trustLogos.map((logo) => (
+                <img key={logo} src={logo} alt="" loading="lazy" />
+              ))}
             </div>
             <p>
               Trust by 50k+ clients &amp; organisations
