@@ -4,7 +4,9 @@ export function createClipboardSpec(patches: EditorPatch[], comments: EditorComm
   return {
     generatedAt: new Date().toISOString(),
     patches,
-    comments,
+    comments: comments
+      .filter((comment) => comment.note.trim().length > 0)
+      .map((comment) => ({ ...comment, note: comment.note.trim() })),
   };
 }
 
@@ -46,6 +48,13 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
     patches.forEach((patch, index) => {
       lines.push(`### ${index + 1}. ${patch.target.tag}`);
       lines.push(`Selector: \`${patch.target.selector}\``);
+      if (patch.scope?.kind === "class") {
+        lines.push(`Scope: class \`${patch.scope.selector}\` (${patch.scope.matchCount} element${patch.scope.matchCount === 1 ? "" : "s"} on page)`);
+      } else if (patch.scope?.kind === "tag") {
+        lines.push(`Scope: tag \`${patch.scope.selector}\` (${patch.scope.matchCount} element${patch.scope.matchCount === 1 ? "" : "s"} on page)`);
+      } else {
+        lines.push("Scope: selected element");
+      }
       lines.push("Fingerprint:", "```json");
       lines.push(JSON.stringify(
         {
@@ -107,7 +116,7 @@ export function formatClipboardSpec(spec: ClipboardSpec): string {
           2,
         ));
         lines.push("```");
-        lines.push(`Comment: ${comment.note.trim() || "(empty)"}`, "");
+        lines.push(`Comment: ${comment.note.trim()}`, "");
       });
     }
   }

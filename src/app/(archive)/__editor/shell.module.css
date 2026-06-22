@@ -248,6 +248,30 @@
   position: relative;
 }
 
+.workspace [data-slot="resizable-handle"] {
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+
+.workspace [data-slot="resizable-handle"]::after {
+  background: transparent;
+}
+
+.workspace [data-slot="resizable-handle"] > div {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.workspace [data-slot="resizable-handle"]:hover,
+.workspace [data-slot="resizable-handle"]:focus-visible {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.workspace [data-slot="resizable-handle"]:hover > div,
+.workspace [data-slot="resizable-handle"]:focus-visible > div {
+  background: rgba(255, 255, 255, 0.42);
+}
+
 .previewPanel,
 .inspectorPanel {
   min-width: 0;
@@ -1533,6 +1557,46 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 10px;
   line-height: 1.25;
+}
+
+.scopeControl {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-top: 4px;
+}
+
+.scopeLabel {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.scopeSelectTrigger {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.86);
+  min-height: 30px;
+}
+
+.scopeHint,
+.scopeWarning {
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 2px 0 0;
+  padding: 7px 8px;
+}
+
+.scopeHint {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.scopeWarning {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .targetActions {

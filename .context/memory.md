@@ -67,10 +67,17 @@ This file is the shared memory for this workspace. Keep it concise and latest-bi
   - Blur/hover-out collapses the card into a numbered bubble.
   - Hovering a bubble opens it; hovering out collapses it.
   - Only one comment dialog can be open at a time.
+  - Empty/whitespace-only comment drafts are temporary only: they can be blank while focused, but are auto-discarded on blur, hide/toggle, or handoff/export, and are not persisted to localStorage.
 - Editor shell design as of 2026-06-22:
   - Unified dark product workspace across topbar, route controls, viewport controls, toolbar, canvas, inspector, tabs, sections, selected/empty states, and mobile bottom-sheet behavior.
   - Inspector default width is 360px; min 320px, max 480px.
   - `src/proxy.ts` lets `/fonts/home-feed-sans.woff2` serve from `public/fonts` instead of rewriting it to the mirror.
+- Editor class-scope editing as of 2026-06-22:
+  - The selected-target card has a Scope dropdown with `This element`, `All <tag> tags`, and class options derived from the selected iframe element.
+  - Tag/class options show page match counts and warn when a scope affects multiple elements.
+  - Style edits can be tag- or class-scoped; text/image/hide/delete remain selected-element actions.
+  - The iframe shows dashed scope highlight boxes for all matching elements, and copied handoff marks whether a patch is element-, tag-, or class-scoped.
+  - Tag/class-scoped style edits persist as broad-scope drafts and are rediscovered when selecting any matching element; a prior bug tied `All h2 tags` edits to the first selected h2.
 - Latest verification after the design overhaul:
   - `pnpm typecheck` passed.
   - `pnpm lint` passed.
