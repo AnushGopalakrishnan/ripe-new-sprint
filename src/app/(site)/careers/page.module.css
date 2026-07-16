@@ -1,7 +1,8 @@
 .page {
   --careers-heading-font: var(--ripe-font-serif);
   --careers-section-gap: clamp(5rem, 8vw, 7.625rem);
-  --careers-section-pad: clamp(1rem, 3vw, 2rem);
+  --careers-content-max: 72rem;
+  --careers-inline-gutter: clamp(1rem, 3vw, 2rem);
   --hero-content-max: 53.75rem;
   background: #fff;
   color: #000;
@@ -11,10 +12,14 @@
   padding: 128px 0;
 }
 
-.page section {
+.page > section {
   box-sizing: border-box;
   margin: 0 auto;
-  max-width: 72rem;
+  max-width: var(--careers-content-max);
+  width: min(
+    var(--careers-content-max),
+    calc(100% - (2 * var(--careers-inline-gutter)))
+  );
 }
 
 .heroSection {
@@ -25,7 +30,7 @@
   width: 100%;
 }
 
-.page section.heroSection {
+.page > section.heroSection {
   padding: 0;
 }
 
@@ -314,20 +319,15 @@
   margin: clamp(3.5rem, 8vw, 7.625rem) auto 0;
   max-width: 68rem;
   text-align: center;
-  width: 761.594px;
+  width: min(100%, 47.6rem);
 }
 
 .mosaicSection {
   padding-top: 0;
 }
 
-.page section.mosaicSection {
-  margin-left: calc(50% - 50vw);
+.page > section.mosaicSection {
   margin-top: var(--careers-section-gap);
-  max-width: none;
-  padding-left: 0;
-  padding-right: 0;
-  width: 100vw;
 }
 
 .mosaicCard {
@@ -486,7 +486,7 @@
 .page .peopleSection {
   display: grid;
   gap: clamp(1.5rem, 3vw, 2.5rem);
-  margin-top: 250px;
+  margin-top: 220px;
   padding-top: 0;
 }
 
@@ -740,15 +740,6 @@
   .page {
     --careers-section-gap: 3.75rem;
     padding-top: 1rem;
-  }
-
-  .page section {
-    padding: 0 var(--careers-section-pad);
-  }
-
-  .page section.mosaicSection {
-    padding-left: 0;
-    padding-right: 0;
   }
 
   .foundersRow {

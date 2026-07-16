@@ -1745,6 +1745,8 @@ label {
   align-items: center;
   width: 100%;
   display: flex;
+  margin-left: 0px !important;
+  margin-right: 0px;
 }
 
 .join_us-wrap.t-to-pink {
