@@ -1,5 +1,5 @@
 .page {
-  --careers-heading-font: "Times New Roman", Times, serif;
+  --careers-heading-font: var(--ripe-font-serif);
   --careers-section-gap: clamp(5rem, 8vw, 7.625rem);
   --careers-section-pad: clamp(1rem, 3vw, 2rem);
   --hero-content-max: 53.75rem;
@@ -15,7 +15,6 @@
   box-sizing: border-box;
   margin: 0 auto;
   max-width: 72rem;
-  padding: 0 var(--careers-section-pad);
 }
 
 .heroSection {
@@ -126,7 +125,7 @@
 
 .heroNotes p {
   color: #666;
-  font-family: var(--ripe-font-sans);
+  font-family: var(--ripe-font-serif);
   font-size: 0.875rem;
   letter-spacing: -0.02em;
   line-height: 1.7;
@@ -193,7 +192,7 @@
   border-radius: 0.375rem;
   color: #fff;
   display: inline-flex;
-  font-family: var(--ripe-font-sans);
+  font-family: var(--ripe-font-serif);
   font-size: 0.875rem;
   font-weight: normal;
   justify-content: center;
@@ -236,14 +235,12 @@
 .pillarsGrid {
   display: grid;
   gap: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
 }
 
 .pillarCard {
-  align-content: start;
-  aspect-ratio: 165 / 211;
-  background: rgb(235 234 226 / 10%);
+  align-items: center;
   box-sizing: border-box;
   contain: layout;
   display: grid;
@@ -253,46 +250,36 @@
   transition: background-color 180ms ease, border-radius 180ms ease;
   display:flex;
   flex-direction: column;
-  justify-content: space-between
+  height: clamp(18.5rem, calc(31.97vw - 1.25rem), 21.75rem);
+  justify-content: space-between;
+  padding: 76px 70px 56px;
+  position: relative;
+  text-align: center;
+  transition: background-color 180ms ease, border-radius 180ms ease;
 }
 
 .pillarCard:hover {
-  background: #f1ebe2;
+  background: #EFEFEF;
+  opacity: 1;
   border-radius: 0.7rem;
 }
 
-.pillarCard::after {
-  background: #d9d2cc;
-  content: "";
-  height: clamp(120px, 56%, 220px);
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 1px;
-}
-
-.pillarCard:last-child::after {
-  display: none;
-}
-
 .pillarCardHeader {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  justify-content: space-between;
+  gap: 38px;
 }
 
 .pillarIcon {
-  color: #3c1b0b;
-  flex: 0 0 auto;
-  font-size: 1.2rem;
-  line-height: 1;
+  display: block;
+  height: 1.625rem;
+  width: 1.625rem;
+  color:black;
 }
 
 .pillarCard h3 {
-  color: #3c1b0b;
+  color: black;
   font-family: var(--careers-heading-font);
   font-size: 1.75rem;
   font-weight: 400;
@@ -307,12 +294,13 @@
   font-size: 14px;
   letter-spacing: -0.02em;
   line-height: 1.35;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 17rem;
 }
 
 @media (min-width: 90rem) {
   .pillarCard {
-    padding: 28px;
+    padding: 76px 70px 56px;
   }
 }
 
@@ -496,7 +484,7 @@
 .page .peopleSection {
   display: grid;
   gap: clamp(1.5rem, 3vw, 2.5rem);
-  margin-top: var(--careers-section-gap);
+  margin-top: 250px;
   padding-top: 0;
 }
 
@@ -638,7 +626,7 @@
 
 .roleMeta {
   color: rgba(58, 31, 19, 0.6);
-  font-family: var(--ripe-font-mono);
+  font-family: var(--ripe-font-serif);
   font-size: 0.76rem;
   letter-spacing: 0.05em;
   margin: 0;
@@ -710,10 +698,14 @@
   }
 
   .pillarCard {
-    aspect-ratio: auto;
+    height: auto;
     min-height: 13rem;
     padding: 1.25rem;
     width: 100%;
+  }
+
+  .pillarCardHeader {
+    gap: 1rem;
   }
 
   .pillarCard h3 {
@@ -723,13 +715,9 @@
   .pillarCard p {
     font-size: 1rem;
     line-height: 1.45;
+    margin: 1.5rem auto 0;
     max-width: 42rem;
   }
-
-  .pillarCard::after {
-    display: none;
-  }
-
   .mosaicSection {
     grid-template-columns: 1fr;
   }

@@ -39,19 +39,15 @@ const filmstripMedia = [
 const pillars: Pillar[] = [
   {
     title: "Collective Progression",
-    body: "We are advancing the practice of design through careful consideration of how we work, create, and collaborate.",
-  },
-  {
-    title: "Collective Progression",
     body: "Individual brilliance matters, but shared knowledge transforms. We are building a community of creators who elevate each other.",
-  },
-  {
-    title: "Human Ambition",
-    body: "We believe in ambitious goals achieved through human centered approaches and support led growth.",
   },
   {
     title: "Strategic Craft",
     body: "A strategic deep dive for companies that need to define purpose, values, and brand narrative before building outward.",
+  },
+  {
+    title: "Human Ambition",
+    body: "We believe in ambitious goals achieved through human centered approaches and support led growth.",
   },
 ];
 
@@ -160,7 +156,12 @@ export default async function CareersPage() {
           {pillars.map((pillar, index) => (
             <article key={`${pillar.title}-${index}`} className={styles.pillarCard}>
               <div className={styles.pillarCardHeader}>
-                <span className={styles.pillarIcon}>*</span>
+                <img
+                  className={styles.pillarIcon}
+                  src="/careers-media/Icon (1).svg"
+                  alt=""
+                  aria-hidden="true"
+                />
                 <h3>{pillar.title}</h3>
               </div>
               <p>{pillar.body}</p>

@@ -120,7 +120,7 @@ export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
           <div className="join_us_content">
             <div className="w-layout-vflex content-wrap u-justify-left">
               <h1 className="heading u-maxwidth-800 u-size-32 u-align-left">Join Us</h1>
-              <div className="text u-text-primary">
+              <div className="text u-text-primary" style={{ fontSize: 16 }}>
                 All our roles are remote and flexible, keeping with our studio policy.
                 <br />
                 Aliqua quis magna eu ipsum consectetur. Esse cupidatat consectetur do sint esse aliquip.
