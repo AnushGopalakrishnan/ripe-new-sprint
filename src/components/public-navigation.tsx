@@ -272,11 +272,13 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
               onClick={openShowreelPlayer}
               type="button"
             >
-              <img alt="" className={styles.showreelPreview} src={generatedShowreelPreviewSrc} />
-              <span className={styles.showreelMeta}>
-                <span>{showreelTitle}</span>
-                <span>Play</span>
-              </span>
+              <div className={styles.showreelButtonInner}>
+                <img alt="" className={styles.showreelPreview} src={generatedShowreelPreviewSrc} />
+                <span className={styles.showreelMeta}>
+                  <span style={{"opacity":"0.5"}}>{showreelTitle}</span>
+                  <span>Play</span>
+                </span>
+              </div>
             </button>
           </div>
 

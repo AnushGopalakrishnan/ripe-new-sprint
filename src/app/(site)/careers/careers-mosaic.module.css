@@ -1,162 +1,359 @@
 .wrap {
+  --card-gap: clamp(0.65rem, 1vw, 0.9rem);
+  display: grid;
+  gap: var(--card-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0 auto;
-  max-width: 1560px;
-  padding: 0 16px;
+  max-width: 66rem;
+  padding: 0 clamp(0.75rem, 2vw, 1.5rem);
   width: 100%;
 }
 
-.gridTop {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.columnLeft,
-.columnCenter,
-.columnRight {
+.column {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--card-gap);
 }
 
 .card {
-  align-items: flex-end;
-  background: rgb(245, 245, 245);
-  border-radius: 1rem;
-  color: rgb(0, 0, 0);
-  display: flex;
+  border-radius: clamp(0.75rem, 1.2vw, 0.95rem);
+  box-sizing: border-box;
+  color: #171311;
   overflow: hidden;
-  padding: 1.5rem;
   position: relative;
 }
 
-.cardImage {
-  background: #1b1b1b;
-  color: rgb(255, 255, 255);
-}
-
-.cardText {
-  background: #f1ebe2;
-  color: rgb(0, 0, 0);
-}
-
-.cardImage::after {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.62) 100%);
-  content: "";
-  inset: 0;
-  position: absolute;
-  z-index: 1;
-}
-
-.card img {
-  border-radius: 1rem;
-  display: block;
-  height: 100%;
-  inset: 0;
-  object-fit: cover;
-  position: absolute;
-  width: 100%;
+.card h3,
+.card p {
+  margin: 0;
 }
 
 .card h3 {
-  color: inherit;
   font-family: "Times New Roman", Times, serif;
-  font-size: 1.75rem;
+  font-size: clamp(1.35rem, 2.05vw, 1.75rem);
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  margin: 0;
-  max-width: 12ch;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
   position: relative;
+  text-align: center;
   z-index: 2;
 }
 
-.cardAbout {
-  height: 360px;
+.card > p {
+  bottom: 1.75rem;
+  font-family: "Geist", var(--ripe-font-sans);
+  font-size: 0.78rem;
+  left: 1rem;
+  line-height: 1.2;
+  position: absolute;
+  right: 1rem;
+  text-align: center;
+  z-index: 2;
 }
 
-.cardTestimonial {
-  height: 490px;
+.card > img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
 }
 
-.cardImageTall {
-  height: 620px;
+.booksCard,
+.flexibleCard,
+.referralCard {
+  height: 20.5rem;
 }
 
-.cardServices,
-.cardClients {
-  height: 230px;
+.headspaceCard,
+.offsiteCard {
+  height: 27.75rem;
 }
 
-.gridBottom {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 1.5rem;
+.commissionCard,
+.homeOfficeCard {
+  height: 20.5rem;
 }
 
-.cardBlog {
-  aspect-ratio: 1.5583 / 1;
+.learningCard {
+  height: 12.75rem;
 }
 
-@media (max-width: 1199px) and (min-width: 810px) {
-  .gridTop {
-    grid-template-columns: 1fr;
+.weworkCard {
+  height: 35.5rem;
+}
+
+.booksCard h3,
+.weworkCard h3 {
+  color: #fff;
+  left: 1.25rem;
+  position: absolute;
+  right: 1.25rem;
+  top: 2rem;
+}
+
+.booksCard h3 {
+  left: 36%;
+  right: 8%;
+  text-align: left;
+  top: 10%;
+}
+
+.booksCard img {
+  object-position: 48% center;
+}
+
+.referralCard {
+  align-items: center;
+  background: #dca0f4;
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem;
+}
+
+.referralCard h3 {
+  max-width: 14ch;
+}
+
+.flexibleCard {
+  align-items: center;
+  background: #98ecef;
+  display: flex;
+  justify-content: center;
+  padding: 2.5rem;
+}
+
+.flexibleCard h3 {
+  max-width: 16ch;
+}
+
+.headspaceCard {
+  background: #ffcb05;
+}
+
+.headspaceCard img {
+  height: 100%;
+  object-fit: cover;
+}
+
+.headspaceCard h3 {
+  bottom: 3.9rem;
+  left: 1.5rem;
+  position: absolute;
+  right: 1.5rem;
+}
+
+.offsiteCard {
+  background: #277da7;
+}
+
+.offsiteCard img {
+  object-position: center center;
+}
+
+.offsiteCard h3 {
+  color: #fff;
+  left: 1rem;
+  position: absolute;
+  right: 1rem;
+  top: 54%;
+  transform: translateY(-50%);
+}
+
+.offsiteCard > p {
+  color: #fff;
+}
+
+.commissionCard {
+  align-items: center;
+  background: #ede7dd;
+  display: flex;
+  justify-content: center;
+  padding: 2.25rem;
+}
+
+.commissionCard h3 {
+  max-width: 18ch;
+}
+
+.learningCard {
+  background: #11801c;
+  color: #8aff91;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.learningCard > p {
+  bottom: auto;
+  color: #fff;
+  font-size: 0.75rem;
+  left: 1.15rem;
+  position: absolute;
+  right: auto;
+  text-align: left;
+  top: 1.15rem;
+}
+
+.learningCarousel {
+  overflow: hidden;
+  width: 100%;
+}
+
+.learningTrack {
+  animation: learningBanner 13s linear infinite;
+  display: flex;
+  width: max-content;
+}
+
+.learningLogoRow {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.learningLogoRow img {
+  display: block;
+  flex: 0 0 auto;
+  height: 4.65rem;
+  object-fit: contain;
+  width: auto;
+}
+
+.learningLogoRow .masterclassLogo {
+  width: 6.1rem;
+}
+
+.learningLogoRow .skillshareLogo {
+  width: 7.35rem;
+}
+
+.learningLogoRow .courseraLogo {
+  width: 5.25rem;
+}
+
+.weworkCard img {
+  object-position: center center;
+}
+
+.homeOfficeCard img {
+  object-position: center 52%;
+}
+
+.homeOfficeCard > p {
+  color: #fff;
+  text-align: right;
+}
+
+@keyframes learningBanner {
+  from {
+    transform: translateX(0);
   }
 
-  .columnLeft,
-  .columnCenter,
-  .columnRight {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .cardAbout,
-  .cardTestimonial,
-  .cardImageTall,
-  .cardServices,
-  .cardClients {
-    height: auto;
-    min-height: 387px;
+  to {
+    transform: translateX(-50%);
   }
 }
 
-@media (max-width: 809px) {
+@media (max-width: 64rem) {
   .wrap {
-    padding: 0 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 48rem;
   }
 
-  .gridTop {
+  .column {
+    display: contents;
+  }
+
+  .booksCard {
+    order: 1;
+  }
+
+  .flexibleCard {
+    order: 2;
+  }
+
+  .learningCard {
+    order: 3;
+  }
+
+  .referralCard {
+    order: 4;
+  }
+
+  .offsiteCard {
+    order: 5;
+  }
+
+  .weworkCard {
+    order: 6;
+  }
+
+  .headspaceCard {
+    order: 7;
+  }
+
+  .commissionCard {
+    order: 8;
+  }
+
+  .homeOfficeCard {
+    order: 9;
+  }
+
+  .booksCard,
+  .flexibleCard,
+  .referralCard,
+  .commissionCard,
+  .homeOfficeCard {
+    height: 22rem;
+  }
+
+  .learningCard {
+    height: 22rem;
+  }
+
+  .headspaceCard,
+  .offsiteCard,
+  .weworkCard {
+    height: 31rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .wrap {
     gap: 0.75rem;
     grid-template-columns: 1fr;
-  }
-
-  .columnLeft,
-  .columnCenter,
-  .columnRight {
-    gap: 0.75rem;
-  }
-
-  .gridBottom {
-    gap: 0.75rem;
-    grid-template-columns: 1fr;
-    margin-top: 0.75rem;
-  }
-
-  .cardAbout,
-  .cardTestimonial,
-  .cardImageTall,
-  .cardServices,
-  .cardClients {
-    height: 200px;
-  }
-
-  .card {
-    padding: 1.25rem;
+    padding: 0 0.75rem;
   }
 
   .card h3 {
-    font-size: 1.75rem;
+    font-size: clamp(1.55rem, 7vw, 2rem);
+  }
+
+  .booksCard,
+  .flexibleCard,
+  .referralCard,
+  .commissionCard,
+  .homeOfficeCard,
+  .learningCard {
+    height: 20.5rem;
+  }
+
+  .headspaceCard,
+  .offsiteCard,
+  .weworkCard {
+    height: 31rem;
+  }
+
+  .learningCard {
+    height: 13rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learningTrack {
+    animation-play-state: paused;
   }
 }
