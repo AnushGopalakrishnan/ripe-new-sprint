@@ -3,8 +3,8 @@
   --careers-section-gap: clamp(5rem, 8vw, 7.625rem);
   --careers-section-pad: clamp(1rem, 3vw, 2rem);
   --hero-content-max: 53.75rem;
-  background: #f3f3f3;
-  color: #3a1f13;
+  background: #fff;
+  color: #000;
   font-family: "Graphik", Arial, sans-serif;
   gap: 64px;
   overflow-x: clip;
