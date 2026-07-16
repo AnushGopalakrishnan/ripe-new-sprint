@@ -38,7 +38,7 @@ function LearningLogoRow({ duplicate = false }: { duplicate?: boolean }) {
 
 export default function CareersMosaic() {
   return (
-    <section className={styles.wrap} aria-label="Benefits of working at Ripe">
+    <div className={styles.wrap} aria-label="Benefits of working at Ripe">
       <div className={styles.column}>
         <article className={`${styles.card} ${styles.booksCard}`}>
           <img src="/careers-media/unsplash_JlNJEAUBa1E.png" alt="" />
@@ -113,6 +113,6 @@ export default function CareersMosaic() {
           <p>Home Office Allowances</p>
         </article>
       </div>
-    </section>
+    </div>
   );
 }
