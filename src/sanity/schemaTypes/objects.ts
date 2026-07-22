@@ -12,6 +12,23 @@ type MediaBlockValue = {
   longFormHlsUrl?: string;
 };
 
+const optionalCaseStudyMediaPaths = [
+  ["detailIntro", "media"],
+  ["detailCarouselPoster", "media"],
+  ["detailBlackFeature", "media"],
+  ["detailWideFeature", "media"],
+  ["detailCta", "media"],
+  ["testimonial", "avatar"],
+];
+
+function isOptionalCaseStudyMediaPath(path: unknown[] | undefined) {
+  if (!Array.isArray(path)) return false;
+
+  return optionalCaseStudyMediaPaths.some((optionalPath) =>
+    optionalPath.every((segment, index) => path[index] === segment),
+  );
+}
+
 function parseMediaPathname(src: string) {
   try {
     return new URL(src).pathname;
@@ -203,7 +220,11 @@ export const mediaType = defineType({
       name: "alt",
       title: "Alt Text",
       type: "string",
-      validation: (rule) => rule.required(),
+      validation: (rule) =>
+        rule.custom((value, context) => {
+          if (isOptionalCaseStudyMediaPath(context.path?.slice(0, -1))) return true;
+          return typeof value === "string" && value.trim().length > 0 ? true : "Required";
+        }),
     }),
     defineField({
       name: "eyebrow",
@@ -212,7 +233,9 @@ export const mediaType = defineType({
     }),
   ],
   validation: (rule) =>
-    rule.custom((value) => {
+    rule.custom((value, context) => {
+      if (isOptionalCaseStudyMediaPath(context.path)) return true;
+
       if (!value || typeof value !== "object") return true;
       const media = value as MediaBlockValue;
 

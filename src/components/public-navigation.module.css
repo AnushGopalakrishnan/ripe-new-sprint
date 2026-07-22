@@ -27,6 +27,12 @@
   width: auto;
 }
 
+.header:not([data-open="true"]) .headerLogo,
+.header:not([data-open="true"]) .burger {
+  color: #fff;
+  mix-blend-mode: difference;
+}
+
 .logoSvg {
   display: block;
   height: 100%;
