@@ -97,7 +97,10 @@ export default async function CareersPage() {
     <main className={styles.page}>
       <section className={styles.heroSection}>
         <div className={styles.heroTitleWrap}>
-          <h1>Hello! We&apos;re Zelvin, your agency in NYC with a focus on branding, purpose, and impactful websites.</h1>
+          <h1>
+            A brand design studio where everyone&apos;s success feels personal. We exist to support ambitious designers
+            and founders building brands worth believing in.
+          </h1>
         </div>
 
         <div className={styles.filmstripWrap} aria-label="Showcase strip">

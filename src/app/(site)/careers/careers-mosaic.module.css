@@ -42,8 +42,9 @@
 
 .card > p {
   bottom: 1.75rem;
-  font-family: "Geist", var(--ripe-font-sans);
+  font-family: "Graphik", Arial, sans-serif;
   font-size: 0.78rem;
+  font-weight: 400;
   left: 1rem;
   line-height: 1.2;
   position: absolute;
