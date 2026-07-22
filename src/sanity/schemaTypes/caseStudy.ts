@@ -4,6 +4,19 @@ import { ColorStringInput } from "@/sanity/components/color-string-input";
 const CELL_WIDTH_TOTAL_TOLERANCE = 0.5;
 
 type LayoutCellValue = { width?: number };
+type LayoutReferenceValue = { _ref?: string };
+type LayoutContentItemValue = { media?: { src?: string; image?: unknown; video?: unknown; upload?: unknown } };
+type LayoutEntryValue = {
+  layout?: LayoutReferenceValue;
+  content?: LayoutContentItemValue[];
+};
+type LayoutTemplateValue = {
+  rows?: Array<{
+    cells?: Array<{
+      rowSpan?: number;
+    }>;
+  }>;
+};
 
 function validateCellWidthTotal(value: unknown) {
   const cells = value as LayoutCellValue[] | undefined;
@@ -14,6 +27,70 @@ function validateCellWidthTotal(value: unknown) {
   const total = cells.reduce((sum, cell) => sum + (typeof cell.width === "number" ? cell.width : 0), 0);
   if (Math.abs(total - 100) <= CELL_WIDTH_TOTAL_TOLERANCE) return true;
   return `Cell widths must total 100%. Current total is ${total.toFixed(2)}%.`;
+}
+
+function countVisibleLayoutCells(rows: LayoutTemplateValue["rows"]) {
+  if (!Array.isArray(rows)) return 0;
+
+  const coveredSlots = new Set<string>();
+  let visibleCount = 0;
+
+  rows.forEach((row, rowIndex) => {
+    const cells = Array.isArray(row.cells) ? row.cells : [];
+    cells.forEach((cell, cellIndex) => {
+      const slotId = `${rowIndex}:${cellIndex}`;
+      if (coveredSlots.has(slotId)) return;
+
+      visibleCount += 1;
+      const rawSpan = typeof cell.rowSpan === "number" ? Math.floor(cell.rowSpan) : 1;
+      const maxSpan = Math.max(rows.length - rowIndex, 1);
+      const rowSpan = Math.max(1, Math.min(rawSpan || 1, maxSpan));
+      for (let offset = 1; offset < rowSpan; offset += 1) {
+        coveredSlots.add(`${rowIndex + offset}:${cellIndex}`);
+      }
+    });
+  });
+
+  return visibleCount;
+}
+
+function hasMediaValue(item: LayoutContentItemValue) {
+  const media = item.media;
+  return Boolean(media && (media.src || media.image || media.video || media.upload));
+}
+
+async function validateLayoutEntry(
+  value: unknown,
+  context: {
+    getClient?: (options: { apiVersion: string }) => {
+      fetch<T>(query: string, params: Record<string, string>): Promise<T>;
+    };
+  },
+) {
+  const entry = value as LayoutEntryValue | undefined;
+  const layoutRef = entry?.layout?._ref;
+  if (!layoutRef) return "Select a layout template.";
+
+  const content = Array.isArray(entry?.content) ? entry.content : [];
+  if (content.length === 0) return "Add media content for this layout.";
+
+  const emptyIndex = content.findIndex((item) => !hasMediaValue(item));
+  if (emptyIndex >= 0) return `Content item ${emptyIndex + 1} is missing media.`;
+
+  const client = context.getClient?.({ apiVersion: "2025-01-01" });
+  if (!client) return true;
+
+  const layout = await client.fetch<LayoutTemplateValue | null>(
+    `*[_type == "caseStudyLayout" && _id == $id][0]{rows[]{cells[]{rowSpan}}}`,
+    { id: layoutRef },
+  );
+  const expectedCount = countVisibleLayoutCells(layout?.rows);
+  if (expectedCount === 0) return "Selected layout template has no visible cells.";
+  if (content.length !== expectedCount) {
+    return `Content item count must match the selected layout's visible cells. Expected ${expectedCount}, got ${content.length}.`;
+  }
+
+  return true;
 }
 
 const placedCommentFields = [
@@ -45,17 +122,18 @@ const placedCommentFields = [
   }),
 ];
 
-const commentableMediaField = (name: string, title: string) =>
+const commentableMediaField = (name: string, title: string, hidden = false) =>
   defineField({
     name,
     title,
     type: "object",
+    ...(hidden ? { hidden: () => true } : {}),
     fields: [
       defineField({
         name: "media",
         title: "Media",
         type: "mediaBlock",
-        validation: (rule) => rule.required(),
+        ...(hidden ? {} : { validation: (rule) => rule.required() }),
       }),
       defineField({
         name: "comments",
@@ -297,6 +375,7 @@ export const caseStudyType = defineType({
           name: "detailLayoutEntry",
           title: "Layout Entry",
           type: "object",
+          validation: (rule) => rule.custom(validateLayoutEntry),
           fields: [
             defineField({
               name: "layout",
@@ -323,10 +402,11 @@ export const caseStudyType = defineType({
       ],
     }),
     commentableMediaField("detailHero", "Detail Hero Media"),
-    commentableMediaField("detailIntro", "Detail Intro Media"),
+    commentableMediaField("detailIntro", "Detail Intro Media", true),
     defineField({
       name: "detailCarouselSlides",
       title: "Detail Carousel Slides",
+      hidden: () => true,
       type: "array",
       of: [
         defineArrayMember({
@@ -357,13 +437,14 @@ export const caseStudyType = defineType({
         }),
       ],
     }),
-    commentableMediaField("detailCarouselPoster", "Detail Carousel Poster"),
-    commentableMediaField("detailBlackFeature", "Detail Black Feature Media"),
-    commentableMediaField("detailWideFeature", "Detail Wide Feature Media"),
-    commentableMediaField("detailCta", "Detail CTA Media"),
+    commentableMediaField("detailCarouselPoster", "Detail Carousel Poster", true),
+    commentableMediaField("detailBlackFeature", "Detail Black Feature Media", true),
+    commentableMediaField("detailWideFeature", "Detail Wide Feature Media", true),
+    commentableMediaField("detailCta", "Detail CTA Media", true),
     defineField({
       name: "detailMoreProjects",
       title: "Detail More Projects",
+      hidden: () => true,
       type: "array",
       of: [
         defineArrayMember({
@@ -432,11 +513,13 @@ export const caseStudyType = defineType({
     defineField({
       name: "accentColorText",
       title: "Accent Color Text",
+      hidden: () => true,
       type: "string",
     }),
     defineField({
       name: "theme",
       title: "Theme",
+      hidden: () => true,
       type: "string",
       options: {
         list: [
@@ -446,27 +529,30 @@ export const caseStudyType = defineType({
       },
     }),
     defineField({ name: "coverMedia", title: "Cover Media", type: "mediaBlock" }),
-    defineField({ name: "challenge", title: "Challenge", type: "text", rows: 4 }),
-    defineField({ name: "outcome", title: "Outcome", type: "text", rows: 4 }),
+    defineField({ name: "challenge", title: "Challenge", type: "text", rows: 4, hidden: () => true }),
+    defineField({ name: "outcome", title: "Outcome", type: "text", rows: 4, hidden: () => true }),
     defineField({
       name: "metrics",
       title: "Metrics",
+      hidden: () => true,
       type: "array",
       of: [defineArrayMember({ type: "metric" })],
     }),
     defineField({
       name: "sections",
       title: "Sections",
+      hidden: () => true,
       type: "array",
       of: [defineArrayMember({ type: "storySection" })],
     }),
     defineField({
       name: "testimonial",
       title: "Testimonial",
+      hidden: () => true,
       type: "testimonial",
     }),
-    defineField({ name: "publishedAt", title: "Published At", type: "datetime" }),
-    defineField({ name: "legacyItemId", title: "Legacy Item ID", type: "string" }),
+    defineField({ name: "publishedAt", title: "Published At", type: "datetime", hidden: () => true }),
+    defineField({ name: "legacyItemId", title: "Legacy Item ID", type: "string", hidden: () => true }),
     defineField({ name: "seo", title: "SEO", type: "seo" }),
   ],
 });
