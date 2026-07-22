@@ -418,6 +418,33 @@ for (const route of canonicalMirrorPages) {
   });
 }
 
+test("careers page keeps the approved hero and caption typography", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAppPage(page, "/careers");
+
+  const hero = page.getByRole("heading", { name: /^A brand design studio/ });
+  await expect(hero).toHaveText(
+    "A brand design studio where everyone's success feels personal. We exist to support ambitious designers and founders building brands worth believing in.",
+  );
+  await expect(hero).toHaveCSS("font-family", /Plantin MT Pro/);
+  await expect(hero).toHaveCSS("font-size", "36px");
+  await expect(hero).toHaveCSS("font-weight", "300");
+  await expect(hero).toHaveCSS("line-height", "48px");
+  await expect(hero).toHaveCSS("letter-spacing", "-0.16px");
+
+  const caption = page.getByText("Home Office Allowances", { exact: true });
+  await expect(caption).toHaveCSS("font-family", /Graphik/);
+  await expect(caption).toHaveCSS("font-weight", "400");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(hero).toHaveCSS("font-size", "36px");
+  await expect(hero).toHaveCSS("font-weight", "300");
+  await expect(hero).toHaveCSS("line-height", "48px");
+  await expect(hero).toHaveCSS("letter-spacing", "-0.16px");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test("canonical work route server-renders the final grid footprint", async ({ page }) => {
   await gotoAppPage(page, "/work");
   await page.waitForLoadState("networkidle");

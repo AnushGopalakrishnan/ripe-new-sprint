@@ -42,12 +42,13 @@
 }
 
 .heroTitleWrap h1 {
-  font-family: var(--careers-heading-font);
-  font-size: clamp(2rem, 3.53vw, 3rem);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.2083;
+  font-family: "Plantin MT Pro", "Times New Roman", serif;
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.16px;
+  line-height: 48px;
   margin: 0;
+  text-align: left;
 }
 
 .filmstripWrap {
@@ -649,11 +650,6 @@
     max-width: 100%;
   }
 
-  .heroTitleWrap h1 {
-    font-size: 2.375rem;
-    line-height: 1.263;
-  }
-
   .filmstripWrap {
     height: 23.9375rem;
   }
@@ -783,11 +779,6 @@
   .page > section.heroSection {
     gap: 2.5rem;
     padding-top: 6.25rem;
-  }
-
-  .heroTitleWrap h1 {
-    font-size: 2rem;
-    line-height: 1.3125;
   }
 
   .heroNotes {
