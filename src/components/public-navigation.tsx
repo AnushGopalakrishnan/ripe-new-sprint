@@ -52,6 +52,8 @@ type PublicNavigationProps = {
   socialLinks?: SocialLink[];
 };
 
+type NavTone = "dark" | "light";
+
 function normalizeLinks<T extends { label?: string; href?: string }>(links: T[] | undefined, fallback: T[]) {
   const usable = links?.filter((item) => item.label?.trim() && item.href?.trim()) ?? [];
   return usable.length ? usable : fallback;
@@ -61,11 +63,43 @@ function isExternalHref(href: string) {
   return /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(href) || href.startsWith("mailto:") || href.startsWith("tel:");
 }
 
+function parseRgbColor(color: string) {
+  if (!color || color === "transparent") return null;
+
+  const match = color.match(/rgba?\(([^)]+)\)/i);
+  if (!match) return null;
+
+  const channels = match[1].split(",").map((part) => part.trim());
+  const alpha = channels[3] === undefined ? 1 : Number.parseFloat(channels[3]);
+  if (alpha <= 0.05) return null;
+
+  const [r, g, b] = channels.slice(0, 3).map((channel) => Number.parseFloat(channel));
+  if (![r, g, b].every(Number.isFinite)) return null;
+
+  return { r, g, b };
+}
+
+function relativeLuminance({ r, g, b }: { r: number; g: number; b: number }) {
+  const [rs, gs, bs] = [r, g, b].map((channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function normalizeNavTone(value: string | null | undefined): NavTone | null {
+  if (value === "light" || value === "white") return "light";
+  if (value === "dark" || value === "black") return "dark";
+  return null;
+}
+
 export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, socialLinks }: PublicNavigationProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [playerOpen, setPlayerOpen] = useState(false);
+  const [navTone, setNavTone] = useState<NavTone>("dark");
   const closeTimerRef = useRef<number | null>(null);
   const previousPathnameRef = useRef(pathname);
   const showreelVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -164,6 +198,80 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
     return () => clearCloseTimer();
   }, [clearCloseTimer]);
 
+  useEffect(() => {
+    let animationFrame: number | null = null;
+
+    function toneFromBackgroundAt(x: number, y: number): NavTone {
+      const bodyTone = normalizeNavTone(document.body.dataset.workJournalTone);
+      if (bodyTone) return bodyTone;
+
+      const elements = document.elementsFromPoint(x, y);
+
+      for (const element of elements) {
+        if (!(element instanceof HTMLElement || element instanceof SVGElement)) continue;
+        if (element.closest(`.${styles.header}, .${styles.panel}`)) continue;
+
+        const explicitTone = normalizeNavTone(element.closest<HTMLElement>("[data-nav-tone]")?.dataset.navTone);
+        if (explicitTone) return explicitTone;
+
+        const mediaTone = normalizeNavTone(
+          element.closest<HTMLElement>("img[data-nav-tone], video[data-nav-tone], canvas[data-nav-tone]")?.dataset.navTone,
+        );
+        if (mediaTone) return mediaTone;
+
+        let current: Element | null = element;
+        while (current && current !== document.documentElement) {
+          if (current instanceof HTMLElement || current instanceof SVGElement) {
+            const background = parseRgbColor(window.getComputedStyle(current).backgroundColor);
+            if (background) return relativeLuminance(background) <= 0.45 ? "light" : "dark";
+          }
+          current = current.parentElement;
+        }
+      }
+
+      const bodyBackground = parseRgbColor(window.getComputedStyle(document.body).backgroundColor);
+      if (bodyBackground) return relativeLuminance(bodyBackground) <= 0.45 ? "light" : "dark";
+
+      return "dark";
+    }
+
+    function updateTone() {
+      animationFrame = null;
+
+      const logo = document.querySelector<HTMLElement>(`.${styles.headerLogo}`);
+      const rect = logo?.getBoundingClientRect();
+      const x = rect ? rect.left + rect.width / 2 : 54;
+      const y = rect ? rect.top + rect.height / 2 : 38;
+      const nextTone = toneFromBackgroundAt(x, y);
+
+      setNavTone((current) => (current === nextTone ? current : nextTone));
+    }
+
+    function scheduleUpdate() {
+      if (animationFrame !== null) return;
+      animationFrame = window.requestAnimationFrame(updateTone);
+    }
+
+    scheduleUpdate();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    const observer = new MutationObserver(scheduleUpdate);
+    observer.observe(document.body, {
+      attributeFilter: ["class", "data-work-journal-tone"],
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      observer.disconnect();
+    };
+  }, [pathname]);
+
   useLayoutEffect(() => {
     if (!playerOpen || !showreelPlayerRef.current) return;
 
@@ -193,7 +301,7 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
   return (
     <>
-      <header className={styles.header} data-open={active ? "true" : "false"}>
+      <header className={styles.header} data-open={active ? "true" : "false"} data-tone={navTone}>
         <div className={styles.headerInner}>
           <Link aria-label="Ripe Studios home" className={styles.headerLogo} href="/" onClick={closeNavigation}>
             <RipeLogo />
