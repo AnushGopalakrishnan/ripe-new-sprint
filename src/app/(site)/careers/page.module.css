@@ -30,14 +30,12 @@
 }
 
 .page[data-text-motion="ready"] :global([data-careers-reveal]) {
-  filter: blur(3px);
   opacity: 0;
   transition:
     opacity 520ms cubic-bezier(0.22, 1, 0.36, 1),
-    translate 680ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 520ms ease;
+    translate 680ms cubic-bezier(0.22, 1, 0.36, 1);
   translate: 0 0.75rem;
-  will-change: opacity, translate, filter;
+  will-change: opacity, translate;
 }
 
 .page[data-text-motion="ready"] :global([data-careers-reveal-delay="1"]) {
@@ -49,7 +47,6 @@
 }
 
 .page[data-text-motion="ready"] :global([data-careers-reveal][data-revealed="true"]) {
-  filter: blur(0);
   opacity: var(--careers-reveal-opacity, 1);
   translate: 0 0;
   will-change: auto;
@@ -817,7 +814,10 @@
 
 @media (max-width: 48rem) {
   .page {
-    padding-top: 1rem;
+    --careers-heading-size: 1.25rem;
+    --careers-inline-gutter: 2rem;
+    --careers-visual-section-gap: 8rem;
+    padding: 8rem 0;
   }
 
   .foundersRow {
@@ -833,12 +833,16 @@
   }
 
   .founderCard h3 {
-    font-size: var(--careers-card-heading-size);
+    font-size: 1.25rem;
   }
 
   .pillarCard {
-    min-height: 11.5rem;
+    min-height: 13rem;
     padding: 1rem;
+  }
+
+  .pillarsGrid {
+    gap: 2rem;
   }
 
   .pillarCard h3 {
@@ -846,16 +850,20 @@
   }
 
   .pillarCard p {
-    font-size: 1.25rem;
+    font-size: 0.875rem;
   }
 
   .page > section.heroSection {
     gap: var(--careers-visual-section-gap);
-    padding-top: 6.25rem;
+    padding-top: 0;
   }
 
   .heroNotes {
     gap: 1.875rem;
+  }
+
+  .trustRow {
+    align-items: flex-start;
   }
 
   .pillarsStatement {
@@ -887,7 +895,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .page[data-text-motion="ready"] :global([data-careers-reveal]) {
-    filter: none;
     opacity: var(--careers-reveal-opacity, 1);
     transition: none;
     translate: none;

@@ -85,6 +85,17 @@
   height: 35.5rem;
 }
 
+@media (min-width: 64rem) {
+  .headspaceCard,
+  .offsiteCard {
+    height: clamp(32rem, 49.5vw, 47rem);
+  }
+
+  .weworkCard {
+    height: clamp(39.75rem, calc(49.5vw + 7.75rem), 54.75rem);
+  }
+}
+
 .booksCard h3,
 .weworkCard h3 {
   color: #fff !important;
@@ -95,10 +106,10 @@
 }
 
 .booksCard h3 {
-  left: 36%;
-  right: 8%;
-  text-align: left;
-  top: 10%;
+  left: 1.25rem;
+  right: 1.25rem;
+  text-align: right;
+  top: 2rem;
 }
 
 .booksCard img {
@@ -201,6 +212,7 @@
 
 .learningCarousel {
   overflow: hidden;
+  translate: 0 0.75rem;
   width: 100%;
 }
 
@@ -214,28 +226,28 @@
   align-items: center;
   display: flex;
   flex: 0 0 auto;
-  gap: 2.5rem;
-  padding-right: 2.5rem;
+  gap: 3.125rem;
+  padding-right: 3.125rem;
 }
 
 .learningLogoRow img {
   display: block;
   flex: 0 0 auto;
-  height: 4.65rem;
+  height: 3.72rem;
   object-fit: contain;
   width: auto;
 }
 
 .learningLogoRow .masterclassLogo {
-  width: 6.1rem;
+  width: 4.88rem;
 }
 
 .learningLogoRow .skillshareLogo {
-  width: 7.35rem;
+  width: 5.88rem;
 }
 
 .learningLogoRow .courseraLogo {
-  width: 5.25rem;
+  width: 4.2rem;
 }
 
 .weworkCard img {
@@ -265,7 +277,7 @@
   .booksCard h3 {
     left: 1rem;
     right: 1rem;
-    text-align: center;
+    text-align: right;
   }
 }
 

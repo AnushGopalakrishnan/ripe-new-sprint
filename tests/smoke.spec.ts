@@ -427,7 +427,7 @@ test("careers page keeps the approved hero and caption typography", async ({ pag
     "A brand design studio where everyone's success feels personal. We exist to support ambitious designers and founders building brands worth believing in.",
   );
   await expect(hero).toHaveCSS("font-family", /Plantin MT Pro/);
-  await expect(hero).toHaveCSS("font-size", "36px");
+  await expect(hero).toHaveCSS("font-size", "20px");
   await expect(hero).toHaveCSS("font-weight", "300");
   const mobileHeroType = await hero.evaluate((element) => {
     const styles = getComputedStyle(element);
@@ -436,8 +436,8 @@ test("careers page keeps the approved hero and caption typography", async ({ pag
       lineHeight: Number.parseFloat(styles.lineHeight),
     };
   });
-  expect(mobileHeroType.lineHeight).toBeCloseTo(48, 2);
-  expect(mobileHeroType.letterSpacing).toBeCloseTo(-0.16, 2);
+  expect(mobileHeroType.lineHeight).toBeCloseTo(26.666, 2);
+  expect(mobileHeroType.letterSpacing).toBeCloseTo(-0.088, 2);
 
   const caption = page.getByText("Home Office Allowances", { exact: true });
   await expect(caption).toHaveCSS("font-family", /Graphik/);
