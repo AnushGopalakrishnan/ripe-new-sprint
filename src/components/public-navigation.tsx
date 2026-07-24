@@ -94,6 +94,10 @@ function normalizeNavTone(value: string | null | undefined): NavTone | null {
   return null;
 }
 
+function toneFromRgb(r: number, g: number, b: number): NavTone {
+  return relativeLuminance({ r, g, b }) <= 0.45 ? "light" : "dark";
+}
+
 export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, socialLinks }: PublicNavigationProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -200,11 +204,78 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
   useEffect(() => {
     let animationFrame: number | null = null;
+    const settledUpdateTimers = new Set<number>();
+    const sampleCanvas = document.createElement("canvas");
+    sampleCanvas.width = 1;
+    sampleCanvas.height = 1;
+    const sampleContext = sampleCanvas.getContext("2d", { willReadFrequently: true });
 
-    function toneFromBackgroundAt(x: number, y: number): NavTone {
-      const bodyTone = normalizeNavTone(document.body.dataset.workJournalTone);
-      if (bodyTone) return bodyTone;
+    function toneFromMediaPixel(element: Element, x: number, y: number): NavTone | null {
+      if (!sampleContext) return null;
+      const media = element.closest("img, video, canvas");
+      if (!(media instanceof HTMLImageElement || media instanceof HTMLVideoElement || media instanceof HTMLCanvasElement)) {
+        return null;
+      }
 
+      const rect = media.getBoundingClientRect();
+      if (!rect.width || !rect.height) return null;
+
+      const sampleX = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+      const sampleY = Math.max(0, Math.min(1, (y - rect.top) / rect.height));
+
+      try {
+        sampleContext.clearRect(0, 0, 1, 1);
+
+        if (media instanceof HTMLImageElement) {
+          if (!media.complete || !media.naturalWidth || !media.naturalHeight) return null;
+          sampleContext.drawImage(
+            media,
+            Math.floor(sampleX * media.naturalWidth),
+            Math.floor(sampleY * media.naturalHeight),
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+          );
+        } else if (media instanceof HTMLVideoElement) {
+          if (media.readyState < 2 || !media.videoWidth || !media.videoHeight) return null;
+          sampleContext.drawImage(
+            media,
+            Math.floor(sampleX * media.videoWidth),
+            Math.floor(sampleY * media.videoHeight),
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+          );
+        } else {
+          if (!media.width || !media.height) return null;
+          sampleContext.drawImage(
+            media,
+            Math.floor(sampleX * media.width),
+            Math.floor(sampleY * media.height),
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+          );
+        }
+
+        const [r, g, b, alpha] = sampleContext.getImageData(0, 0, 1, 1).data;
+        if (alpha <= 12) return null;
+        return toneFromRgb(r, g, b);
+      } catch {
+        return null;
+      }
+    }
+
+    function toneFromBackgroundAt(x: number, y: number): NavTone | null {
       const elements = document.elementsFromPoint(x, y);
 
       for (const element of elements) {
@@ -219,20 +290,36 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
         );
         if (mediaTone) return mediaTone;
 
+        const pixelTone = toneFromMediaPixel(element, x, y);
+        if (pixelTone) return pixelTone;
+
         let current: Element | null = element;
         while (current && current !== document.documentElement) {
           if (current instanceof HTMLElement || current instanceof SVGElement) {
             const background = parseRgbColor(window.getComputedStyle(current).backgroundColor);
-            if (background) return relativeLuminance(background) <= 0.45 ? "light" : "dark";
+            if (background) return toneFromRgb(background.r, background.g, background.b);
           }
           current = current.parentElement;
         }
       }
 
       const bodyBackground = parseRgbColor(window.getComputedStyle(document.body).backgroundColor);
-      if (bodyBackground) return relativeLuminance(bodyBackground) <= 0.45 ? "light" : "dark";
+      if (bodyBackground) return toneFromRgb(bodyBackground.r, bodyBackground.g, bodyBackground.b);
 
-      return "dark";
+      return null;
+    }
+
+    function toneFromLogoBounds(rect: DOMRect | null | undefined): NavTone {
+      const bodyTone = normalizeNavTone(document.body.dataset.workJournalTone);
+      if (bodyTone) return bodyTone;
+
+      if (!rect) return toneFromBackgroundAt(54, 38) ?? "dark";
+
+      const y = rect.top + rect.height / 2;
+      const sampleX = [0.12, 0.32, 0.5, 0.68, 0.88].map((ratio) => rect.left + rect.width * ratio);
+      const tones = sampleX.map((x) => toneFromBackgroundAt(x, y)).filter((tone): tone is NavTone => tone !== null);
+
+      return tones.includes("light") ? "light" : tones[0] ?? "dark";
     }
 
     function updateTone() {
@@ -240,9 +327,7 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
       const logo = document.querySelector<HTMLElement>(`.${styles.headerLogo}`);
       const rect = logo?.getBoundingClientRect();
-      const x = rect ? rect.left + rect.width / 2 : 54;
-      const y = rect ? rect.top + rect.height / 2 : 38;
-      const nextTone = toneFromBackgroundAt(x, y);
+      const nextTone = toneFromLogoBounds(rect);
 
       setNavTone((current) => (current === nextTone ? current : nextTone));
     }
@@ -252,9 +337,26 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
       animationFrame = window.requestAnimationFrame(updateTone);
     }
 
-    scheduleUpdate();
+    function scheduleSettledUpdates() {
+      scheduleUpdate();
+      for (const delay of [120, 360, 900]) {
+        const timer = window.setTimeout(() => {
+          settledUpdateTimers.delete(timer);
+          scheduleUpdate();
+        }, delay);
+        settledUpdateTimers.add(timer);
+      }
+    }
+
+    scheduleSettledUpdates();
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("load", scheduleSettledUpdates);
+    document.addEventListener("load", scheduleUpdate, true);
+    document.addEventListener("error", scheduleUpdate, true);
+    document.addEventListener("loadedmetadata", scheduleUpdate, true);
+    document.addEventListener("loadeddata", scheduleUpdate, true);
+    document.addEventListener("canplay", scheduleUpdate, true);
 
     const observer = new MutationObserver(scheduleUpdate);
     observer.observe(document.body, {
@@ -266,8 +368,15 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
     return () => {
       if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+      for (const timer of settledUpdateTimers) window.clearTimeout(timer);
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("load", scheduleSettledUpdates);
+      document.removeEventListener("load", scheduleUpdate, true);
+      document.removeEventListener("error", scheduleUpdate, true);
+      document.removeEventListener("loadedmetadata", scheduleUpdate, true);
+      document.removeEventListener("loadeddata", scheduleUpdate, true);
+      document.removeEventListener("canplay", scheduleUpdate, true);
       observer.disconnect();
     };
   }, [pathname]);

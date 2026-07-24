@@ -542,6 +542,7 @@
 .formaMoreHeader a {
   align-items: center;
   border: 1px solid currentColor;
+  box-sizing: border-box;
   display: inline-flex;
   font-size: 14px;
   font-weight: 400;
@@ -549,6 +550,7 @@
   height: 36px;
   justify-content: center;
   min-width: 119px;
+  padding: 0 16px;
 }
 
 .formaProjectGrid {
