@@ -23,14 +23,26 @@
   display: flex;
   height: 26px;
   pointer-events: auto;
-  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transition:
+    color 220ms ease,
+    opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
   width: auto;
 }
 
 .header:not([data-open="true"]) .headerLogo,
 .header:not([data-open="true"]) .burger {
+  mix-blend-mode: normal;
+}
+
+.header:not([data-open="true"])[data-tone="light"] .headerLogo,
+.header:not([data-open="true"])[data-tone="light"] .burger {
   color: #fff;
-  mix-blend-mode: difference;
+}
+
+.header:not([data-open="true"])[data-tone="dark"] .headerLogo,
+.header:not([data-open="true"])[data-tone="dark"] .burger,
+.header[data-open="true"] .headerLogo {
+  color: #000;
 }
 
 .logoSvg {
@@ -54,7 +66,9 @@
   height: 10px;
   opacity: 1;
   position: relative;
-  transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transition:
+    color 220ms ease,
+    opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
   width: 50px;
 }
 

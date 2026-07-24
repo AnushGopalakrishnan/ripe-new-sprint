@@ -64,6 +64,7 @@
 - Follow-up on 2026-06-18: the public navigation showreel modal now uses the shared `CaseStudyLongFormPlayer` and `detail-page.module.css` player styling instead of a native `<video controls>` element, while still sourcing the video URL from `siteSettings.navigationShowreel.video`.
 - Fix on 2026-06-18: `CaseStudyLongFormPlayer` now renders native `<video>` for non-HLS sources and keeps `<hls-video>` only for `.m3u8` streams. This preserves the case-study controls/UI while allowing the CMS showreel MP4 to load and play audio normally; the detail player CSS targets both `hls-video` and `video` children.
 - Follow-up on 2026-06-18: public navigation text now uses Times New Roman, and opening the showreel player uses GSAP Flip from the bottom-left showreel tile into the modal player shell. Reduced-motion users skip the Flip transform and get the final modal state.
+- Update on 2026-07-23: public navigation no longer relies on `mix-blend-mode` for logo/burger contrast. `PublicNavigation` computes `data-tone="dark|light"` from the work-journal theme, explicit `data-nav-tone` markers, or the computed background under the fixed logo. Use `data-nav-tone="light"` on dark/media sections that need white nav chrome and `data-nav-tone="dark"` on light sections that need black. Case-study detail sticky hero media wrappers are marked `data-nav-tone="light"`, while the following info/layout wrappers are marked `data-nav-tone="dark"` so the header returns to black over white content.
 
 ### Current Focus / Archive Organization
 
@@ -529,6 +530,7 @@
 - Site settings select the latest updated `siteSettings` document and merge partial CMS values with fallbacks.
 - Local Studio can be sensitive to CORS and auth state; verify current config before assuming `/studio` is usable everywhere.
 - Case Study Studio validation: hidden/deprecated media fields (`detailIntro`, carousel poster, black/wide feature, CTA, testimonial avatar) are intentionally optional and should not block publishing with nested `mediaBlock.alt` or missing-media errors. Visible/current media fields should keep normal validation.
+- If a newly published case study is missing from `/case-studies`, first check Sanity published perspective, then trigger `/api/revalidate` for `_type: "caseStudy"` if the published query includes it. On 2026-07-23, GSB was published and query-visible but the production list needed manual revalidation; after revalidating `/case-studies` and `/case-studies/gsb`, live HTML included `GSB`.
 
 ## Deployment
 

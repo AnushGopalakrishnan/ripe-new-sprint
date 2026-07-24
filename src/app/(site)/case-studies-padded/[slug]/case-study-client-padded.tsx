@@ -763,7 +763,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
   return (
     <main className={styles.formaPage} style={pageStyle}>
       <section className={styles.formaHeroStage} ref={heroStageRef} data-case-hero-stage>
-        <div className={styles.formaHeroStageSticky}>
+        <div className={styles.formaHeroStageSticky} data-nav-tone="light">
           <section className={styles.formaHero} data-case-hero>
             <CommentableMedia
               sectionId="hero"
@@ -782,7 +782,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
           </section>
         </div>
 
-        <section className={styles.formaInfoStage}>
+        <section className={styles.formaInfoStage} data-nav-tone="dark">
           <section className={styles.formaInfo} aria-label="Project information" data-case-info>
             <div className={styles.formaFacts}>
               <FormaFact label="Brand">{reference.brand}</FormaFact>
@@ -797,7 +797,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
             )}
           </section>
         </section>
-        <div className={styles.formaHeroStageContent}>
+        <div className={styles.formaHeroStageContent} data-nav-tone="dark">
           {hasFlexibleLayouts ? (
             <section className={styles.formaFlexibleLayouts} aria-label="Case study layouts">
               {reference.layouts.map((layout) => {
