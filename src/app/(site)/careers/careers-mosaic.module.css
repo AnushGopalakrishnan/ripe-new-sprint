@@ -30,11 +30,11 @@
 }
 
 .card h3 {
-  font-family: "Times New Roman", Times, serif;
-  font-size: clamp(1.35rem, 2.05vw, 1.75rem);
-  font-weight: 400;
-  letter-spacing: -0.025em;
-  line-height: 0.98;
+  font-family: var(--ripe-font-serif);
+  font-size: var(--careers-card-heading-size);
+  font-weight: 300;
+  letter-spacing: var(--careers-card-heading-letter-spacing);
+  line-height: var(--careers-card-heading-line-height);
   position: relative;
   text-align: center;
   z-index: 2;
@@ -43,10 +43,11 @@
 .card > p {
   bottom: 1.75rem;
   font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.78rem;
+  font-size: var(--careers-label-size);
   font-weight: 400;
   left: 1rem;
-  line-height: 1.2;
+  letter-spacing: var(--careers-label-letter-spacing);
+  line-height: var(--careers-label-line-height);
   position: absolute;
   right: 1rem;
   text-align: center;
@@ -86,7 +87,7 @@
 
 .booksCard h3,
 .weworkCard h3 {
-  color: #fff;
+  color: #fff !important;
   left: 1.25rem;
   position: absolute;
   right: 1.25rem;
@@ -109,11 +110,12 @@
   background: #dca0f4;
   display: flex;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 2.5rem 2rem;
 }
 
 .referralCard h3 {
-  max-width: 14ch;
+  max-width: none;
+  width: 100%;
 }
 
 .flexibleCard {
@@ -121,11 +123,12 @@
   background: #98ecef;
   display: flex;
   justify-content: center;
-  padding: 2.5rem;
+  padding: 2.5rem 2rem;
 }
 
 .flexibleCard h3 {
-  max-width: 16ch;
+  max-width: none;
+  width: 100%;
 }
 
 .headspaceCard {
@@ -153,16 +156,16 @@
 }
 
 .offsiteCard h3 {
-  color: #fff;
-  left: 1rem;
+  color: #fff !important;
+  left: 2rem;
   position: absolute;
-  right: 1rem;
+  right: 2rem;
   top: 54%;
   transform: translateY(-50%);
 }
 
 .offsiteCard > p {
-  color: #fff;
+  color: #fff !important;
 }
 
 .commissionCard {
@@ -170,11 +173,12 @@
   background: #ede7dd;
   display: flex;
   justify-content: center;
-  padding: 2.25rem;
+  padding: 2.25rem 2rem;
 }
 
 .commissionCard h3 {
-  max-width: 18ch;
+  max-width: none;
+  width: 100%;
 }
 
 .learningCard {
@@ -187,8 +191,7 @@
 
 .learningCard > p {
   bottom: auto;
-  color: #fff;
-  font-size: 0.75rem;
+  color: #fff !important;
   left: 1.15rem;
   position: absolute;
   right: auto;
@@ -244,7 +247,7 @@
 }
 
 .homeOfficeCard > p {
-  color: #fff;
+  color: #fff !important;
   text-align: right;
 }
 
@@ -336,7 +339,7 @@
   }
 
   .card h3 {
-    font-size: clamp(1.55rem, 7vw, 2rem);
+    font-size: var(--careers-card-heading-size);
   }
 
   .booksCard,

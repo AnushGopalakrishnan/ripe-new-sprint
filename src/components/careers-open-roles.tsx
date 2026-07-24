@@ -119,8 +119,8 @@ export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
         <div className="join_us">
           <div className="join_us_content">
             <div className="w-layout-vflex content-wrap u-justify-left">
-              <h1 className="heading u-maxwidth-800 u-size-32 u-align-left">Join Us</h1>
-              <div className="text u-text-primary" style={{ fontSize: 16 }}>
+              <h1 className="heading u-maxwidth-800 u-size-32 u-align-left" data-careers-reveal>Join Us</h1>
+              <div className="text u-text-primary" data-careers-reveal data-careers-reveal-delay="1">
                 All our roles are remote and flexible, keeping with our studio policy.
                 <br />
                 Aliqua quis magna eu ipsum consectetur. Esse cupidatat consectetur do sint esse aliquip.
@@ -151,10 +151,10 @@ export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
 
             <div className="w-layout-vflex content-wrap u-justify-left u-width-full">
               <div className="w-layout-hflex content-wrap u-width-full u-align-top">
-                <h1 className="heading u-maxwidth-800 u-size-32 u-align-left">Open Roles</h1>
+                <h1 className="heading u-maxwidth-800 u-size-32 u-align-left" data-careers-reveal>Open Roles</h1>
               </div>
 
-              <div data-type="all" data-directional-hover="" className={`jobs-list-wrapper w-dyn-list ${teamStyles.directionalWrap}`}>
+              <div data-type="all" data-directional-hover="" data-careers-reveal data-careers-reveal-delay="1" className={`jobs-list-wrapper w-dyn-list ${teamStyles.directionalWrap}`}>
                 <div role="list" className="jobs-list w-dyn-items">
                   {roles.map((role) => (
                     <DirectionalRoleItem key={`${role.title}-${role.location}-${role.contractType}`} role={role} />

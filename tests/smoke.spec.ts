@@ -429,8 +429,15 @@ test("careers page keeps the approved hero and caption typography", async ({ pag
   await expect(hero).toHaveCSS("font-family", /Plantin MT Pro/);
   await expect(hero).toHaveCSS("font-size", "36px");
   await expect(hero).toHaveCSS("font-weight", "300");
-  await expect(hero).toHaveCSS("line-height", "48px");
-  await expect(hero).toHaveCSS("letter-spacing", "-0.16px");
+  const mobileHeroType = await hero.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      letterSpacing: Number.parseFloat(styles.letterSpacing),
+      lineHeight: Number.parseFloat(styles.lineHeight),
+    };
+  });
+  expect(mobileHeroType.lineHeight).toBeCloseTo(48, 2);
+  expect(mobileHeroType.letterSpacing).toBeCloseTo(-0.16, 2);
 
   const caption = page.getByText("Home Office Allowances", { exact: true });
   await expect(caption).toHaveCSS("font-family", /Graphik/);
@@ -440,9 +447,127 @@ test("careers page keeps the approved hero and caption typography", async ({ pag
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(hero).toHaveCSS("font-size", "36px");
   await expect(hero).toHaveCSS("font-weight", "300");
-  await expect(hero).toHaveCSS("line-height", "48px");
-  await expect(hero).toHaveCSS("letter-spacing", "-0.16px");
+  const desktopHeroType = await hero.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      letterSpacing: Number.parseFloat(styles.letterSpacing),
+      lineHeight: Number.parseFloat(styles.lineHeight),
+    };
+  });
+  expect(desktopHeroType.lineHeight).toBeCloseTo(48, 2);
+  expect(desktopHeroType.letterSpacing).toBeCloseTo(-0.16, 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("careers page preserves the approved spacing, typography, contrast, and reveal behavior", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoAppPage(page, "/careers");
+
+  const layout = await page.evaluate(() => {
+    const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+    const title = rect('[class*="heroTitleWrap"]');
+    const strip = rect('[class*="filmstripWrap"]');
+    const notes = rect('[class*="heroNotes"]');
+    const pillars = rect('[class*="pillarsSection"]');
+    const pillarGrid = rect('[class*="pillarsGrid"]');
+    const benefits = rect('[class*="mosaicSection"]');
+    const people = rect('[class*="peopleSection"]');
+    const founders = rect('[class*="foundersRow"]');
+    const groupPhoto = rect('[class*="groupPhoto"]');
+    const roles = rect('[class*="peopleSection"] > .join_us-section');
+    const statement = rect('[class*="pillarsStatement"]');
+    const benefitsGrid = rect('[class*="mosaicSection"] > [class*="wrap"]');
+
+    if (
+      !title ||
+      !strip ||
+      !notes ||
+      !pillars ||
+      !pillarGrid ||
+      !benefits ||
+      !people ||
+      !founders ||
+      !groupPhoto ||
+      !roles ||
+      !statement ||
+      !benefitsGrid
+    ) {
+      return null;
+    }
+
+    return {
+      majorGaps: [
+        strip.top - title.bottom,
+        notes.top - strip.bottom,
+        pillars.top - notes.bottom,
+        benefits.top - pillarGrid.bottom,
+        people.top - benefits.bottom,
+      ],
+      internalGaps: [
+        benefitsGrid.top - statement.bottom,
+        groupPhoto.top - founders.bottom,
+        roles.top - groupPhoto.bottom,
+      ],
+      statementRatio: statement.width / benefits.width,
+    };
+  });
+
+  expect(layout).not.toBeNull();
+  expect(layout?.majorGaps).toEqual([256, 256, 256, 256, 256]);
+  expect(layout?.internalGaps).toEqual([128, 128, 128]);
+  expect(layout?.statementRatio).toBeCloseTo(0.7, 4);
+
+  const displayHeadings = [
+    page.getByRole("heading", { name: "Our mission" }),
+    page.getByRole("heading", { name: "The pillars that Ripe is built on" }),
+    page.getByRole("heading", { name: "Collective Progression" }),
+    page.getByText(/^Work thrives when people do\./),
+    page.getByRole("heading", { name: "Join Us" }),
+  ];
+  for (const heading of displayHeadings) {
+    await expect(heading).toHaveCSS("font-size", "36px");
+    await expect(heading).toHaveCSS("font-weight", "300");
+    await expect(heading).toHaveCSS("line-height", "43.2px");
+    await expect(heading).toHaveCSS("letter-spacing", "-0.72px");
+  }
+
+  const cta = page.getByRole("link", { name: "Get In Touch" });
+  await expect(cta).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(page.getByRole("heading", { name: "WeWork Passes" })).toHaveCSS(
+    "color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(page.getByRole("heading", { name: /Work when you want/ })).toHaveCSS(
+    "color",
+    "rgb(0, 0, 0)",
+  );
+
+  const statement = page.getByText(/^Work thrives when people do\./);
+  const trustLogos = page.locator('[class*="avatarStack"]');
+  await expect(page.locator("[data-careers-page]")).toHaveAttribute("data-text-motion", "ready");
+  await expect(statement).not.toHaveAttribute("data-revealed", "true");
+  await expect(statement).toHaveCSS("opacity", "0");
+  await expect(trustLogos).toHaveAttribute("data-visible", "false");
+  await expect(trustLogos.locator("img").first()).toHaveCSS("opacity", "0");
+
+  await statement.scrollIntoViewIfNeeded();
+  await expect(statement).toHaveAttribute("data-revealed", "true");
+
+  await trustLogos.scrollIntoViewIfNeeded();
+  await expect(trustLogos).toHaveAttribute("data-visible", "true");
+
+  const pillarDescription = page.getByText(/^Individual brilliance matters/);
+  await pillarDescription.scrollIntoViewIfNeeded();
+  await expect(pillarDescription).toHaveCSS("opacity", "0.5");
+  await pillarDescription.locator("..").hover();
+  await expect(pillarDescription).toHaveCSS("opacity", "1");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const reducedMotionStatement = page.getByText(/^Work thrives when people do\./);
+  await expect(reducedMotionStatement).toHaveCSS("opacity", "1");
+  await expect(reducedMotionStatement).toHaveCSS("transition-duration", "0s");
+  await expect(page.locator('[class*="avatarStack"] img').first()).toHaveCSS("opacity", "1");
 });
 
 test("canonical work route server-renders the final grid footprint", async ({ page }) => {
