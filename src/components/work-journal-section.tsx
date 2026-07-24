@@ -146,6 +146,7 @@ function LazyVideo({
       <video
         className={`${className} ${styles.videoImage}`}
         src={shouldLoad ? src : undefined}
+        crossOrigin="anonymous"
         autoPlay
         loop
         muted
@@ -873,6 +874,7 @@ export function WorkJournalSection({
                   loading={index < 4 ? "eager" : "lazy"}
                   fetchPriority={index < 4 ? "high" : "auto"}
                   sizes={workCardImageSizes}
+                  crossOrigin="anonymous"
                 />
               )}
               <div
@@ -928,6 +930,7 @@ export function WorkJournalSection({
                     className={styles.listPreviewImage}
                     src={itemMediaSource(previewItem)}
                     alt=""
+                    crossOrigin="anonymous"
                     loading={previewIndex < 4 ? "eager" : "lazy"}
                     fetchPriority={previewIndex < 4 ? "high" : "auto"}
                   />

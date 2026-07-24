@@ -434,6 +434,7 @@ function CommentableMedia({
         playsInline
         preload={priority ? "auto" : "metadata"}
         poster={media.poster}
+        crossOrigin="anonymous"
         onLoadedMetadata={updateFrame}
       >
         <source src={media.src} type={media.src.includes("m3u8") ? "application/vnd.apple.mpegurl" : undefined} />
@@ -445,6 +446,7 @@ function CommentableMedia({
         alt={media.alt}
         fill
         sizes={imageSizes}
+        crossOrigin="anonymous"
         priority={priority}
         loading={priority ? undefined : load}
         onLoad={(event) => {
@@ -1082,6 +1084,7 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
                     width={698}
                     height={872}
                     sizes="(max-width: 560px) 100vw, (max-width: 900px) 50vw, 25vw"
+                    crossOrigin="anonymous"
                     loading="lazy"
                   />
                   <span>{project.title}</span>

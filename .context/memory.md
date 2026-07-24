@@ -65,6 +65,7 @@
 - Fix on 2026-06-18: `CaseStudyLongFormPlayer` now renders native `<video>` for non-HLS sources and keeps `<hls-video>` only for `.m3u8` streams. This preserves the case-study controls/UI while allowing the CMS showreel MP4 to load and play audio normally; the detail player CSS targets both `hls-video` and `video` children.
 - Follow-up on 2026-06-18: public navigation text now uses Times New Roman, and opening the showreel player uses GSAP Flip from the bottom-left showreel tile into the modal player shell. Reduced-motion users skip the Flip transform and get the final modal state.
 - Update on 2026-07-23: public navigation no longer relies on `mix-blend-mode` for logo/burger contrast. `PublicNavigation` computes `data-tone="dark|light"` from the work-journal theme, explicit `data-nav-tone` markers, or the computed background under the fixed logo. Use `data-nav-tone="light"` on dark/media sections that need white nav chrome and `data-nav-tone="dark"` on light sections that need black. Case-study detail sticky hero media wrappers are marked `data-nav-tone="light"`, while the following info/layout wrappers are marked `data-nav-tone="dark"` so the header returns to black over white content.
+- Follow-up on 2026-07-24: `PublicNavigation` now samples multiple points across the fixed logo bounds and tries to read actual image/video/canvas pixels under those points before falling back to CSS background colors. It resamples after initial route load, media load/metadata/data/canplay events, resize, scroll, and short settled delays so the logo does not stay black until the first scroll. Work journal media and case-study detail/related thumbnails set `crossOrigin="anonymous"` to make pixel sampling possible when the CDN permits it.
 
 ### Current Focus / Archive Organization
 
@@ -533,7 +534,9 @@
 - Site settings select the latest updated `siteSettings` document and merge partial CMS values with fallbacks.
 - Local Studio can be sensitive to CORS and auth state; verify current config before assuming `/studio` is usable everywhere.
 - Case Study Studio validation: hidden/deprecated media fields (`detailIntro`, carousel poster, black/wide feature, CTA, testimonial avatar) are intentionally optional and should not block publishing with nested `mediaBlock.alt` or missing-media errors. Visible/current media fields should keep normal validation.
+- Keep Sanity Studio validators synchronous/local when possible. On 2026-07-24, `caseStudy.detailLayoutEntries` validation was causing browser-side Sanity `fetch failed` errors and 5s validator timeouts because it called `context.getClient().fetch()` for each layout entry. The validator now checks only local fields (layout ref exists, content exists, each content item has media) and does not fetch layout templates during validation.
 - If a newly published case study is missing from `/case-studies`, first check Sanity published perspective, then trigger `/api/revalidate` for `_type: "caseStudy"` if the published query includes it. On 2026-07-23, GSB was published and query-visible but the production list needed manual revalidation; after revalidating `/case-studies` and `/case-studies/gsb`, live HTML included `GSB`.
+- Sanity file uploads can arrive with `media.kind: null` even when the file URL is a valid video such as `.mp4`. Content normalization and case-study detail pages defensively infer media kind from the URL extension, and normal detail videos now clear their wrapper loading state on metadata/data/canplay/play/error.
 
 ## Deployment
 
