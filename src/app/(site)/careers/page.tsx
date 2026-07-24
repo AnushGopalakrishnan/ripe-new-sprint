@@ -3,6 +3,8 @@ import CareersOpenRoles from "@/components/careers-open-roles";
 import { getJobPostings, getTeamMembers } from "@/lib/content";
 import styles from "./page.module.css";
 import CareersMosaic from "./careers-mosaic";
+import CareersTextMotion from "./careers-text-motion";
+import CareersTrustLogos from "./careers-trust-logos";
 
 type Pillar = {
   title: string;
@@ -94,10 +96,11 @@ export default async function CareersPage() {
   const founders = [...leadershipFounders, ...fallbackFounders].slice(0, 2);
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-careers-page>
+      <CareersTextMotion />
       <section className={styles.heroSection}>
         <div className={styles.heroTitleWrap}>
-          <h1>
+          <h1 data-careers-reveal>
             A brand design studio where everyone&apos;s success feels personal. We exist to support ambitious designers
             and founders building brands worth believing in.
           </h1>
@@ -125,14 +128,14 @@ export default async function CareersPage() {
         </div>
 
         <div className={styles.heroNotes}>
-          <article>
+          <article data-careers-reveal>
             <h3>Our mission</h3>
             <p>
               From strategy to design, every detail was handled with care and expertise. We&apos;ve already seen a
               boost in engagement and couldn&apos;t be happier with the results highly recommended for anyone looking.
             </p>
           </article>
-          <article>
+          <article data-careers-reveal data-careers-reveal-delay="1">
             <h3>Our vision</h3>
             <p>
               We&apos;ve already seen a boost in engagement and couldn&apos;t be happier with the results highly
@@ -140,21 +143,19 @@ export default async function CareersPage() {
             </p>
           </article>
           <div className={styles.trustRow}>
-            <div className={styles.avatarStack} aria-hidden="true">
-              {trustLogos.map((logo) => (
-                <img key={logo} src={logo} alt="" loading="lazy" />
-              ))}
-            </div>
-            <p>
+            <CareersTrustLogos logos={trustLogos} />
+            <p data-careers-reveal data-careers-reveal-delay="1">
               Trust by 50k+ clients &amp; organisations
             </p>
-            <a href="mailto:careers@ripe.studio">Get In Touch</a>
+            <a href="mailto:careers@ripe.studio" data-careers-reveal data-careers-reveal-delay="2">
+              Get In Touch
+            </a>
           </div>
         </div>
       </section>
 
       <section className={styles.pillarsSection}>
-        <h2>The pillars that Ripe is built on</h2>
+        <h2 data-careers-reveal>The pillars that Ripe is built on</h2>
         <div className={styles.pillarsGrid}>
           {pillars.map((pillar, index) => (
             <article key={`${pillar.title}-${index}`} className={styles.pillarCard}>
@@ -165,30 +166,30 @@ export default async function CareersPage() {
                   alt=""
                   aria-hidden="true"
                 />
-                <h3>{pillar.title}</h3>
+                <h3 data-careers-reveal>{pillar.title}</h3>
               </div>
-              <p>{pillar.body}</p>
+              <p data-careers-reveal data-careers-reveal-delay="1">{pillar.body}</p>
             </article>
           ))}
         </div>
-        <p className={styles.pillarsStatement}>
-          Work thrives when people do. We have built a place where craft and care move together, where designers grow
-          without burning out, and founders find partners who treat their vision like it is their own.
-        </p>
       </section>
 
       <section className={styles.mosaicSection}>
+        <p className={styles.pillarsStatement} data-careers-reveal>
+          Work thrives when people do. We have built a place where craft and care move together, where designers grow
+          without burning out, and founders find partners who treat their vision like it is their own.
+        </p>
         <CareersMosaic />
       </section>
 
       <section className={styles.peopleSection}>
-        <h2>Some faces you will be working with</h2>
+        <h2 data-careers-reveal>Some faces you will be working with</h2>
 
         <div className={styles.foundersRow}>
           {founders.map((founder) => (
             <article key={founder.name} className={styles.founderCard}>
               <img src={founder.photo} alt={founder.name} loading="lazy" />
-              <div>
+              <div data-careers-reveal>
                 <h3>{founder.name}</h3>
                 <p>{founder.role}</p>
               </div>
