@@ -41,6 +41,7 @@ const fallbackMedia: MediaAsset = {
   src: "/case-detail-media/hero.jpg",
   alt: "Case study media",
 };
+const MORE_PROJECT_LIMIT = 4;
 
 async function loadLegacyCaseStudy(slug: string) {
   try {
@@ -108,6 +109,71 @@ function normalizeServiceLabel(value: unknown): string | null {
   return null;
 }
 
+function normalizeMatchValue(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function toMatchSet(values: unknown[]) {
+  return new Set(values.map(normalizeMatchValue).filter(Boolean));
+}
+
+function getDetailServices(study: CaseStudy) {
+  const detailServiceTitles = (study.detailServiceTitles ?? [])
+    .map((service) => normalizeServiceLabel(service))
+    .filter((service): service is string => Boolean(service));
+  const detailServices = (study.detailServices ?? [])
+    .map((service) => normalizeServiceLabel(service))
+    .filter((service): service is string => Boolean(service));
+
+  return detailServiceTitles.length > 0 ? detailServiceTitles : detailServices;
+}
+
+function getCaseStudySignals(study: CaseStudy) {
+  return {
+    tags: toMatchSet(study.tags ?? []),
+    services: toMatchSet(getDetailServices(study)),
+    industries: toMatchSet([study.detailIndustry]),
+  };
+}
+
+function getWorkJournalSignals(item: WorkJournalItem) {
+  return {
+    tags: toMatchSet(item.tags ?? []),
+    services: new Set<string>(),
+    industries: toMatchSet([item.industry]),
+  };
+}
+
+type ProjectSignals = ReturnType<typeof getCaseStudySignals>;
+
+function countSharedValues(source: Set<string>, candidate: Set<string>) {
+  let count = 0;
+  for (const value of candidate) {
+    if (source.has(value)) count += 1;
+  }
+  return count;
+}
+
+function scoreProjectMatch(source: ProjectSignals, candidate: ProjectSignals) {
+  return (
+    countSharedValues(source.tags, candidate.tags) +
+    countSharedValues(source.services, candidate.services) * 2 +
+    countSharedValues(source.industries, candidate.industries) * 3
+  );
+}
+
+function stableHash(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function randomFallbackRank(sourceSlug: string, candidateSlug: string) {
+  return stableHash(`${sourceSlug}:${candidateSlug}`);
+}
+
 function countVisibleTemplateCells(
   rows: NonNullable<NonNullable<CaseStudy["detailLayoutEntries"]>[number]["layout"]>["rows"] | undefined,
 ) {
@@ -144,15 +210,7 @@ function isCompleteLayoutEntry(entry: NonNullable<CaseStudy["detailLayoutEntries
 }
 
 function toClientReference(study: CaseStudy) {
-  const detailServiceTitles = (study.detailServiceTitles ?? [])
-    .map((service) => normalizeServiceLabel(service))
-    .filter((service): service is string => Boolean(service));
-  const detailServices = (study.detailServices ?? [])
-    .map((service) => normalizeServiceLabel(service))
-    .filter((service): service is string => Boolean(service));
-  const uniqueDetailServices = Array.from(
-    new Set(detailServiceTitles.length > 0 ? detailServiceTitles : detailServices),
-  );
+  const uniqueDetailServices = Array.from(new Set(getDetailServices(study)));
   const detailYear = study.year?.trim() || "";
   const baseMedia = study.coverMedia?.src ? study.coverMedia : fallbackMedia;
   const mapTemplateLayoutRows = (
@@ -268,43 +326,53 @@ function toClientReference(study: CaseStudy) {
 }
 
 function toMoreProjects(study: CaseStudy, allStudies: CaseStudy[]) {
-  const explicitProjects =
-    study.detailMoreProjects
-      ?.filter((project) => project.media?.src)
-      .map((project) => ({
-        image: project.media?.src ?? fallbackMedia.src,
-        title: project.title?.trim() || "Project",
-        year: project.year?.trim() || "",
-        slug: project.slug?.trim(),
-      })) ?? [];
+  const sourceSignals = getCaseStudySignals(study);
+  const existingSlugs = new Set<string>([study.slug]);
 
-  const existingSlugs = new Set(explicitProjects.map((project) => project.slug).filter(Boolean));
-
-  const cmsFallbackProjects = allStudies
+  const cmsProjects = allStudies
     .filter((entry) => entry.slug !== study.slug)
-    .filter((entry) => !existingSlugs.has(entry.slug))
-    .map((entry) => ({
+    .map((entry, index) => ({
       image: entry.coverMedia.poster || entry.coverMedia.src || fallbackMedia.src,
+      index,
+      score: scoreProjectMatch(sourceSignals, getCaseStudySignals(entry)),
       title: entry.title,
       year: entry.year || "",
       slug: entry.slug,
+    }))
+    .map((project) => ({
+      ...project,
+      fallbackRank: randomFallbackRank(study.slug, project.slug),
     }));
 
-  for (const project of cmsFallbackProjects) {
+  for (const project of cmsProjects) {
     if (project.slug) existingSlugs.add(project.slug);
   }
 
-  const journalFallbackProjects = workJournalItems
+  const journalProjects = workJournalItems
     .filter((entry) => entry.slug !== study.slug)
     .filter((entry) => !existingSlugs.has(entry.slug))
-    .map((entry) => ({
+    .map((entry, index) => ({
       image: entry.coverMedia?.poster || entry.coverMedia?.src || entry.image,
+      index: allStudies.length + index,
+      score: scoreProjectMatch(sourceSignals, getWorkJournalSignals(entry)),
       title: entry.title,
       year: entry.year || "",
       slug: entry.slug,
+    }))
+    .map((project) => ({
+      ...project,
+      fallbackRank: randomFallbackRank(study.slug, project.slug),
     }));
 
-  return [...explicitProjects, ...cmsFallbackProjects, ...journalFallbackProjects].slice(0, 4);
+  const allProjects = [...cmsProjects, ...journalProjects];
+  const matchedProjects = allProjects
+    .filter((project) => project.score > 0)
+    .sort((a, b) => b.score - a.score || b.year.localeCompare(a.year) || a.index - b.index);
+  const fallbackProjects = allProjects
+    .filter((project) => project.score === 0)
+    .sort((a, b) => a.fallbackRank - b.fallbackRank || a.index - b.index);
+
+  return [...matchedProjects, ...fallbackProjects].slice(0, MORE_PROJECT_LIMIT);
 }
 
 function toReferenceFromWorkJournal(item: WorkJournalItem) {
@@ -384,14 +452,20 @@ function toReferenceFromWorkJournal(item: WorkJournalItem) {
 }
 
 function toMoreProjectsFromWorkJournal(item: WorkJournalItem, allStudies: CaseStudy[]) {
+  const sourceSignals = getWorkJournalSignals(item);
   const cmsProjects = allStudies
     .filter((entry) => entry.slug !== item.slug)
-    .slice(0, 4)
-    .map((entry) => ({
+    .map((entry, index) => ({
       image: entry.coverMedia.poster || entry.coverMedia.src || fallbackMedia.src,
+      index,
+      score: scoreProjectMatch(sourceSignals, getCaseStudySignals(entry)),
       title: entry.title,
       year: entry.year || "",
       slug: entry.slug,
+    }))
+    .map((project) => ({
+      ...project,
+      fallbackRank: randomFallbackRank(item.slug, project.slug),
     }));
 
   const existingSlugs = new Set(cmsProjects.map((project) => project.slug));
@@ -399,14 +473,28 @@ function toMoreProjectsFromWorkJournal(item: WorkJournalItem, allStudies: CaseSt
   const journalProjects = workJournalItems
     .filter((entry) => entry.slug !== item.slug)
     .filter((entry) => !existingSlugs.has(entry.slug))
-    .map((entry) => ({
+    .map((entry, index) => ({
       image: entry.coverMedia?.poster || entry.coverMedia?.src || entry.image,
+      index: allStudies.length + index,
+      score: scoreProjectMatch(sourceSignals, getWorkJournalSignals(entry)),
       title: entry.title,
       year: entry.year,
       slug: entry.slug,
+    }))
+    .map((project) => ({
+      ...project,
+      fallbackRank: randomFallbackRank(item.slug, project.slug),
     }));
 
-  return [...cmsProjects, ...journalProjects].slice(0, 4);
+  const allProjects = [...cmsProjects, ...journalProjects];
+  const matchedProjects = allProjects
+    .filter((project) => project.score > 0)
+    .sort((a, b) => b.score - a.score || b.year.localeCompare(a.year) || a.index - b.index);
+  const fallbackProjects = allProjects
+    .filter((project) => project.score === 0)
+    .sort((a, b) => a.fallbackRank - b.fallbackRank || a.index - b.index);
+
+  return [...matchedProjects, ...fallbackProjects].slice(0, MORE_PROJECT_LIMIT);
 }
 
 export async function generateStaticParams() {
