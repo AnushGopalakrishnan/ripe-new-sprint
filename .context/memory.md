@@ -68,6 +68,10 @@
 - Update on 2026-07-23: public navigation no longer relies on `mix-blend-mode` for logo/burger contrast. `PublicNavigation` computes `data-tone="dark|light"` from the work-journal theme, explicit `data-nav-tone` markers, or the computed background under the fixed logo. Use `data-nav-tone="light"` on dark/media sections that need white nav chrome and `data-nav-tone="dark"` on light sections that need black. Case-study detail sticky hero media wrappers are marked `data-nav-tone="light"`, while the following info/layout wrappers are marked `data-nav-tone="dark"` so the header returns to black over white content.
 - Follow-up on 2026-07-24: `PublicNavigation` now samples multiple points across the fixed logo bounds and tries to read actual image/video/canvas pixels under those points before falling back to CSS background colors. It resamples after initial route load, media load/metadata/data/canplay events, resize, scroll, and short settled delays so the logo does not stay black until the first scroll. Work journal media and case-study detail/related thumbnails set `crossOrigin="anonymous"` to make pixel sampling possible when the CDN permits it.
 
+### Case Study Detail Related Projects
+
+- Update on 2026-08-01: “Other Case Studies” on native case-study detail routes (`/case-studies/[slug]` and `/case-studies-padded/[slug]`) is no longer selected from hidden Sanity `detailMoreProjects` or generic newest/fallback lists first. It is computed dynamically from projects that share tags, detail services, or detail industry with the current project, excludes the current slug, dedupes CMS/work-journal overlaps, ranks industry matches highest, then services, then tags, and caps output at 4. If there are fewer than 4 related matches, remaining slots are filled from other case studies in a stable per-page pseudo-random order.
+
 ### Current Focus / Archive Organization
 
 - As of 2026-05-15, the active app focus is intentionally narrowed to:

@@ -311,15 +311,14 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
 
     function toneFromLogoBounds(rect: DOMRect | null | undefined): NavTone {
       const bodyTone = normalizeNavTone(document.body.dataset.workJournalTone);
-      if (bodyTone) return bodyTone;
 
-      if (!rect) return toneFromBackgroundAt(54, 38) ?? "dark";
+      if (!rect) return toneFromBackgroundAt(54, 38) ?? bodyTone ?? "dark";
 
       const y = rect.top + rect.height / 2;
       const sampleX = [0.12, 0.32, 0.5, 0.68, 0.88].map((ratio) => rect.left + rect.width * ratio);
       const tones = sampleX.map((x) => toneFromBackgroundAt(x, y)).filter((tone): tone is NavTone => tone !== null);
 
-      return tones.includes("light") ? "light" : tones[0] ?? "dark";
+      return tones.includes("light") ? "light" : tones[0] ?? bodyTone ?? "dark";
     }
 
     function updateTone() {
