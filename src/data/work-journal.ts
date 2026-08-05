@@ -25,16 +25,6 @@ export const workJournalFilters = [
 
 export const workJournalItems: WorkJournalItem[] = [
   {
-    title: "Sticky Notes",
-    slug: "case-study-20",
-    description: "A Cape Town stay full of personality.",
-    industry: "Hospitality",
-    image: "/work-media/sticky-notes.png",
-    tags: ["Brand Extensions", "Strategy"],
-    year: "2026",
-    accentColor: "#4e3aaa",
-  },
-  {
     title: "ZetaChain",
     slug: "zetachain",
     description: "A South African icon.",

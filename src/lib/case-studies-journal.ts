@@ -1,4 +1,4 @@
-import { workJournalFilters, workJournalItems, type WorkJournalItem } from "@/data/work-journal";
+import { workJournalFilters, type WorkJournalItem } from "@/data/work-journal";
 import type { CaseStudy } from "@/types/content";
 
 function normalizeFilters(tags: string[]) {
@@ -34,11 +34,6 @@ export function mergeCaseStudiesAsJournalItems(studies: CaseStudy[]) {
       accentColor: study.accentColor,
       coverMedia: study.coverMedia,
     });
-  }
-
-  for (const item of workJournalItems) {
-    if (itemMap.has(item.slug)) continue;
-    itemMap.set(item.slug, item);
   }
 
   const items = Array.from(itemMap.values());

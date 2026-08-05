@@ -70,6 +70,7 @@
 ### Case Study Detail Related Projects
 
 - Update on 2026-08-01: “Other Case Studies” on native case-study detail routes (`/case-studies/[slug]` and `/case-studies-padded/[slug]`) is no longer selected from hidden Sanity `detailMoreProjects` or generic newest/fallback lists first. It is computed dynamically from projects that share tags, detail services, or detail industry with the current project, excludes the current slug, dedupes CMS/work-journal overlaps, ranks industry matches highest, then services, then tags, and caps output at 4. If there are fewer than 4 related matches, remaining slots are filled from other case studies in a stable per-page pseudo-random order.
+- Update on 2026-08-05: case-study listing surfaces (`/case-studies` and `/case-studies/tags/[slug]`) are now fully CMS-driven. `mergeCaseStudiesAsJournalItems()` still adapts Sanity case studies to the existing work-journal component shape, but it no longer appends hardcoded `workJournalItems`; changing a CMS slug should no longer expose duplicate static fallback entries on the list page.
 
 ### Current Focus / Archive Organization
 
