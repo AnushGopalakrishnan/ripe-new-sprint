@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { NativeRouteDocument } from "@/components/native-route-document";
-import { workJournalItems, type WorkJournalItem } from "@/data/work-journal";
 import { getCaseStudies, getCaseStudyBySlug, getCaseStudySlugs } from "@/lib/content";
 import { createExactTitleMetadata } from "@/lib/metadata";
 import { loadNativeMirrorDocument } from "@/lib/native-mirror";
@@ -133,14 +132,6 @@ function getCaseStudySignals(study: CaseStudy) {
     tags: toMatchSet(study.tags ?? []),
     services: toMatchSet(getDetailServices(study)),
     industries: toMatchSet([study.detailIndustry]),
-  };
-}
-
-function getWorkJournalSignals(item: WorkJournalItem) {
-  return {
-    tags: toMatchSet(item.tags ?? []),
-    services: new Set<string>(),
-    industries: toMatchSet([item.industry]),
   };
 }
 
@@ -328,8 +319,6 @@ function toClientReference(study: CaseStudy) {
 
 function toMoreProjects(study: CaseStudy, allStudies: CaseStudy[]) {
   const sourceSignals = getCaseStudySignals(study);
-  const existingSlugs = new Set<string>([study.slug]);
-
   const cmsProjects = allStudies
     .filter((entry) => entry.slug !== study.slug)
     .map((entry, index) => ({
@@ -345,153 +334,10 @@ function toMoreProjects(study: CaseStudy, allStudies: CaseStudy[]) {
       fallbackRank: randomFallbackRank(study.slug, project.slug),
     }));
 
-  for (const project of cmsProjects) {
-    if (project.slug) existingSlugs.add(project.slug);
-  }
-
-  const journalProjects = workJournalItems
-    .filter((entry) => entry.slug !== study.slug)
-    .filter((entry) => !existingSlugs.has(entry.slug))
-    .map((entry, index) => ({
-      image: entry.coverMedia?.poster || entry.coverMedia?.src || entry.image,
-      index: allStudies.length + index,
-      score: scoreProjectMatch(sourceSignals, getWorkJournalSignals(entry)),
-      title: entry.title,
-      year: entry.year || "",
-      slug: entry.slug,
-    }))
-    .map((project) => ({
-      ...project,
-      fallbackRank: randomFallbackRank(study.slug, project.slug),
-    }));
-
-  const allProjects = [...cmsProjects, ...journalProjects];
-  const matchedProjects = allProjects
+  const matchedProjects = cmsProjects
     .filter((project) => project.score > 0)
     .sort((a, b) => b.score - a.score || b.year.localeCompare(a.year) || a.index - b.index);
-  const fallbackProjects = allProjects
-    .filter((project) => project.score === 0)
-    .sort((a, b) => a.fallbackRank - b.fallbackRank || a.index - b.index);
-
-  return [...matchedProjects, ...fallbackProjects].slice(0, MORE_PROJECT_LIMIT);
-}
-
-function toReferenceFromWorkJournal(item: WorkJournalItem) {
-  const media = item.coverMedia ?? {
-    kind: "image" as const,
-    src: item.image,
-    alt: item.title,
-  };
-
-  const description = item.description || item.title;
-
-  return {
-    brand: item.industry || "Ripe",
-    title: item.title,
-    accentColor: item.accentColor || undefined,
-    heroNote: "Scroll to view more",
-    eyebrow: description,
-    services: item.tags.length ? item.tags : ["Brand"],
-    industry: item.industry || "Work",
-    year: item.year || "",
-    information: [description],
-    media: {
-      hero: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-      intro: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-      carouselSlides: [
-        {
-          src: media.src,
-          alt: media.alt || item.title,
-          kind: media.kind,
-          poster: media.poster,
-          comments: [],
-        },
-      ],
-      carouselPoster: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-      blackFeature: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-      wideFeature: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-      cta: {
-        src: media.src,
-        alt: media.alt || item.title,
-        kind: media.kind,
-        poster: media.poster,
-        comments: [],
-      },
-    },
-    layouts: [],
-  };
-}
-
-function toMoreProjectsFromWorkJournal(item: WorkJournalItem, allStudies: CaseStudy[]) {
-  const sourceSignals = getWorkJournalSignals(item);
-  const cmsProjects = allStudies
-    .filter((entry) => entry.slug !== item.slug)
-    .map((entry, index) => ({
-      image: entry.coverMedia.poster || entry.coverMedia.src || fallbackMedia.src,
-      index,
-      score: scoreProjectMatch(sourceSignals, getCaseStudySignals(entry)),
-      title: entry.title,
-      year: entry.year || "",
-      slug: entry.slug,
-    }))
-    .map((project) => ({
-      ...project,
-      fallbackRank: randomFallbackRank(item.slug, project.slug),
-    }));
-
-  const existingSlugs = new Set(cmsProjects.map((project) => project.slug));
-
-  const journalProjects = workJournalItems
-    .filter((entry) => entry.slug !== item.slug)
-    .filter((entry) => !existingSlugs.has(entry.slug))
-    .map((entry, index) => ({
-      image: entry.coverMedia?.poster || entry.coverMedia?.src || entry.image,
-      index: allStudies.length + index,
-      score: scoreProjectMatch(sourceSignals, getWorkJournalSignals(entry)),
-      title: entry.title,
-      year: entry.year,
-      slug: entry.slug,
-    }))
-    .map((project) => ({
-      ...project,
-      fallbackRank: randomFallbackRank(item.slug, project.slug),
-    }));
-
-  const allProjects = [...cmsProjects, ...journalProjects];
-  const matchedProjects = allProjects
-    .filter((project) => project.score > 0)
-    .sort((a, b) => b.score - a.score || b.year.localeCompare(a.year) || a.index - b.index);
-  const fallbackProjects = allProjects
+  const fallbackProjects = cmsProjects
     .filter((project) => project.score === 0)
     .sort((a, b) => a.fallbackRank - b.fallbackRank || a.index - b.index);
 
@@ -500,9 +346,7 @@ function toMoreProjectsFromWorkJournal(item: WorkJournalItem, allStudies: CaseSt
 
 export async function generateStaticParams() {
   const slugs = await getCaseStudySlugs();
-  const journalSlugs = workJournalItems.map((item) => item.slug);
-  const merged = Array.from(new Set([...slugs, ...journalSlugs]));
-  return merged.map((slug) => ({ slug }));
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: CaseStudyPageProps) {
@@ -513,15 +357,6 @@ export async function generateMetadata({ params }: CaseStudyPageProps) {
     return createExactTitleMetadata({
       title: `${caseStudy.title} - Case Study`,
       description: caseStudy.seo?.description || caseStudy.summary,
-      path: `/case-studies-padded/${slug}`,
-    });
-  }
-
-  const workItem = workJournalItems.find((item) => item.slug === slug);
-  if (workItem) {
-    return createExactTitleMetadata({
-      title: `${workItem.title} - Case Study`,
-      description: workItem.description,
       path: `/case-studies-padded/${slug}`,
     });
   }
@@ -554,15 +389,6 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
     );
   }
 
-  const workItem = workJournalItems.find((item) => item.slug === slug);
-  if (workItem) {
-    return (
-      <CaseStudyClient
-        reference={toReferenceFromWorkJournal(workItem)}
-        moreProjects={toMoreProjectsFromWorkJournal(workItem, allStudies)}
-      />
-    );
-  }
 
   const legacyCaseStudy = await loadLegacyCaseStudy(slug);
   if (legacyCaseStudy) {
