@@ -1,5 +1,4 @@
 import type {
-  CaseStudy,
   HomePage,
   SiteSettings,
   WritingPost,
@@ -10,7 +9,7 @@ export const siteSettings: SiteSettings = {
   description:
     "Creative technology, motion systems, and editorial infrastructure for ambitious brand storytelling.",
   nav: [
-    { label: "Work", href: "/work-new" },
+    { label: "Work", href: "/case-studies" },
     { label: "Services", href: "/services" },
     { label: "Writing", href: "/writing" },
     { label: "Team", href: "/team" },
@@ -79,129 +78,6 @@ export const homePage: HomePage = {
       "A custom Next.js and Sanity scaffold for migrating the Ripe Studios marketing site away from Webflow runtime scripts.",
   },
 };
-
-export const caseStudies: CaseStudy[] = [
-  {
-    title: "Zetachain Launch System",
-    slug: "zetachain-launch-system",
-    client: "Zetachain",
-    summary:
-      "Rebuilt launch storytelling into a modular content system with dense motion, deliberate pacing, and saner publishing primitives.",
-    year: "2026",
-    tags: ["Launch", "Editorial", "Motion"],
-    featured: true,
-    theme: "ember",
-    coverMedia: {
-      kind: "image",
-      src: "/work-media/zetachain.png",
-      alt: "Warm-toned motion frames pinned across a production wall",
-      eyebrow: "Featured Case Study",
-    },
-    challenge:
-      "The previous page logic depended on DOM scraping and route-specific script loading, which made every change slower and riskier than it should have been.",
-    outcome:
-      "The rebuilt page model turns content rows into typed data, making rich case-study layouts editable without repeating brittle script branches.",
-    metrics: [
-      {
-        label: "Template layers removed",
-        value: "4",
-        detail: "Loader branches collapsed into route components",
-      },
-      {
-        label: "Canonical content source",
-        value: "1",
-        detail: "Sanity document replaces DOM parsing",
-      },
-      {
-        label: "Preview latency target",
-        value: "<60s",
-        detail: "ISR and on-demand revalidation enabled",
-      },
-    ],
-    sections: [
-      {
-        title: "What needed to change",
-        paragraphs: [
-          "The goal was not to flatten the visual ambition. It was to remove the hidden dependencies that made the experience hard to extend.",
-          "We translated each content row into structured fields so the layout could stay expressive while the implementation became predictable."
-        ],
-        quote:
-          "Treat the Webflow build as a reference artifact, not as the system you are preserving."
-      },
-      {
-        title: "What the new stack unlocks",
-        paragraphs: [
-          "Editors can work with previews and draft mode instead of publishing into a black box.",
-          "Developers can ship new sections and interaction variants as reusable React components rather than one-off route scripts."
-        ]
-      }
-    ],
-    seo: {
-      title: "Zetachain Launch System | Ripe Studios",
-      description:
-        "A typed, preview-friendly case-study rebuild that preserves visual ambition while removing route-bound loader code.",
-    },
-  },
-  {
-    title: "Atlas Brand Portal",
-    slug: "atlas-brand-portal",
-    client: "Atlas",
-    summary:
-      "Turned an ad-hoc marketing archive into a polished publishing system with a flexible writing feed and clearer content governance.",
-    year: "2026",
-    tags: ["CMS", "Content Design", "Publishing"],
-    featured: true,
-    theme: "moss",
-    coverMedia: {
-      kind: "image",
-      src: "/work-media/sticky-notes.png",
-      alt: "Editorial workspace with notebooks, proofs, and photo contact sheets",
-      eyebrow: "Content Migration",
-    },
-    challenge:
-      "Writing archives and featured work collections were wired together through classes and DOM assumptions instead of clear data contracts.",
-    outcome:
-      "The migration establishes one content model for editorial pages, richer metadata, and clean URLs that can survive future redesigns.",
-    metrics: [
-      {
-        label: "Content types defined",
-        value: "6",
-        detail: "Core documents and media wrappers modeled in Sanity",
-      },
-      {
-        label: "Fallback routes preserved",
-        value: "100%",
-        detail: "Redirect strategy baked into launch planning",
-      },
-      {
-        label: "Smoke checks",
-        value: "5",
-        detail: "Critical pages covered in CI",
-      },
-    ],
-    sections: [
-      {
-        title: "A calmer editorial system",
-        paragraphs: [
-          "Instead of copying a visual shell forward, the new model starts from structure: titles, excerpts, authorship, dates, and reusable content sections.",
-          "That content model gives the frontend enough shape to produce bold layouts without relying on mystery markup."
-        ]
-      },
-      {
-        title: "Operational payoff",
-        paragraphs: [
-          "Preview deployments and draft mode give stakeholders a safer review loop.",
-          "On-demand revalidation means editorial updates no longer wait on a full rebuild."
-        ]
-      }
-    ],
-    seo: {
-      title: "Atlas Brand Portal | Ripe Studios",
-      description:
-        "Editorial system migration for a writing-heavy marketing site, rebuilt on structured content and clean route conventions.",
-    },
-  },
-];
 
 export const writingPosts: WritingPost[] = [
   {

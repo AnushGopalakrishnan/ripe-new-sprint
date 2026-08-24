@@ -4,7 +4,6 @@ import { gsap } from "gsap";
 import type { Route } from "next";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
-import { workJournalItems } from "@/data/work-journal";
 
 const shutterAmount = 10;
 const transitionDuration = 0.5;
@@ -15,7 +14,7 @@ const nearLinkPointerMoveIntervalMs = 120;
 
 const transitionTestRoutes = {
   home: "/home-new-feed",
-  work: "/work-new-alternate?view=grid",
+  work: "/case-studies?view=grid",
 };
 
 const homeNewFeedIntentImages = [
@@ -24,11 +23,8 @@ const homeNewFeedIntentImages = [
   "/feed-media/maison.jpg",
 ];
 
-const workIntentImages = workJournalItems.slice(0, 4).map((item) => item.image);
-
 const routeIntentImages: Array<{ matches: (pathname: string) => boolean; images: string[] }> = [
   { matches: (pathname) => pathname === "/home-new-feed" || pathname === "/", images: homeNewFeedIntentImages },
-  { matches: (pathname) => pathname.startsWith("/work-new"), images: workIntentImages },
 ];
 
 function isModifiedClick(event: MouseEvent) {
@@ -349,7 +345,7 @@ export function PageTransitionController() {
       if (!event.shiftKey || event.key.toLowerCase() !== "h") return;
 
       event.preventDefault();
-      const nextRoute = pathname.startsWith("/work-new") ? transitionTestRoutes.home : transitionTestRoutes.work;
+      const nextRoute = pathname.startsWith("/case-studies") ? transitionTestRoutes.home : transitionTestRoutes.work;
       navigateWithTransition(nextRoute);
     }
 

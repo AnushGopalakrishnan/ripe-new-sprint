@@ -14,7 +14,7 @@ import type { NavLink, NavigationShowreel, SocialLink } from "@/types/content";
 gsap.registerPlugin(Flip);
 
 const fallbackPrimaryLinks: NavLink[] = [
-  { label: "Work", href: "/work-new" },
+  { label: "Work", href: "/case-studies" },
   { label: "Services", href: "/services" },
   { label: "Writing", href: "/writing" },
   { label: "Team", href: "/team" },

@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import path from "node:path";
-import { workJournalItems } from "@/data/work-journal";
 import { bridgeScript } from "@/lib/editor/bridge-source";
 import type { MirrorRoute } from "@/lib/editor/types";
 import { getCaseStudies, getWritingPosts } from "@/lib/content";
@@ -337,13 +336,8 @@ export async function getMirrorRoutes(): Promise<MirrorRoute[]> {
     const uniqueRoutes = [...new Set(canonicalRoutes)];
     const routesWithCustomPages = mergeRoutes([
       { path: "/home-new-feed", label: "Home (new feed)" },
-      { path: "/work-new", label: "Work (new journal)" },
-      { path: "/work-new-alternate", label: "Work (alternate journal)" },
       ...cmsCollectionRoutes,
       ...uniqueRoutes.map((route) => makeRoute(route)),
-      ...workJournalItems.map((item) =>
-        makeRoute(`/case-studies/${item.slug}`, item.title, item.title),
-      ),
     ]);
     return routesWithCustomPages;
   } catch {

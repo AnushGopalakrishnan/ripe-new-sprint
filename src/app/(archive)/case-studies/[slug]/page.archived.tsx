@@ -3,14 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getCaseStudySlugs } from "@/lib/content";
 import { createExactTitleMetadata } from "@/lib/metadata";
-import { workJournalItems } from "@/data/work-journal";
 import styles from "@/app/(site)/detail-page.module.css";
 
 type CaseStudyPageProps = {
   params: Promise<{ slug: string }>;
 };
-
-const validSlugs = new Set([...workJournalItems.map((item) => item.slug)]);
 
 const reference = {
   title: "Polestar",
@@ -46,7 +43,7 @@ const moreProjects = [
 ];
 
 export async function generateStaticParams() {
-  const slugs = Array.from(new Set([...(await getCaseStudySlugs()), ...workJournalItems.map((item) => item.slug)]));
+  const slugs = await getCaseStudySlugs();
   return slugs.map((slug) => ({ slug }));
 }
 
@@ -61,7 +58,7 @@ export async function generateMetadata() {
 export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
   const { slug } = await params;
 
-  if (!validSlugs.has(slug) && !(await getCaseStudySlugs()).includes(slug)) {
+  if (!(await getCaseStudySlugs()).includes(slug)) {
     notFound();
   }
 

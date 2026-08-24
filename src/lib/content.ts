@@ -1,5 +1,4 @@
 import {
-  caseStudies as fallbackCaseStudies,
   homePage as fallbackHomePage,
   siteSettings as fallbackSiteSettings,
   writingPosts as fallbackWritingPosts,
@@ -143,10 +142,6 @@ function normalizeCaseStudyMedia(study: CaseStudy): CaseStudy {
 }
 
 function normalizeCaseStudy(study: CaseStudy): CaseStudy {
-  const fallbackStudy = !study.coverMedia?.src
-    ? fallbackCaseStudies.find((entry) => entry.slug === study.slug)
-    : null;
-  const fallbackMedia = fallbackStudy?.coverMedia?.src ? fallbackStudy.coverMedia : fallbackCaseStudyMedia;
   const baseCoverMedia = study.coverMedia?.src
     ? {
         ...study.coverMedia,
@@ -154,8 +149,8 @@ function normalizeCaseStudy(study: CaseStudy): CaseStudy {
         alt: study.coverMedia.alt || study.title,
       }
     : {
-        ...fallbackMedia,
-        alt: fallbackMedia.alt || study.title,
+        ...fallbackCaseStudyMedia,
+        alt: fallbackCaseStudyMedia.alt || study.title,
       };
 
   return normalizeCaseStudyMedia({
@@ -218,7 +213,7 @@ export async function getHomePage(): Promise<HomePage> {
 
 export async function getCaseStudies(): Promise<CaseStudy[]> {
   if (!hasSanityConfig) {
-    return fallbackCaseStudies;
+    return [];
   }
 
   const { data } = await sanityFetch<CaseStudy[] | null>({
@@ -226,14 +221,14 @@ export async function getCaseStudies(): Promise<CaseStudy[]> {
     tags: ["caseStudy"],
   });
 
-  return data?.length ? data.map(normalizeCaseStudy) : fallbackCaseStudies;
+  return data?.map(normalizeCaseStudy) ?? [];
 }
 
 export async function getCaseStudyBySlug(
   slug: string
 ): Promise<CaseStudy | null> {
   if (!hasSanityConfig) {
-    return fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
+    return null;
   }
 
   const { data } = await sanityFetch<CaseStudy | null>({
@@ -354,12 +349,12 @@ export async function getCaseStudyBySlug(
 
   if (resolvedData) return normalizeCaseStudy(resolvedData);
 
-  return fallbackCaseStudies.find((entry) => entry.slug === slug) || null;
+  return null;
 }
 
 export async function getCaseStudySlugs(): Promise<string[]> {
   if (!hasSanityConfig) {
-    return fallbackCaseStudies.map((entry) => entry.slug);
+    return [];
   }
 
   const { data } = await sanityFetch<Array<{ slug: string }> | null>({
@@ -367,7 +362,7 @@ export async function getCaseStudySlugs(): Promise<string[]> {
     tags: ["caseStudy"],
   });
 
-  return data?.map((entry) => entry.slug) || fallbackCaseStudies.map((entry) => entry.slug);
+  return data?.map((entry) => entry.slug) ?? [];
 }
 
 export async function getWritingPosts(): Promise<WritingPost[]> {
