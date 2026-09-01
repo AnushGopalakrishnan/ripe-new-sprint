@@ -24,7 +24,6 @@ import careersMosaicStyles from "@/app/(site)/careers/careers-mosaic.module.css"
 import homeFeedStyles from "@/components/home-feed.module.css";
 import {
   HomeFeedAwardsCard,
-  HomeFeedCardLink,
   HomeFeedCopyCard,
   HomeFeedMediaCard,
   HomeFeedLogosCard,
@@ -130,10 +129,6 @@ export function WorkJournalCardSpecimen({ variant }: SpecimenVariantProps) {
 
 export function FeedPillSpecimen({ variant }: SpecimenVariantProps) {
   return <div style={plainSurface}><HomeFeedPill action={variant === "label" ? undefined : "View"}>Case Study</HomeFeedPill></div>;
-}
-
-export function FeedOverlayLinkSpecimen() {
-  return <div style={{ ...plainSurface, minHeight: 180 }}><HomeFeedCardLink href="#feed-card-link" label="Open specimen card" /></div>;
 }
 
 export function FeedSimpleCardSpecimen({ variant }: SpecimenVariantProps) {
