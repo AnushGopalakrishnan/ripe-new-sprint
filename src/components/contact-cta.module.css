@@ -1,0 +1,39 @@
+.root.root {
+  align-items: center;
+  background: #000;
+  border-radius: 8px;
+  color: #fff !important;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--ripe-font-sans);
+  font-size: 0.875rem;
+  font-weight: 400;
+  justify-content: center;
+  line-height: 1;
+  padding: 1rem 1.625rem;
+  text-decoration: none;
+  text-transform: capitalize;
+  transition: background-color 220ms ease, color 220ms ease, transform 220ms ease;
+  white-space: nowrap;
+}
+
+.root.root:hover {
+  background: #3a1f13;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.root.root:focus-visible {
+  outline: 2px solid #3a1f13;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root.root {
+    transition: background-color 220ms ease, color 220ms ease;
+  }
+
+  .root.root:hover {
+    transform: none;
+  }
+}

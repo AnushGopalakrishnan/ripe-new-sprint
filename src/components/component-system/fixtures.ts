@@ -1,5 +1,5 @@
 import type { WorkJournalItem } from "@/data/work-journal";
-import type { JobPosting, NavLink, SocialLink } from "@/types/content";
+import type { JobPosting, NavLink, SocialLink, TeamMember } from "@/types/content";
 
 export const specimenNav: NavLink[] = [
   { label: "Work", href: "/case-studies" },
@@ -60,3 +60,11 @@ export const specimenWork: WorkJournalItem[] = [
     accentColor: "#232323",
   },
 ];
+
+export const specimenTeamMember: TeamMember = {
+  name: "Example team member",
+  slug: "example-team-member",
+  role: "Example role",
+  group: "Team",
+  avatar: { kind: "image", src: "/team-media/placeholder.svg", alt: "Team-member specimen portrait" },
+};

@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import styles from "./page.module.css";
 
-export default function CareersTrustLogos({ logos }: { logos: string[] }) {
+export type CareersTrustLogosProps = {
+  logos: string[];
+  reveal?: "auto" | "entering" | "visible";
+  styles: Record<string, string>;
+};
+
+export function CareersTrustLogos({ logos, reveal = "auto", styles }: CareersTrustLogosProps) {
   const stackRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(reveal === "visible");
 
   useEffect(() => {
+    if (reveal !== "auto") return;
     const stack = stackRef.current;
     if (!stack) return;
 
@@ -23,7 +29,7 @@ export default function CareersTrustLogos({ logos }: { logos: string[] }) {
 
     observer.observe(stack);
     return () => observer.disconnect();
-  }, []);
+  }, [reveal]);
 
   return (
     <div

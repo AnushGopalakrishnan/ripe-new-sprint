@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ProfileLink } from "@/components/profile-link";
 import { getTeamMemberBySlug, getTeamMemberSlugs } from "@/lib/content";
 import { createExactTitleMetadata } from "@/lib/metadata";
 
@@ -42,19 +42,13 @@ export default async function TeamMemberPage({ params }: TeamMemberPageProps) {
             <div className="profile-job_title-text">{member.role || "Team Member"}</div>
             <div className="profile_details-wrap">
               {member.twitterUrl ? (
-                <a href={member.twitterUrl} target="_blank" rel="noreferrer" className="profile-link">
-                  Twitter
-                </a>
+                <ProfileLink external href={member.twitterUrl}>Twitter</ProfileLink>
               ) : null}
               {member.email ? (
-                <a href={`mailto:${member.email}`} className="profile-link">
-                  Mail
-                </a>
+                <ProfileLink href={`mailto:${member.email}`}>Mail</ProfileLink>
               ) : null}
               {member.websiteUrl ? (
-                <a href={member.websiteUrl} target="_blank" rel="noreferrer" className="profile-link">
-                  Website
-                </a>
+                <ProfileLink external href={member.websiteUrl}>Website</ProfileLink>
               ) : null}
             </div>
           </div>
@@ -83,9 +77,7 @@ export default async function TeamMemberPage({ params }: TeamMemberPageProps) {
                     .filter((project) => project.slug)
                     .map((project) => (
                       <div key={project.slug} role="listitem" className="w-dyn-item">
-                        <Link href={`/case-studies/${project.slug}`} className="profile-link">
-                          {project.title || project.slug}
-                        </Link>
+                        <ProfileLink href={`/case-studies/${project.slug}`}>{project.title || project.slug || "Project"}</ProfileLink>
                       </div>
                     ))}
                 </div>

@@ -1,9 +1,20 @@
 import { expect, test } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { publicComponentDefinitions, publicComponentIds } from "@/components/component-system/registry";
+import type { Page } from "@playwright/test";
+import { publicComponentDefinitions, publicComponentIds, publicComponentRegistry } from "@/components/component-system/registry";
+import type { PublicComponentCategory, PublicComponentId } from "@/components/component-system/registry";
 
 const sourceRoot = path.join(process.cwd(), "src");
+
+async function loadSpecimen(page: Page, id: PublicComponentId) {
+  const stage = page.locator(`[data-component-specimen="${id}"]`);
+  await stage.scrollIntoViewIfNeeded();
+  const frame = stage.locator(`[data-component-frame="${id}"]`);
+  await frame.waitFor({ state: "attached" });
+  await page.frameLocator(`[data-component-frame="${id}"]`).locator("[data-specimen-ready]").waitFor({ state: "attached" });
+  return { frame, stage };
+}
 
 function resolveSourceImport(fromFile: string, specifier: string) {
   const base = specifier.startsWith("@/")
@@ -62,6 +73,31 @@ function activePublicSourceFiles() {
 }
 
 test.describe("component system", () => {
+  test("registry covers the approved atomic inventory", () => {
+    const required: Record<PublicComponentCategory, PublicComponentId[]> = {
+      Atoms: [
+        "navigation-logo-link", "navigation-menu-button", "navigation-dismiss-control", "navigation-menu-link", "navigation-showreel-button",
+        "contact-cta", "journal-filter-button", "journal-view-toggle", "journal-mobile-categories-button", "journal-mobile-close-button",
+        "feed-pill", "feed-overlay-link", "case-study-disclosure-button", "case-study-carousel-button", "case-study-all-projects-link", "comment-trigger", "comments-toggle", "player-play-control",
+        "player-timeline", "player-volume-control", "player-fullscreen-control", "copy-email-cta", "profile-link",
+      ],
+      Molecules: ["journal-filter-group", "case-study-fact", "case-study-information", "comment-note", "player-controls", "directional-role", "careers-trust-logos"],
+      Cards: [
+        "work-journal-card", "case-study-related-project-card", "team-member-card", "feed-simple-card",
+        "feed-media-card", "feed-news-card", "feed-copy-card", "feed-time-card",
+        "feed-logos-card", "feed-awards-card", "feed-sounds-card", "feed-services-card", "careers-pillar-card", "careers-founder-card", "careers-benefit-card", "careers-filmstrip-card",
+      ],
+      Compositions: ["public-navigation", "work-journal", "home-feed", "team-directory", "long-form-player", "case-study-media", "case-study-related-projects", "careers-open-roles", "careers-benefits"],
+    };
+
+    for (const [category, ids] of Object.entries(required) as Array<[PublicComponentCategory, PublicComponentId[]]>) {
+      for (const id of ids) expect(publicComponentRegistry[id].category, `${id} must remain catalogued as ${category}`).toBe(category);
+    }
+
+    expect(Object.values(required).flat().sort()).toEqual([...publicComponentIds].sort());
+    expect(publicComponentRegistry["contact-cta"].variants).toEqual(["default"]);
+  });
+
   test("registry contains unique components reached by active public routes", () => {
     expect(new Set(publicComponentIds).size).toBe(publicComponentIds.length);
     const reachable = activePublicSourceFiles();
@@ -75,8 +111,7 @@ test.describe("component system", () => {
   test("DialKit is query-gated inside each specimen and can resize its iframe surface", async ({ page }) => {
     await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
 
-    const stage = page.locator('[data-component-specimen="work-journal"]');
-    const frame = stage.locator('[data-component-frame="work-journal"]');
+    const { frame, stage } = await loadSpecimen(page, "work-journal");
     await expect(frame).toHaveAttribute("src", "/component-system/specimens/work-journal");
     const untunedSurface = page.frameLocator('[data-component-frame="work-journal"]');
     await untunedSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
@@ -88,7 +123,7 @@ test.describe("component system", () => {
 
     const tunedSurface = page.frameLocator('[data-component-frame="work-journal"]');
     await tunedSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
-    await expect(tunedSurface.getByText("Work journal", { exact: true }).last()).toBeVisible();
+    await expect(tunedSurface.getByText("Work Journal", { exact: true }).last()).toBeVisible();
     await expect(tunedSurface.getByText("Surface", { exact: true })).toBeVisible();
     await expect(tunedSurface.getByText("Props", { exact: true })).toBeVisible();
     await expect(tunedSurface.getByRole("region", { name: "Work journal", exact: true })).toHaveAttribute("data-view", "list");
@@ -132,34 +167,113 @@ test.describe("component system", () => {
 
   test("category index preserves and updates its selected state", async ({ page }) => {
     await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
-    const media = page.getByRole("link", { name: "Media", exact: true });
-    await media.click();
-    await expect(page).toHaveURL(/#media$/);
-    await expect(media).toHaveAttribute("aria-current", "location");
+    const cards = page.getByRole("link", { name: "Cards", exact: true });
+    await cards.click();
+    await expect(page).toHaveURL(/#cards$/);
+    await expect(cards).toHaveAttribute("aria-current", "location");
 
-    await page.locator("#people").scrollIntoViewIfNeeded();
-    await expect(page.getByRole("link", { name: "People", exact: true })).toHaveAttribute("aria-current", "location");
+    await page.locator("#compositions").scrollIntoViewIfNeeded();
+    await expect(page.getByRole("link", { name: "Compositions", exact: true })).toHaveAttribute("aria-current", "location");
   });
 
-  test("components renders every registered production specimen", async ({ page }) => {
+  test("components lists every specimen while loading only the viewport window", async ({ page }) => {
     await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
 
     await expect(page).toHaveTitle(/Components/);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
     await expect(page.locator("[data-component-specimen]")).toHaveCount(publicComponentIds.length);
+    await expect(page.locator("[data-component-id-copy]")).toHaveCount(publicComponentIds.length);
+    await expect.poll(async () => page.locator("[data-component-frame]").count()).toBeLessThan(publicComponentIds.length);
 
     for (const id of publicComponentIds) {
-      await expect(page.locator(`#${id}`)).toHaveCount(1);
-      await expect(page.frameLocator(`[data-component-frame="${id}"]`).locator(`[data-component="${id}"]`)).toBeVisible();
+      const specimen = page.locator(`#${id}`);
+      await expect(specimen).toHaveCount(1);
     }
+
+    await loadSpecimen(page, "journal-filter-button");
+    await expect(page.frameLocator('[data-component-frame="journal-filter-button"]').locator('[data-component="journal-filter-button"]')).toBeVisible();
+  });
+
+  test("component IDs are visible, deep-linkable and copyable", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/component-system/components#work-journal-card", { waitUntil: "domcontentloaded" });
+
+    const component = page.locator("#work-journal-card");
+    await expect(component).toHaveCount(1);
+    const copy = component.locator('[data-component-id-copy="work-journal-card"]');
+    await expect(copy).toHaveText(/\/work-journal-card/);
+    await copy.click();
+    await expect(copy).toHaveAttribute("aria-label", "Copied component ID work-journal-card");
+    await expect(copy.locator("code")).toHaveText("Copied");
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("work-journal-card");
+  });
+
+  test("variant controls update the live specimen without reloading its iframe", async ({ page }) => {
+    await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
+
+    const { stage } = await loadSpecimen(page, "journal-filter-button");
+    const specimen = page.frameLocator('[data-component-frame="journal-filter-button"]');
+    await specimen.locator("body").evaluate(() => {
+      (window as Window & { componentVariantDocument?: string }).componentVariantDocument = "preserved";
+    });
+    await expect(specimen.locator("[data-component-specimen-page]")).toHaveAttribute("data-selected-variant", "inactive");
+    await expect(specimen.getByRole("button", { name: "Strategy" })).toHaveAttribute("aria-pressed", "false");
+
+    await stage.getByRole("button", { name: "active", exact: true }).click();
+
+    await expect(stage.getByRole("button", { name: "active", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(specimen.locator("[data-component-specimen-page]")).toHaveAttribute("data-selected-variant", "active");
+    await expect(specimen.getByRole("button", { name: "Strategy" })).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => specimen.locator("body").evaluate(() => (window as Window & { componentVariantDocument?: string }).componentVariantDocument)).toBe("preserved");
+  });
+
+  test("specimen links cannot navigate or open new tabs", async ({ context, page }) => {
+    await page.goto("/component-system/specimens/navigation-menu-link", { waitUntil: "domcontentloaded" });
+    const internalUrl = page.url();
+    await page.getByRole("link", { name: "Work" }).click();
+    await expect(page).toHaveURL(internalUrl);
+
+    await page.goto("/component-system/specimens/navigation-menu-link?variant=external", { waitUntil: "domcontentloaded" });
+    const externalUrl = page.url();
+    const externalLink = page.getByRole("link", { name: "Instagram" });
+    await expect(externalLink).toHaveAttribute("target", "_blank");
+    await externalLink.click();
+    await expect(page).toHaveURL(externalUrl);
+    expect(context.pages()).toHaveLength(1);
+  });
+
+  test("collapsed case-study information preserves paragraph breaks", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/component-system/specimens/case-study-information?variant=collapsed", { waitUntil: "domcontentloaded" });
+
+    const preview = page.locator('[class*="formaInformationPreview"]');
+    await expect(page.getByRole("button", { name: "See More" })).toBeVisible();
+    await expect.poll(() => preview.locator(":scope > p").count()).toBeGreaterThan(1);
+
+    await page.getByRole("button", { name: "See More" }).click();
+    await expect(page.getByRole("button", { name: "See Less" })).toBeVisible();
+    await expect(preview).toHaveCount(0);
+  });
+
+  test("specimen iframes expand to contain taller component variants", async ({ page }) => {
+    await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
+
+    const { frame } = await loadSpecimen(page, "careers-benefits");
+    const specimen = page.frameLocator('[data-component-frame="careers-benefits"]');
+
+    await expect.poll(async () => frame.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(800);
+    const dimensions = await specimen.locator("html").evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.clientHeight + 1);
   });
 
   test("production interactions remain live inside specimens", async ({ page }) => {
     await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1000);
 
-    const navigationFrame = page.locator('[data-component-frame="public-navigation"]');
-    await navigationFrame.scrollIntoViewIfNeeded();
+    await loadSpecimen(page, "public-navigation");
     const navigationSurface = page.frameLocator('[data-component-frame="public-navigation"]');
     await navigationSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
     const openNavigation = navigationSurface.getByRole("button", { name: "Open navigation" });
@@ -167,14 +281,13 @@ test.describe("component system", () => {
     await expect(navigationSurface.getByRole("button", { name: "Close navigation" })).toBeVisible();
     await navigationSurface.getByRole("button", { name: "Close navigation" }).click();
 
-    const workFrame = page.locator('[data-component-frame="work-journal"]');
-    await workFrame.scrollIntoViewIfNeeded();
+    await loadSpecimen(page, "work-journal");
     const workSurface = page.frameLocator('[data-component-frame="work-journal"]');
     const viewToggle = workSurface.getByRole("button", { name: /Switch to list view/i }).first();
     await viewToggle.click();
     await expect(workSurface.getByRole("region", { name: "Work journal", exact: true })).toHaveAttribute("data-view", "list");
 
-    await page.locator('[data-component-frame="directional-role"]').scrollIntoViewIfNeeded();
+    await loadSpecimen(page, "directional-role");
     const role = page.frameLocator('[data-component-frame="directional-role"]').locator("[data-directional-hover-item]").first();
     await role.hover();
     await expect(role.locator("[data-directional-hover-tile]")).toHaveCSS("transform", /matrix/);
@@ -184,7 +297,7 @@ test.describe("component system", () => {
     await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1000);
 
-    await page.locator('[data-component-frame="public-navigation"]').scrollIntoViewIfNeeded();
+    await loadSpecimen(page, "public-navigation");
     const navigationSurface = page.frameLocator('[data-component-frame="public-navigation"]');
     await navigationSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
     await navigationSurface.getByRole("button", { name: "Open navigation" }).click();
@@ -192,8 +305,7 @@ test.describe("component system", () => {
     expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).not.toBe("hidden");
     await navigationSurface.getByRole("button", { name: "Close navigation" }).click();
 
-    const workFrame = page.locator('[data-component-frame="work-journal"]');
-    await workFrame.scrollIntoViewIfNeeded();
+    await loadSpecimen(page, "work-journal");
     const workSurface = page.frameLocator('[data-component-frame="work-journal"]');
     await workSurface.getByRole("button", { name: /Switch to list view/i }).click();
     await expect(workSurface.getByRole("region", { name: "Work journal", exact: true })).toHaveAttribute("data-view", "list");

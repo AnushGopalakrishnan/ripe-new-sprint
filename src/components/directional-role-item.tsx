@@ -1,16 +1,35 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
 import styles from "@/components/team-page-client.module.css";
 import type { JobPosting } from "@/types/content";
 
 export type DirectionalRoleItemProps = {
+  initialEntryDirection?: EntryDirection;
   role: JobPosting;
   titleElement?: "p" | "h4";
 };
 
-type EntryDirection = "top" | "right" | "bottom" | "left";
+type DirectionalRoleLinkProps = DirectionalRoleItemProps & {
+  tileRef?: React.Ref<HTMLDivElement>;
+};
+
+function DirectionalRoleLink({ role, tileRef, titleElement = "p" }: DirectionalRoleLinkProps) {
+  const TitleElement = titleElement;
+  return (
+    <a href={role.externalUrl} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
+      <div ref={tileRef} data-directional-hover-tile="" className={`directional-list__hover-tile-2 ${styles.directionalTile}`} />
+      <div className="directional-list__border is--item" />
+      <div className="directional-list__col-award">
+        <TitleElement className="direcitonal-list__p">{role.title} - {role.location}</TitleElement>
+      </div>
+      <div className="directional-list__col-year"><p className="direcitonal-list__p">{role.contractType}</p></div>
+    </a>
+  );
+}
+
+export type EntryDirection = "top" | "right" | "bottom" | "left";
 
 function getDirection(event: MouseEvent<HTMLElement>, element: HTMLElement): EntryDirection {
   const { left, top, width, height } = element.getBoundingClientRect();
@@ -33,9 +52,20 @@ function toTransform(direction: EntryDirection) {
   return "translateX(100%)";
 }
 
-export function DirectionalRoleItem({ role, titleElement = "p" }: DirectionalRoleItemProps) {
+export function DirectionalRoleItem({ initialEntryDirection, role, titleElement = "p" }: DirectionalRoleItemProps) {
   const tileRef = useRef<HTMLDivElement | null>(null);
-  const TitleElement = titleElement;
+
+  useEffect(() => {
+    const tile = tileRef.current;
+    if (!tile || !initialEntryDirection) return;
+    tile.style.transition = "none";
+    tile.style.transform = toTransform(initialEntryDirection);
+    const frame = window.requestAnimationFrame(() => {
+      tile.style.transition = "";
+      tile.style.transform = "translate(0%, 0%)";
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialEntryDirection]);
 
   const handleMouseEnter = (event: MouseEvent<HTMLDivElement>) => {
     const tile = tileRef.current;
@@ -61,22 +91,7 @@ export function DirectionalRoleItem({ role, titleElement = "p" }: DirectionalRol
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <a href={role.externalUrl} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
-        <div
-          ref={tileRef}
-          data-directional-hover-tile=""
-          className={`directional-list__hover-tile-2 ${styles.directionalTile}`}
-        />
-        <div className="directional-list__border is--item" />
-        <div className="directional-list__col-award">
-          <TitleElement className="direcitonal-list__p">
-            {role.title} - {role.location}
-          </TitleElement>
-        </div>
-        <div className="directional-list__col-year">
-          <p className="direcitonal-list__p">{role.contractType}</p>
-        </div>
-      </a>
+      <DirectionalRoleLink role={role} tileRef={tileRef} titleElement={titleElement} />
     </div>
   );
 }

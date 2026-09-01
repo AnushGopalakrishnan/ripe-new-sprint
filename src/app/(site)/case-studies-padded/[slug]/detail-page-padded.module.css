@@ -337,6 +337,10 @@
   overflow: visible;
 }
 
+.formaInformationPreview p {
+  white-space: pre-line;
+}
+
 .formaInformationToggle {
   appearance: none;
   background: transparent;
@@ -520,7 +524,8 @@
   margin: 0;
 }
 
-.formaMoreHeader a {
+.formaMoreHeader a,
+.formaAllProjectsLink {
   align-items: center;
   border: 1px solid currentColor;
   box-sizing: border-box;
@@ -598,16 +603,7 @@
 }
 
 .formaCtaCopy a {
-  align-items: center;
-  border: 1px solid currentColor;
-  display: inline-flex;
-  font-size: 14px;
-  font-weight: 400;
-  gap: 12px;
-  height: 36px;
-  justify-content: center;
   margin-top: -290px;
-  min-width: 119px;
 }
 
 .formaFooter {
@@ -1209,6 +1205,7 @@
   border-radius: 50%;
   box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.24);
   height: 0.8em;
+  transform: translateX(-0.275em);
   width: 0.8em;
 }
 
