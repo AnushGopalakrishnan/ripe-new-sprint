@@ -20,6 +20,61 @@ export type CaseStudyCommentNoteProps = {
   buttonProps?: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className" | "style">;
 };
 
+export type CaseStudyCommentTriggerProps = {
+  buttonProps?: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className" | "style">;
+  comment: CaseStudyCommentNoteData;
+  index: number;
+  isActive: boolean;
+  styles: Record<string, string>;
+};
+
+export type CaseStudyCommentsToggleProps = {
+  commentsVisible: boolean;
+  onToggle: () => void;
+  styles: Record<string, string>;
+};
+
+export function CaseStudyCommentsToggle({ commentsVisible, onToggle, styles }: CaseStudyCommentsToggleProps) {
+  return (
+    <div className={styles.detailCommentToggleDock}>
+      <button
+        className={styles.detailCommentToggle}
+        onClick={onToggle}
+        type="button"
+        aria-pressed={commentsVisible}
+        aria-label={commentsVisible ? "Hide comments (C)" : "Show comments (C)"}
+      >
+        <span className={styles.detailCommentToggleLabel}>{commentsVisible ? "Hide Comments" : "Show Comments"}</span>
+        <span className={styles.detailCommentToggleKey} aria-hidden="true">C</span>
+      </button>
+    </div>
+  );
+}
+
+export function CaseStudyCommentTrigger({ buttonProps, comment, index, isActive, styles }: CaseStudyCommentTriggerProps) {
+  return (
+    <button
+      {...buttonProps}
+      aria-expanded={isActive}
+      aria-label={buttonProps?.["aria-label"] ?? `Open and drag note ${index + 1}`}
+      className={styles.detailCommentSurface}
+      type="button"
+    >
+      <span className={`${styles.detailCommentAvatarWrap} ${comment.avatar ? styles.detailCommentAvatarWrapWithImage : ""}`}>
+        {comment.avatar ? (
+          <img className={styles.detailCommentAvatar} src={comment.avatar} alt={comment.author} loading="lazy" decoding="async" />
+        ) : (
+          <span className={styles.detailCommentAvatarFallback} aria-hidden="true" />
+        )}
+      </span>
+      <span className={styles.detailCommentCard}>
+        <span className={styles.detailCommentAuthor}>{comment.author}</span>
+        <span className={styles.detailCommentBody}>{comment.body}</span>
+      </span>
+    </button>
+  );
+}
+
 export function CaseStudyCommentNote({
   buttonProps,
   comment,
@@ -44,25 +99,13 @@ export function CaseStudyCommentNote({
 
   return (
     <div className={threadClasses} style={position}>
-      <button
-        {...buttonProps}
-        aria-expanded={isActive}
-        aria-label={buttonProps?.["aria-label"] ?? `Open and drag note ${index + 1}`}
-        className={styles.detailCommentSurface}
-        type="button"
-      >
-        <span className={`${styles.detailCommentAvatarWrap} ${comment.avatar ? styles.detailCommentAvatarWrapWithImage : ""}`}>
-          {comment.avatar ? (
-            <img className={styles.detailCommentAvatar} src={comment.avatar} alt={comment.author} loading="lazy" decoding="async" />
-          ) : (
-            <span className={styles.detailCommentAvatarFallback} aria-hidden="true" />
-          )}
-        </span>
-        <span className={styles.detailCommentCard}>
-          <span className={styles.detailCommentAuthor}>{comment.author}</span>
-          <span className={styles.detailCommentBody}>{comment.body}</span>
-        </span>
-      </button>
+      <CaseStudyCommentTrigger
+        buttonProps={buttonProps}
+        comment={comment}
+        index={index}
+        isActive={isActive}
+        styles={styles}
+      />
     </div>
   );
 }

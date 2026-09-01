@@ -111,7 +111,9 @@ function useTypewriter(words: string[]) {
   return `${(words[wordIndex] ?? "").slice(0, visibleChars)}|`;
 }
 
-function Pill({ action, children }: { action?: string; children: string }) {
+export type HomeFeedPillProps = { action?: string; children: string };
+
+export function HomeFeedPill({ action, children }: HomeFeedPillProps) {
   return (
     <span className={styles.pill}>
       <span className={styles.pillLabel}>{children}</span>
@@ -124,7 +126,9 @@ function Pill({ action, children }: { action?: string; children: string }) {
   );
 }
 
-function CardLink({ href, label }: { href: string; label: string }) {
+export type HomeFeedCardLinkProps = { href: string; label: string };
+
+export function HomeFeedCardLink({ href, label }: HomeFeedCardLinkProps) {
   return <a className={styles.cardLink} href={href} aria-label={label} />;
 }
 
@@ -132,84 +136,63 @@ function responsiveImageProps() {
   return { sizes: feedImageSizes };
 }
 
-function SimpleCard({
-  action,
-  href,
-  label,
-  title,
-  size = "small",
-}: {
+export type HomeFeedSimpleCardProps = {
   action?: string;
   href?: string;
   label: string;
   title: string;
   size?: "small" | "medium" | "square";
-}) {
+};
+
+export function HomeFeedSimpleCard({
+  action,
+  href,
+  label,
+  title,
+  size = "small",
+}: HomeFeedSimpleCardProps) {
   return (
     <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.textCard} ${styles[size]}`}>
-      <Pill action={action}>{label}</Pill>
+      <HomeFeedPill action={action}>{label}</HomeFeedPill>
       <h3 className={`${styles.title} ${label === "Services" ? styles.servicesTitle : ""}`}>{title}</h3>
-      {href ? <CardLink href={href} label={`${action ?? "Open"} ${title}`} /> : null}
+      {href ? <HomeFeedCardLink href={href} label={`${action ?? "Open"} ${title}`} /> : null}
     </article>
   );
 }
 
-function ImageCard({
-  action = "View",
-  href,
-  label = "Work",
-  title,
-  src,
-  size = "square",
-  position,
-}: {
+type HomeFeedMediaCardBaseProps = {
   action?: string;
   href?: string;
   label?: string;
   title: string;
   src: string;
+};
+
+export type HomeFeedImageMediaCardProps = HomeFeedMediaCardBaseProps & {
+  kind: "image";
   size?: "medium" | "square";
   position?: string;
-}) {
-  return (
-    <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles[size]}`}>
-      <img
-        className={`${styles.media} ${styles.softImage}`}
-        src={src}
-        alt=""
-        loading="lazy"
-        {...responsiveImageProps()}
-        style={position ? { objectPosition: position } : undefined}
-      />
-      <div className={styles.overlay} />
-      <Pill action={href ? action : undefined}>{label}</Pill>
-      {title ? <h3 className={styles.title}>{title}</h3> : null}
-      {href ? <CardLink href={href} label={`${action} ${title || label}`} /> : null}
-    </article>
-  );
-}
+};
 
-function VideoCard({
-  action = "View",
-  href,
-  label = "Work",
-  title,
-  src,
-  poster,
-}: {
-  action?: string;
-  href?: string;
-  label?: string;
-  title: string;
-  src: string;
+export type HomeFeedVideoMediaCardProps = HomeFeedMediaCardBaseProps & {
+  kind: "video";
   poster?: string;
-}) {
+};
+
+export type HomeFeedMediaCardProps = HomeFeedImageMediaCardProps | HomeFeedVideoMediaCardProps;
+
+export function HomeFeedMediaCard(props: HomeFeedMediaCardProps) {
   const articleRef = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
   const [hasFrame, setHasFrame] = useState(false);
+  const isVideo = props.kind === "video";
+  const action = props.action ?? "View";
+  const label = props.label ?? "Work";
+  const size = props.kind === "image" ? props.size ?? "square" : "square";
 
   useEffect(() => {
+    if (!isVideo) return undefined;
     const article = articleRef.current;
     if (!article || shouldLoad) return undefined;
 
@@ -224,10 +207,10 @@ function VideoCard({
 
     observer.observe(article);
     return () => observer.disconnect();
-  }, [shouldLoad]);
+  }, [isVideo, shouldLoad]);
 
   useEffect(() => {
-    if (!shouldLoad) return;
+    if (!isVideo || !shouldLoad) return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -237,103 +220,108 @@ function VideoCard({
     void video.play().catch(() => {
       // Browsers may delay autoplay until the card is painted or visible.
     });
-  }, [shouldLoad]);
+  }, [isVideo, shouldLoad]);
 
   useEffect(() => {
     setHasFrame(false);
-  }, [src]);
+  }, [props.src]);
 
-  const resolvedPoster = resolveVideoPoster({ poster, src });
+  const resolvedPoster = isVideo ? resolveVideoPoster({ poster: props.poster, src: props.src }) : undefined;
 
   return (
     <article
       ref={articleRef}
-      className={`${styles.card} ${href ? styles.interactive : ""} ${styles.imageCard} ${styles.square}`}
-      data-video-ready={hasFrame || resolvedPoster ? "true" : "false"}
-      onFocusCapture={() => setShouldLoad(true)}
-      onPointerEnter={() => setShouldLoad(true)}
+      className={`${styles.card} ${props.href ? styles.interactive : ""} ${styles.imageCard} ${styles[size]}`}
+      data-video-ready={isVideo ? (hasFrame || resolvedPoster ? "true" : "false") : undefined}
+      onFocusCapture={isVideo ? () => setShouldLoad(true) : undefined}
+      onPointerEnter={isVideo ? () => setShouldLoad(true) : undefined}
     >
-      <video
-        ref={videoRef}
-        className={styles.media}
-        src={shouldLoad ? src : undefined}
-        poster={resolvedPoster}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload={shouldLoad ? "metadata" : "none"}
-        aria-hidden="true"
-        onLoadedMetadata={() => setHasFrame(true)}
-        onLoadedData={() => setHasFrame(true)}
-        onCanPlay={() => setHasFrame(true)}
-        onPlay={() => setHasFrame(true)}
-        onError={() => setHasFrame(true)}
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          className={styles.media}
+          src={shouldLoad ? props.src : undefined}
+          poster={resolvedPoster}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload={shouldLoad ? "metadata" : "none"}
+          aria-hidden="true"
+          onLoadedMetadata={() => setHasFrame(true)}
+          onLoadedData={() => setHasFrame(true)}
+          onCanPlay={() => setHasFrame(true)}
+          onPlay={() => setHasFrame(true)}
+          onError={() => setHasFrame(true)}
+        />
+      ) : (
+        <img
+          className={`${styles.media} ${styles.softImage}`}
+          src={props.src}
+          alt=""
+          loading="lazy"
+          {...responsiveImageProps()}
+          style={props.position ? { objectPosition: props.position } : undefined}
+        />
+      )}
       <div className={styles.overlay} />
-      <Pill action={href ? action : undefined}>{label}</Pill>
-      <h3 className={styles.title}>{title}</h3>
-      {href ? <CardLink href={href} label={`${action} ${title}`} /> : null}
+      <HomeFeedPill action={props.href ? action : undefined}>{label}</HomeFeedPill>
+      {props.title ? <h3 className={styles.title}>{props.title}</h3> : null}
+      {props.href ? <HomeFeedCardLink href={props.href} label={`${action} ${props.title || label}`} /> : null}
     </article>
   );
 }
 
-function NewsCard({
+export type HomeFeedNewsCardProps = { href?: string; label: string; title: string; caption: string };
+
+export function HomeFeedNewsCard({
   href,
   label,
   title,
   caption,
-}: {
-  href?: string;
-  label: string;
-  title: string;
-  caption: string;
-}) {
+}: HomeFeedNewsCardProps) {
   return (
     <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.greenCard} ${styles.medium}`}>
-      <Pill action={href ? "Read" : undefined}>{label}</Pill>
+      <HomeFeedPill action={href ? "Read" : undefined}>{label}</HomeFeedPill>
       <h3 className={styles.greenTitle}>{title}</h3>
       <p className={styles.caption}>{caption}</p>
-      {href ? <CardLink href={href} label={`Read ${title}`} /> : null}
+      {href ? <HomeFeedCardLink href={href} label={`Read ${title}`} /> : null}
     </article>
   );
 }
 
-function CopyCard({
+export type HomeFeedCopyCardProps = { href?: string; label?: string; children: string; large?: boolean };
+
+export function HomeFeedCopyCard({
   href,
   label = "Studio",
   children,
   large = false,
-}: {
-  href?: string;
-  label?: string;
-  children: string;
-  large?: boolean;
-}) {
+}: HomeFeedCopyCardProps) {
   return (
     <article className={`${styles.card} ${href ? styles.interactive : ""} ${styles.textCard} ${styles.medium}`}>
-      <Pill action={href ? "About" : undefined}>{label}</Pill>
+      <HomeFeedPill action={href ? "About" : undefined}>{label}</HomeFeedPill>
       <p className={large ? styles.bigCopy : styles.bodyCopy}>{children}</p>
-      {href ? <CardLink href={href} label="About Ripe Studios" /> : null}
+      {href ? <HomeFeedCardLink href={href} label="About Ripe Studios" /> : null}
     </article>
   );
 }
 
-function TimeCard() {
+export function HomeFeedTimeCard() {
   const time = useLondonTime();
 
   return (
     <article className={`${styles.card} ${styles.textCard} ${styles.small}`}>
-      <Pill>Studio</Pill>
+      <HomeFeedPill>Studio</HomeFeedPill>
       <p className={styles.timeCopy}>{time} / London</p>
     </article>
   );
 }
 
-function LogosCard() {
+export function HomeFeedLogosCard() {
   return (
     <article className={`${styles.card} ${styles.textCard} ${styles.medium} ${styles.logosCard}`}>
-      <Pill>Clients</Pill>
+      <HomeFeedPill>Clients</HomeFeedPill>
       <div className={styles.logos} aria-hidden="true">
         <div className={styles.logoTrack}>
           <span>ena</span>
@@ -350,19 +338,19 @@ function LogosCard() {
   );
 }
 
-function AwardsCard() {
+export function HomeFeedAwardsCard() {
   return (
     <article className={`${styles.card} ${styles.textCard} ${styles.small} ${styles.awards}`}>
-      <Pill>Recognition</Pill>
+      <HomeFeedPill>Recognition</HomeFeedPill>
       <h3 className={styles.title}>0 Awards</h3>
     </article>
   );
 }
 
-function SoundsCard() {
+export function HomeFeedSoundsCard() {
   return (
     <article className={`${styles.card} ${styles.interactive} ${styles.textCard} ${styles.square} ${styles.soundsCard}`}>
-      <Pill action="Sounds">Studio</Pill>
+      <HomeFeedPill action="Sounds">Studio</HomeFeedPill>
       <h3 className={styles.soundsTitle}>What we listen in the studio</h3>
       <div className={styles.playlistPanel} aria-label="Studio playlist">
         <span>Studio Playlist</span>
@@ -374,14 +362,17 @@ function SoundsCard() {
   );
 }
 
-function ServicesCard() {
+export type HomeFeedServicesCardProps = { word?: string };
+
+export function HomeFeedServicesCard({ word }: HomeFeedServicesCardProps = {}) {
   const text = useTypewriter(serviceWords);
+  const visibleText = word ?? text;
 
   return (
     <article className={`${styles.card} ${styles.textCard} ${styles.small}`}>
-      <Pill>Services</Pill>
-      <h3 className={`${styles.title} ${styles.servicesTitle}`} aria-label={`Services: ${text}`}>
-        {text}
+      <HomeFeedPill>Services</HomeFeedPill>
+      <h3 className={`${styles.title} ${styles.servicesTitle}`} aria-label={`Services: ${visibleText}`}>
+        {visibleText}
       </h3>
     </article>
   );
@@ -438,69 +429,71 @@ export function HomeFeed() {
     <section ref={feedRef} className={styles.feed} aria-label="Featured work feed">
       <div className={styles.grid}>
         <div className={styles.column}>
-          <SimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simons" />
-          <NewsCard
+          <HomeFeedSimpleCard action="View" href={links.works.raf} label="Case Study" title="Raf Simons" />
+          <HomeFeedNewsCard
             href={links.article}
             label="Studio Thoughts"
             title="We built a new online presence!"
             caption="Rahul Kashyap"
           />
-          <ImageCard href={links.works.raf} label="Case Study" title="Avantis" src={images.avantis} />
-          <CopyCard href={links.about} large>
+          <HomeFeedMediaCard kind="image" href={links.works.raf} label="Case Study" title="Avantis" src={images.avantis} />
+          <HomeFeedCopyCard href={links.about} large>
             We are driven by concepts, dedicated to creating, expressing, and enhancing brand identities.
-          </CopyCard>
-          <ImageCard href={links.works.cutPaste} title="Cut and Paste" src={images.cutPaste} />
-          <TimeCard />
-          <VideoCard href={links.works.maison} title="Maison Margiela" src={videos.maison} poster={images.maison} />
-          <ImageCard href={links.works.tesla} title="Tesla Motors" src={images.tesla} />
+          </HomeFeedCopyCard>
+          <HomeFeedMediaCard kind="image" href={links.works.cutPaste} title="Cut and Paste" src={images.cutPaste} />
+          <HomeFeedTimeCard />
+          <HomeFeedMediaCard kind="video" href={links.works.maison} title="Maison Margiela" src={videos.maison} poster={images.maison} />
+          <HomeFeedMediaCard kind="image" href={links.works.tesla} title="Tesla Motors" src={images.tesla} />
         </div>
 
         <div className={styles.column}>
-          <ImageCard href={links.works.polestar} title="Bar Doubble" src={images.artObjects} position="center 48%" />
-          <CopyCard href={links.about}>
+          <HomeFeedMediaCard kind="image" href={links.works.polestar} title="Bar Doubble" src={images.artObjects} position="center 48%" />
+          <HomeFeedCopyCard href={links.about}>
             For us, everything begins with the strength of a compelling concept. Our methodology stems from transforming
             stories into unique and adaptable creations designed for growth and precision.
-          </CopyCard>
-          <LogosCard />
-          <ImageCard href={links.works.artObjects} title="Oum Ceramics" src={images.oum} position="center center" />
-          <SimpleCard action="View" href={links.works.jacquemus} label="Work" title="Jacquemus" />
-          <ImageCard action="About" href={links.about} label="Studio" title="" src={images.studio} />
-          <ImageCard
+          </HomeFeedCopyCard>
+          <HomeFeedLogosCard />
+          <HomeFeedMediaCard kind="image" href={links.works.artObjects} title="Oum Ceramics" src={images.oum} position="center center" />
+          <HomeFeedSimpleCard action="View" href={links.works.jacquemus} label="Work" title="Jacquemus" />
+          <HomeFeedMediaCard kind="image" action="About" href={links.about} label="Studio" title="" src={images.studio} />
+          <HomeFeedMediaCard
+            kind="image"
             href={links.works.dries}
             title="Dries Van Noten"
             src={images.dries}
             size="medium"
             position="center 44%"
           />
-          <AwardsCard />
-          <ImageCard href={links.works.yangLi} title="Yang Li" src={images.yangLi} size="medium" />
+          <HomeFeedAwardsCard />
+          <HomeFeedMediaCard kind="image" href={links.works.yangLi} title="Yang Li" src={images.yangLi} size="medium" />
         </div>
 
         <div className={styles.column}>
-          <ImageCard
+          <HomeFeedMediaCard
+            kind="image"
             href={links.works.margot}
             title="Mira"
             src={images.mira}
             size="medium"
             position="center 54%"
           />
-          <NewsCard
+          <HomeFeedNewsCard
             href={links.article}
             label="Case Study"
             title="Talk at the Art Directors Club"
             caption="Rahul Kashyap"
           />
-          <ImageCard href={links.works.faune} label="Case Study" title="Zetachain" src={images.zeta} />
-          <ServicesCard />
-          <NewsCard
+          <HomeFeedMediaCard kind="image" href={links.works.faune} label="Case Study" title="Zetachain" src={images.zeta} />
+          <HomeFeedServicesCard />
+          <HomeFeedNewsCard
             href={links.article}
             label="Talk"
             title="Brand Identity"
             caption="Our founders will speak at the festival conference in Spain"
           />
-          <ImageCard href={links.works.rick} title="Rick Owens" src={images.rick} />
-          <SimpleCard action="View" href={links.works.nike} label="Work" title="Nike" />
-          <SoundsCard />
+          <HomeFeedMediaCard kind="image" href={links.works.rick} title="Rick Owens" src={images.rick} />
+          <HomeFeedSimpleCard action="View" href={links.works.nike} label="Work" title="Nike" />
+          <HomeFeedSoundsCard />
         </div>
       </div>
     </section>

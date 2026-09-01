@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import "hls-video-element";
 
 export type CaseStudyLongFormPlayerProps = {
+  initialState?: "paused" | "playing" | "muted" | "fullscreen";
   styles: Record<string, string>;
   mediaClassName: string;
   src: string;
@@ -34,7 +35,7 @@ function isHlsSource(src: string) {
   return /\.m3u8(?:[?#]|$)/i.test(src);
 }
 
-function PlayIcon({ className }: { className: string }) {
+export function PlayerPlayIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <path
@@ -45,7 +46,7 @@ function PlayIcon({ className }: { className: string }) {
   );
 }
 
-function PauseIcon({ className }: { className: string }) {
+export function PlayerPauseIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <path d="M16 5V19" stroke="currentColor" strokeWidth="3" strokeMiterlimit="10" />
@@ -54,7 +55,7 @@ function PauseIcon({ className }: { className: string }) {
   );
 }
 
-function VolumeUpIcon({ className }: { className: string }) {
+export function PlayerVolumeUpIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <path
@@ -65,7 +66,7 @@ function VolumeUpIcon({ className }: { className: string }) {
   );
 }
 
-function VolumeMuteIcon({ className }: { className: string }) {
+export function PlayerVolumeMuteIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <path
@@ -76,7 +77,7 @@ function VolumeMuteIcon({ className }: { className: string }) {
   );
 }
 
-function FullscreenIcon({ className }: { className: string }) {
+export function PlayerFullscreenIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <rect x="3" y="14" width="2" height="7" fill="currentColor" />
@@ -91,7 +92,7 @@ function FullscreenIcon({ className }: { className: string }) {
   );
 }
 
-function FullscreenExitIcon({ className }: { className: string }) {
+export function PlayerFullscreenExitIcon({ className }: { className: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 24 24" fill="none" className={className}>
       <rect x="7" y="2" width="2" height="7" fill="currentColor" />
@@ -106,7 +107,217 @@ function FullscreenExitIcon({ className }: { className: string }) {
   );
 }
 
+export type CaseStudyPlayerPlayControlProps = {
+  compact?: boolean;
+  isPlaying: boolean;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  styles: Record<string, string>;
+};
+
+export function CaseStudyPlayerPlayControl({ compact = false, isPlaying, onClick, styles }: CaseStudyPlayerPlayControlProps) {
+  return (
+    <button
+      className={compact ? styles.detailLongFormTogglePlay : styles.detailLongFormPlayPause}
+      type="button"
+      aria-label={isPlaying ? "Pause video" : "Play video"}
+      onClick={onClick}
+    >
+      {compact ? (
+        <>
+          <PlayerPauseIcon className={styles.detailLongFormPauseIcon} />
+          <PlayerPlayIcon className={styles.detailLongFormPlayIcon} />
+        </>
+      ) : (
+        <span className={styles.detailLongFormBigButton}>
+          <PlayerPauseIcon className={styles.detailLongFormPauseIcon} />
+          <PlayerPlayIcon className={styles.detailLongFormPlayIcon} />
+        </span>
+      )}
+    </button>
+  );
+}
+
+export type CaseStudyPlayerTimelineProps = {
+  bufferedPercent: number;
+  currentTime: number;
+  duration: number;
+  onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
+  onPointerDown: React.PointerEventHandler<HTMLDivElement>;
+  progress: number;
+  styles: Record<string, string>;
+  timelineRef?: React.Ref<HTMLDivElement>;
+};
+
+export function CaseStudyPlayerTimeline({ bufferedPercent, currentTime, duration, onKeyDown, onPointerDown, progress, styles, timelineRef }: CaseStudyPlayerTimelineProps) {
+  return (
+    <div
+      ref={timelineRef}
+      className={styles.detailLongFormTimeline}
+      role="slider"
+      aria-label="Video timeline"
+      aria-valuemin={0}
+      aria-valuemax={Math.max(duration, 0)}
+      aria-valuenow={Math.min(currentTime, duration || currentTime)}
+      tabIndex={0}
+      onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
+    >
+      <div className={styles.detailLongFormTimelineBar}>
+        <div className={styles.detailLongFormTimelineBg} />
+        <div className={styles.detailLongFormTimelineBuffered} style={{ transform: `translateX(${-100 + bufferedPercent}%)` }} />
+        <div className={styles.detailLongFormTimelineProgress} style={{ transform: `translateX(${-100 + progress}%)` }} />
+      </div>
+      <div className={styles.detailLongFormTimelineHandle} style={{ left: `${progress}%` }} />
+    </div>
+  );
+}
+
+export type CaseStudyPlayerVolumeControlProps = {
+  effectiveMuted: boolean;
+  onChange: (volume: number) => void;
+  onToggleMute: React.MouseEventHandler<HTMLButtonElement>;
+  onWake: () => void;
+  styles: Record<string, string>;
+  volumePercent: number;
+};
+
+export function CaseStudyPlayerVolumeControl({ effectiveMuted, onChange, onToggleMute, onWake, styles, volumePercent }: CaseStudyPlayerVolumeControlProps) {
+  return (
+    <div
+      className={styles.detailLongFormVolumeControl}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onWake();
+      }}
+      onPointerEnter={onWake}
+      onFocus={onWake}
+    >
+      <div className={styles.detailLongFormVolumeSliderWrap}>
+        <input
+          className={styles.detailLongFormVolumeSlider}
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={volumePercent}
+          aria-label="Video volume"
+          aria-valuetext={effectiveMuted ? "Muted" : `${volumePercent}%`}
+          style={{ "--player-volume": `${volumePercent}%` } as CSSProperties}
+          onChange={(event) => {
+            onWake();
+            onChange(Number(event.currentTarget.value) / 100);
+          }}
+          onClick={(event) => event.stopPropagation()}
+        />
+      </div>
+      <button
+        className={styles.detailLongFormToggleMute}
+        type="button"
+        aria-label={effectiveMuted ? "Unmute video" : "Mute video"}
+        aria-haspopup="true"
+        onClick={onToggleMute}
+      >
+        <PlayerVolumeUpIcon className={styles.detailLongFormVolumeUpIcon} />
+        <PlayerVolumeMuteIcon className={styles.detailLongFormVolumeMuteIcon} />
+      </button>
+    </div>
+  );
+}
+
+export type CaseStudyPlayerFullscreenControlProps = {
+  fullscreen: boolean;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  styles: Record<string, string>;
+};
+
+export function CaseStudyPlayerFullscreenControl({ fullscreen, onClick, styles }: CaseStudyPlayerFullscreenControlProps) {
+  return (
+    <button
+      className={styles.detailLongFormToggleFullscreen}
+      type="button"
+      aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      onClick={onClick}
+    >
+      <PlayerFullscreenIcon className={styles.detailLongFormFullscreenIcon} />
+      <PlayerFullscreenExitIcon className={styles.detailLongFormFullscreenExitIcon} />
+    </button>
+  );
+}
+
+export type CaseStudyPlayerControlsProps = {
+  bufferedPercent: number;
+  currentTime: number;
+  duration: number;
+  effectiveMuted: boolean;
+  fullscreen: boolean;
+  isPlaying: boolean;
+  onTimelineKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
+  onTimelinePointerDown: React.PointerEventHandler<HTMLDivElement>;
+  onToggleFullscreen: React.MouseEventHandler<HTMLButtonElement>;
+  onToggleMute: React.MouseEventHandler<HTMLButtonElement>;
+  onTogglePlay: React.MouseEventHandler<HTMLButtonElement>;
+  onVolumeChange: (volume: number) => void;
+  onWake: () => void;
+  progress: number;
+  styles: Record<string, string>;
+  timelineRef?: { current: HTMLDivElement | null };
+  volumePercent: number;
+};
+
+export function CaseStudyPlayerControls({
+  bufferedPercent,
+  currentTime,
+  duration,
+  effectiveMuted,
+  fullscreen,
+  isPlaying,
+  onTimelineKeyDown,
+  onTimelinePointerDown,
+  onToggleFullscreen,
+  onToggleMute,
+  onTogglePlay,
+  onVolumeChange,
+  onWake,
+  progress,
+  styles,
+  timelineRef,
+  volumePercent,
+}: CaseStudyPlayerControlsProps) {
+  return (
+    <div className={styles.detailLongFormInterfaceBottom}>
+      <CaseStudyPlayerPlayControl compact isPlaying={isPlaying} styles={styles} onClick={onTogglePlay} />
+      <div className={styles.detailLongFormTime}>
+        <p>{formatPlayerTime(currentTime)}</p>
+        <p className={styles.detailLongFormTransparentText}>/</p>
+        <p className={styles.detailLongFormTransparentText}>{formatPlayerTime(duration)}</p>
+      </div>
+      <CaseStudyPlayerTimeline
+        bufferedPercent={bufferedPercent}
+        currentTime={currentTime}
+        duration={duration}
+        onPointerDown={onTimelinePointerDown}
+        onKeyDown={onTimelineKeyDown}
+        progress={progress}
+        styles={styles}
+        timelineRef={timelineRef}
+      />
+      <div className={styles.detailLongFormInterfaceButtons}>
+        <CaseStudyPlayerVolumeControl
+          effectiveMuted={effectiveMuted}
+          onChange={onVolumeChange}
+          onWake={onWake}
+          styles={styles}
+          volumePercent={volumePercent}
+          onToggleMute={onToggleMute}
+        />
+        <CaseStudyPlayerFullscreenControl fullscreen={fullscreen} styles={styles} onClick={onToggleFullscreen} />
+      </div>
+    </div>
+  );
+}
+
 export function CaseStudyLongFormPlayer({
+  initialState,
   styles,
   mediaClassName,
   src,
@@ -120,11 +331,11 @@ export function CaseStudyLongFormPlayer({
   const hoverTimerRef = useRef<number | null>(null);
   const wasPlayingBeforeDragRef = useRef(false);
   const lastAudibleVolumeRef = useRef(1);
-  const [status, setStatus] = useState<"idle" | "ready" | "loading" | "playing" | "paused">("idle");
+  const [status, setStatus] = useState<"idle" | "ready" | "loading" | "playing" | "paused">(initialState === "playing" ? "playing" : initialState ? "paused" : "idle");
   const [hover, setHover] = useState<"idle" | "active">("idle");
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(initialState === "muted");
   const [volume, setVolume] = useState(1);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(initialState === "fullscreen");
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [bufferedPercent, setBufferedPercent] = useState(0);
@@ -376,56 +587,29 @@ export function CaseStudyLongFormPlayer({
       )}
       {poster ? <img className={styles.detailLongFormPoster} src={poster} alt="" aria-hidden="true" /> : null}
       <div className={styles.detailLongFormShade} aria-hidden="true" />
-      <button
-        className={styles.detailLongFormPlayPause}
-        type="button"
-        aria-label={status === "playing" ? "Pause video" : "Play video"}
+      <CaseStudyPlayerPlayControl
+        isPlaying={status === "playing"}
+        styles={styles}
         onClick={(event) => {
           event.stopPropagation();
           wakeControls();
           togglePlay();
         }}
-      >
-        <span className={styles.detailLongFormBigButton}>
-          <PauseIcon className={styles.detailLongFormPauseIcon} />
-          <PlayIcon className={styles.detailLongFormPlayIcon} />
-        </span>
-      </button>
+      />
       <div className={styles.detailLongFormLoading} aria-hidden="true">
         <span />
       </div>
       <div className={styles.detailLongFormInterface}>
         <div className={styles.detailLongFormInterfaceFade} />
-        <div className={styles.detailLongFormInterfaceBottom}>
-          <button
-            className={styles.detailLongFormTogglePlay}
-            type="button"
-            aria-label={status === "playing" ? "Pause video" : "Play video"}
-            onClick={(event) => {
-              event.stopPropagation();
-              wakeControls();
-              togglePlay();
-            }}
-          >
-            <PauseIcon className={styles.detailLongFormPauseIcon} />
-            <PlayIcon className={styles.detailLongFormPlayIcon} />
-          </button>
-          <div className={styles.detailLongFormTime}>
-            <p>{formatPlayerTime(currentTime)}</p>
-            <p className={styles.detailLongFormTransparentText}>/</p>
-            <p className={styles.detailLongFormTransparentText}>{formatPlayerTime(duration)}</p>
-          </div>
-          <div
-            ref={timelineRef}
-            className={styles.detailLongFormTimeline}
-            role="slider"
-            aria-label="Video timeline"
-            aria-valuemin={0}
-            aria-valuemax={Math.max(duration, 0)}
-            aria-valuenow={Math.min(currentTime, duration || currentTime)}
-            tabIndex={0}
-            onPointerDown={onTimelinePointerDown}
-            onKeyDown={(event) => {
+        <CaseStudyPlayerControls
+          bufferedPercent={bufferedPercent}
+          currentTime={currentTime}
+          duration={duration}
+          effectiveMuted={effectiveMuted}
+          fullscreen={fullscreen}
+          isPlaying={status === "playing"}
+          onTimelinePointerDown={onTimelinePointerDown}
+          onTimelineKeyDown={(event) => {
               const video = videoRef.current;
               if (!video?.duration) return;
               const offset = event.key === "ArrowLeft" ? -5 : event.key === "ArrowRight" ? 5 : 0;
@@ -434,79 +618,29 @@ export function CaseStudyLongFormPlayer({
               const next = Math.max(0, Math.min(video.duration, video.currentTime + offset));
               video.currentTime = next;
               setCurrentTime(next);
-            }}
-          >
-            <div className={styles.detailLongFormTimelineBar}>
-              <div className={styles.detailLongFormTimelineBg} />
-              <div
-                className={styles.detailLongFormTimelineBuffered}
-                style={{ transform: `translateX(${-100 + bufferedPercent}%)` }}
-              />
-              <div
-                className={styles.detailLongFormTimelineProgress}
-                style={{ transform: `translateX(${-100 + progress}%)` }}
-              />
-            </div>
-            <div className={styles.detailLongFormTimelineHandle} style={{ left: `${progress}%` }} />
-          </div>
-          <div className={styles.detailLongFormInterfaceButtons}>
-            <div
-              className={styles.detailLongFormVolumeControl}
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                wakeControls();
-              }}
-              onPointerEnter={wakeControls}
-              onFocus={wakeControls}
-            >
-              <div className={styles.detailLongFormVolumeSliderWrap}>
-                <input
-                  className={styles.detailLongFormVolumeSlider}
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={volumePercent}
-                  aria-label="Video volume"
-                  aria-valuetext={effectiveMuted ? "Muted" : `${volumePercent}%`}
-                  style={{ "--player-volume": `${volumePercent}%` } as CSSProperties}
-                  onChange={(event) => {
-                    wakeControls();
-                    setPlayerVolume(Number(event.currentTarget.value) / 100);
-                  }}
-                  onClick={(event) => event.stopPropagation()}
-                />
-              </div>
-              <button
-                className={styles.detailLongFormToggleMute}
-                type="button"
-                aria-label={effectiveMuted ? "Unmute video" : "Mute video"}
-                aria-haspopup="true"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  wakeControls();
-                  toggleMute();
-                }}
-              >
-                <VolumeUpIcon className={styles.detailLongFormVolumeUpIcon} />
-                <VolumeMuteIcon className={styles.detailLongFormVolumeMuteIcon} />
-              </button>
-            </div>
-            <button
-              className={styles.detailLongFormToggleFullscreen}
-              type="button"
-              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              onClick={(event) => {
-                event.stopPropagation();
-                wakeControls();
-                toggleFullscreen();
-              }}
-            >
-              <FullscreenIcon className={styles.detailLongFormFullscreenIcon} />
-              <FullscreenExitIcon className={styles.detailLongFormFullscreenExitIcon} />
-            </button>
-          </div>
-        </div>
+          }}
+          onToggleFullscreen={(event) => {
+            event.stopPropagation();
+            wakeControls();
+            toggleFullscreen();
+          }}
+          onToggleMute={(event) => {
+            event.stopPropagation();
+            wakeControls();
+            toggleMute();
+          }}
+          onTogglePlay={(event) => {
+            event.stopPropagation();
+            wakeControls();
+            togglePlay();
+          }}
+          onVolumeChange={setPlayerVolume}
+          onWake={wakeControls}
+          progress={progress}
+          styles={styles}
+          timelineRef={timelineRef}
+          volumePercent={volumePercent}
+        />
       </div>
     </div>
   );

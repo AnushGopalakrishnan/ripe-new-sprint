@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
@@ -9,7 +11,7 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3100",
     trace: "on-first-retry",
   },
-  webServer: {
+  webServer: skipWebServer ? undefined : {
     command: "pnpm start --hostname 127.0.0.1 --port 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,

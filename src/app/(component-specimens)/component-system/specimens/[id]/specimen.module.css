@@ -2,16 +2,26 @@
   display: block;
   min-width: 0;
   margin: 0;
-  background: #fff;
+  background: #faf9f7;
 }
 
 .surface {
+  display: flow-root;
   position: relative;
   width: 100%;
   min-height: 100dvh;
   overflow: clip;
   padding: clamp(1.25rem, 3vw, 2.5rem);
-  background: #fff;
+  background: #faf9f7;
+}
+
+.surface[data-component-specimen-align="center"] {
+  display: grid;
+  place-items: center;
+}
+
+.surface[data-component-specimen-align="center"] > * {
+  max-width: 100%;
 }
 
 .surface[data-component="public-navigation"] {
@@ -24,6 +34,10 @@
 .surface[data-component="home-feed"],
 .surface[data-component="careers-open-roles"] {
   padding: 0;
+}
+
+.surface[data-component="work-journal"] > :first-child {
+  display: flow-root;
 }
 
 .surface[data-component="long-form-player"] > * {

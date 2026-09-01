@@ -1,10 +1,13 @@
 import { createExactTitleMetadata } from "@/lib/metadata";
 import CareersOpenRoles from "@/components/careers-open-roles";
+import { ContactCta } from "@/components/contact-cta";
+import { CareersFilmstripCard, CareersFounderCard, CareersPillarCard } from "@/components/careers-cards";
+import { CareersTrustLogos } from "@/components/careers-trust-logos";
+import type { CareersFilmstripItem } from "@/components/careers-cards";
 import { getJobPostings, getTeamMembers } from "@/lib/content";
 import styles from "./page.module.css";
 import CareersMosaic from "./careers-mosaic";
 import CareersTextMotion from "./careers-text-motion";
-import CareersTrustLogos from "./careers-trust-logos";
 import typeStyles from "@/styles/careers-typography.module.css";
 
 type Pillar = {
@@ -12,7 +15,7 @@ type Pillar = {
   body: string;
 };
 
-const filmstripMedia = [
+const filmstripMedia: CareersFilmstripItem[] = [
   {
     kind: "image" as const,
     className: "frameWide",
@@ -111,20 +114,7 @@ export default async function CareersPage() {
           <div className={styles.filmstripWrap} aria-label="Showcase strip">
             <div className={styles.filmstripTrack}>
               {[0, 1].map((copy) => (
-                <div key={copy} className={styles.filmstripCard}>
-                  {filmstripMedia.map((item, index) => (
-                    <figure
-                      key={`${copy}-${index}-${item.src}`}
-                      className={styles[item.className as keyof typeof styles]}
-                    >
-                      {item.kind === "video" ? (
-                        <video src={item.src} autoPlay loop muted playsInline preload="none" />
-                      ) : (
-                        <img src={item.src} alt={item.alt} loading="lazy" />
-                      )}
-                    </figure>
-                  ))}
-                </div>
+                <CareersFilmstripCard copy={copy} items={filmstripMedia} key={copy} styles={styles} />
               ))}
             </div>
           </div>
@@ -146,13 +136,11 @@ export default async function CareersPage() {
             </p>
           </article>
           <div className={styles.trustRow}>
-            <CareersTrustLogos logos={trustLogos} />
+            <CareersTrustLogos logos={trustLogos} styles={styles} />
             <p data-careers-reveal data-careers-reveal-delay="1">
               Trust by 50k+ clients &amp; organisations
             </p>
-            <a href="mailto:careers@ripe.studio" data-careers-reveal data-careers-reveal-delay="2">
-              Get In Touch
-            </a>
+            <ContactCta email="careers@ripe.studio" reveal revealDelay={2} />
           </div>
         </div>
       </section>
@@ -161,18 +149,7 @@ export default async function CareersPage() {
         <h2 className={typeStyles.h1} data-careers-reveal>The pillars that Ripe is built on</h2>
         <div className={styles.pillarsGrid}>
           {pillars.map((pillar, index) => (
-            <article key={`${pillar.title}-${index}`} className={styles.pillarCard}>
-              <div className={styles.pillarCardHeader}>
-                <img
-                  className={styles.pillarIcon}
-                  src="/careers-media/Icon (1).svg"
-                  alt=""
-                  aria-hidden="true"
-                />
-                <h3 className={typeStyles.h1} data-careers-reveal>{pillar.title}</h3>
-              </div>
-              <p className={typeStyles.h3} data-careers-reveal data-careers-reveal-delay="1">{pillar.body}</p>
-            </article>
+            <CareersPillarCard body={pillar.body} key={`${pillar.title}-${index}`} styles={styles} title={pillar.title} />
           ))}
         </div>
       </section>
@@ -190,13 +167,7 @@ export default async function CareersPage() {
 
         <div className={styles.foundersRow}>
           {founders.map((founder) => (
-            <article key={founder.name} className={styles.founderCard}>
-              <img src={founder.photo} alt={founder.name} loading="lazy" />
-              <div data-careers-reveal>
-                <h3 className={typeStyles.h2}>{founder.name}</h3>
-                <p className={typeStyles.h4}>{founder.role}</p>
-              </div>
-            </article>
+            <CareersFounderCard key={founder.name} styles={styles} {...founder} />
           ))}
         </div>
 

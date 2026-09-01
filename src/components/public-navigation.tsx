@@ -8,6 +8,7 @@ import { gsap } from "gsap";
 import { Flip } from "gsap/Flip";
 import detailStyles from "@/app/(site)/detail-page.module.css";
 import { CaseStudyLongFormPlayer } from "@/components/case-study-long-form-player";
+import { ContactCta } from "@/components/contact-cta";
 import styles from "@/components/public-navigation.module.css";
 import type { NavLink, NavigationShowreel, SocialLink } from "@/types/content";
 
@@ -47,6 +48,7 @@ const fallbackShowreel: Required<NavigationShowreel> = {
 
 export type PublicNavigationProps = {
   contactEmail?: string;
+  initialState?: "closed" | "open" | "closing" | "showreel";
   navLinks?: NavLink[];
   navigationShowreel?: NavigationShowreel;
   panelBackgroundColor?: string;
@@ -99,11 +101,106 @@ function toneFromRgb(r: number, g: number, b: number): NavTone {
   return relativeLuminance({ r, g, b }) <= 0.45 ? "light" : "dark";
 }
 
-export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, panelBackgroundColor, socialLinks }: PublicNavigationProps) {
+export type NavigationMenuButtonProps = {
+  expanded: boolean;
+  onClick: () => void;
+};
+
+export type NavigationLogoLinkProps = { onClick?: () => void; variant?: "header" | "panel" };
+
+export function NavigationLogoLink({ onClick, variant = "header" }: NavigationLogoLinkProps) {
+  return <Link aria-label="Ripe Studios home" className={variant === "panel" ? styles.panelLogo : styles.headerLogo} href="/" onClick={onClick}><RipeLogo /></Link>;
+}
+
+export function NavigationMenuButton({ expanded, onClick }: NavigationMenuButtonProps) {
+  return (
+    <button
+      aria-controls="public-navigation-panel"
+      aria-expanded={expanded}
+      aria-label="Open navigation"
+      className={styles.burger}
+      onClick={onClick}
+      type="button"
+    >
+      <span />
+      <span />
+    </button>
+  );
+}
+
+export type NavigationDismissButtonVariant = "panel" | "player" | "backdrop";
+
+export type NavigationDismissButtonProps = {
+  label?: string;
+  onClick: () => void;
+  variant?: NavigationDismissButtonVariant;
+};
+
+export function NavigationDismissButton({ label, onClick, variant = "panel" }: NavigationDismissButtonProps) {
+  const accessibleLabel = label ?? (variant === "panel" ? "Close navigation" : "Close showreel");
+
+  if (variant === "backdrop") {
+    return <button aria-label={accessibleLabel} className={styles.playerBackdrop} onClick={onClick} type="button" />;
+  }
+
+  return (
+    <button
+      aria-label={accessibleLabel}
+      className={variant === "player" ? styles.playerCloseButton : styles.closeButton}
+      onClick={onClick}
+      type="button"
+    >
+      <span />
+      <span />
+    </button>
+  );
+}
+
+export type NavigationMenuLinkProps = {
+  item: NavLink | SocialLink;
+  onClick?: () => void;
+};
+
+export function NavigationMenuLink({ item, onClick = () => undefined }: NavigationMenuLinkProps) {
+  if (isExternalHref(item.href)) {
+    return <a href={item.href} onClick={onClick} rel="noreferrer" target="_blank">{item.label}</a>;
+  }
+
+  return <Link href={item.href as Route} onClick={onClick}>{item.label}</Link>;
+}
+
+export type NavigationShowreelButtonProps = {
+  buttonRef?: React.Ref<HTMLButtonElement>;
+  onClick: () => void;
+  title: string;
+};
+
+export function NavigationShowreelButton({ buttonRef, onClick, title }: NavigationShowreelButtonProps) {
+  return (
+    <button
+      ref={buttonRef}
+      aria-label="Play Ripe showreel"
+      className={styles.showreelButton}
+      data-flip-id="navigation-showreel"
+      onClick={onClick}
+      type="button"
+    >
+      <div className={styles.showreelButtonInner}>
+        <img alt="" className={styles.showreelPreview} src={generatedShowreelPreviewSrc} />
+        <span className={styles.showreelMeta}>
+          <span style={{ opacity: "0.5" }}>{title}</span>
+          <span>Play</span>
+        </span>
+      </div>
+    </button>
+  );
+}
+
+export function PublicNavigation({ contactEmail, initialState = "closed", navLinks, navigationShowreel, panelBackgroundColor, socialLinks }: PublicNavigationProps) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const [playerOpen, setPlayerOpen] = useState(false);
+  const [open, setOpen] = useState(initialState === "open");
+  const [closing, setClosing] = useState(initialState === "closing");
+  const [playerOpen, setPlayerOpen] = useState(initialState === "showreel");
   const [navTone, setNavTone] = useState<NavTone>("dark");
   const closeTimerRef = useRef<number | null>(null);
   const previousPathnameRef = useRef(pathname);
@@ -115,7 +212,6 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
   const primaryLinks = normalizeLinks(navLinks, fallbackPrimaryLinks);
   const secondaryLinks = normalizeLinks(socialLinks, fallbackSocialLinks);
   const email = contactEmail?.trim() || "hello@ripe.studio";
-  const ctaHref = `mailto:${email}`;
   const showreelTitle = navigationShowreel?.title?.trim() || fallbackShowreel.title;
   const showreelVideo = navigationShowreel?.video?.src ? navigationShowreel.video : fallbackShowreel.video;
   const handleShowreelLoadedMetadata = useCallback(() => undefined, []);
@@ -412,20 +508,8 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
     <>
       <header className={styles.header} data-open={active ? "true" : "false"} data-tone={navTone}>
         <div className={styles.headerInner}>
-          <Link aria-label="Ripe Studios home" className={styles.headerLogo} href="/" onClick={closeNavigation}>
-            <RipeLogo />
-          </Link>
-          <button
-            aria-controls="public-navigation-panel"
-            aria-expanded={open}
-            aria-label="Open navigation"
-            className={styles.burger}
-            onClick={openNavigation}
-            type="button"
-          >
-            <span />
-            <span />
-          </button>
+          <NavigationLogoLink onClick={closeNavigation} />
+          <NavigationMenuButton expanded={open} onClick={openNavigation} />
         </div>
       </header>
 
@@ -437,16 +521,11 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
       >
         <div className={styles.panelBackground} style={panelBackgroundColor ? { backgroundColor: panelBackgroundColor } : undefined} />
         <div className={styles.closeBar}>
-          <button aria-label="Close navigation" className={styles.closeButton} onClick={closeNavigation} type="button">
-            <span />
-            <span />
-          </button>
+          <NavigationDismissButton onClick={closeNavigation} />
         </div>
         <div className={styles.panelInner}>
           <div className={`${styles.panelColumn} ${styles.logoColumn}`}>
-            <Link aria-label="Ripe Studios home" className={styles.panelLogo} href="/" onClick={closeNavigation}>
-              <RipeLogo />
-            </Link>
+            <NavigationLogoLink onClick={closeNavigation} variant="panel" />
           </div>
 
           <div className={`${styles.panelColumn} ${styles.secondaryColumn}`}>
@@ -454,14 +533,14 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
               <ul className={styles.secondaryList}>
                 {secondaryLinks.map((item) => (
                   <li key={item.href}>
-                    <MenuLink item={item} onClick={closeNavigation} />
+                    <NavigationMenuLink item={item} onClick={closeNavigation} />
                   </li>
                 ))}
               </ul>
               <ul className={`${styles.secondaryList} ${styles.policyList}`}>
                 {policyLinks.map((item) => (
                   <li key={item.href}>
-                    <MenuLink item={item} onClick={closeNavigation} />
+                    <NavigationMenuLink item={item} onClick={closeNavigation} />
                   </li>
                 ))}
               </ul>
@@ -473,7 +552,7 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
               <ul className={styles.primaryList}>
                 {primaryLinks.map((item) => (
                   <li key={item.href}>
-                    <MenuLink item={item} onClick={closeNavigation} />
+                    <NavigationMenuLink item={item} onClick={closeNavigation} />
                   </li>
                 ))}
               </ul>
@@ -481,49 +560,19 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
           </div>
 
           <div className={`${styles.panelColumn} ${styles.showreelColumn}`}>
-            <button
-              ref={showreelTileRef}
-              aria-label="Play Ripe showreel"
-              className={styles.showreelButton}
-              data-flip-id="navigation-showreel"
-              onClick={openShowreelPlayer}
-              type="button"
-            >
-              <div className={styles.showreelButtonInner}>
-                <img alt="" className={styles.showreelPreview} src={generatedShowreelPreviewSrc} />
-                <span className={styles.showreelMeta}>
-                  <span style={{"opacity":"0.5"}}>{showreelTitle}</span>
-                  <span>Play</span>
-                </span>
-              </div>
-            </button>
+            <NavigationShowreelButton buttonRef={showreelTileRef} onClick={openShowreelPlayer} title={showreelTitle} />
           </div>
 
           <div className={`${styles.panelColumn} ${styles.ctaColumn}`}>
-            <a className={styles.contactCta} href={ctaHref} onClick={closeNavigation}>
-              Get in Touch
-            </a>
+            <ContactCta email={email} onClick={closeNavigation} />
           </div>
         </div>
 
         {playerOpen ? (
           <div aria-modal="true" className={styles.playerOverlay} role="dialog">
-            <button
-              aria-label="Close showreel"
-              className={styles.playerBackdrop}
-              onClick={() => setPlayerOpen(false)}
-              type="button"
-            />
+            <NavigationDismissButton onClick={() => setPlayerOpen(false)} variant="backdrop" />
             <div ref={showreelPlayerRef} className={styles.playerShell} data-flip-id="navigation-showreel">
-              <button
-                aria-label="Close showreel"
-                className={styles.playerCloseButton}
-                onClick={() => setPlayerOpen(false)}
-                type="button"
-              >
-                <span />
-                <span />
-              </button>
+              <NavigationDismissButton onClick={() => setPlayerOpen(false)} variant="player" />
               <CaseStudyLongFormPlayer
                 styles={detailStyles}
                 mediaClassName={styles.playerVideo}
@@ -538,22 +587,6 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, p
         ) : null}
       </section>
     </>
-  );
-}
-
-function MenuLink({ item, onClick }: { item: NavLink | SocialLink; onClick: () => void }) {
-  if (isExternalHref(item.href)) {
-    return (
-      <a href={item.href} onClick={onClick} rel="noreferrer" target="_blank">
-        {item.label}
-      </a>
-    );
-  }
-
-  return (
-    <Link href={item.href as Route} onClick={onClick}>
-      {item.label}
-    </Link>
   );
 }
 

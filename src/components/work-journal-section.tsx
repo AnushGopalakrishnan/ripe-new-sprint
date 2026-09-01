@@ -171,6 +171,178 @@ function toneForBackground(background: number[]): TextTone {
   return luminance(background) <= 0.45 ? "light" : "dark";
 }
 
+export type WorkJournalFilterButtonProps = {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+};
+
+export function WorkJournalFilterButton({ active, label, onClick }: WorkJournalFilterButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.filterButton}
+      data-active={active}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+export type WorkJournalFilterGroupProps = {
+  activeFilters: string[];
+  className?: string;
+  filters: string[];
+  onToggle: (filter: string) => void;
+};
+
+export function WorkJournalFilterGroup({ activeFilters, className = "", filters, onToggle }: WorkJournalFilterGroupProps) {
+  return (
+    <div className={`${styles.filters} ${className}`.trim()} aria-label="Work filters">
+      {filters.map((filter) => (
+        <WorkJournalFilterButton
+          active={activeFilters.includes(filter)}
+          key={filter}
+          label={filter}
+          onClick={() => onToggle(filter)}
+        />
+      ))}
+    </div>
+  );
+}
+
+export type WorkJournalViewToggleProps = {
+  buttonViewMode: WorkJournalViewMode;
+  onClick: () => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
+  viewMode: WorkJournalViewMode;
+};
+
+export function WorkJournalViewToggle({ buttonViewMode, onClick, onPointerEnter, onPointerLeave, viewMode }: WorkJournalViewToggleProps) {
+  const nextViewMode: WorkJournalViewMode = viewMode === "grid" ? "list" : "grid";
+  return (
+    <button
+      type="button"
+      className={styles.viewButton}
+      data-button-view={buttonViewMode}
+      data-view={viewMode}
+      aria-label={`Switch to ${nextViewMode} view`}
+      onClick={onClick}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+    >
+      <span className={styles.viewButtonWindow} aria-hidden="true">
+        <span className={styles.viewButtonTrack}>
+          <span className={styles.viewButtonOption}><span>List View</span><ListIcon /></span>
+          <span className={styles.viewButtonOption}><span>Grid View</span><GridIcon /></span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
+export type WorkJournalMobileCategoriesButtonProps = {
+  expanded: boolean;
+  onClick: () => void;
+};
+
+export function WorkJournalMobileCategoriesButton({ expanded, onClick }: WorkJournalMobileCategoriesButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.mobileCategoryButton}
+      aria-expanded={expanded}
+      aria-controls="work-mobile-filters"
+      onClick={onClick}
+    >
+      <FilterIcon />
+      <span>Categories</span>
+    </button>
+  );
+}
+
+export type WorkJournalMobileCloseButtonProps = { onClick: () => void };
+
+export function WorkJournalMobileCloseButton({ onClick }: WorkJournalMobileCloseButtonProps) {
+  return <button type="button" className={styles.mobileCloseButton} onClick={onClick}>Close</button>;
+}
+
+export type WorkJournalCardProps = {
+  cardRef?: (node: HTMLAnchorElement | null) => void;
+  index?: number;
+  item: WorkJournalItem;
+  listLabelVisible?: boolean;
+  listPreviewEntry?: boolean;
+  listPreviewExit?: boolean;
+  onEnter?: (item: WorkJournalItem) => void;
+  onLeave?: () => void;
+  textTone?: TextTone;
+  hovered?: boolean;
+};
+
+export function WorkJournalCard({
+  cardRef,
+  hovered = false,
+  index = 0,
+  item,
+  listLabelVisible = false,
+  listPreviewEntry = false,
+  listPreviewExit = false,
+  onEnter = () => undefined,
+  onLeave = () => undefined,
+  textTone = "dark",
+}: WorkJournalCardProps) {
+  return (
+    <a
+      ref={cardRef}
+      className={styles.card}
+      data-hovered={hovered}
+      data-list-preview-exit={listPreviewExit}
+      data-list-label-visible={listLabelVisible}
+      data-list-preview-entry={listPreviewEntry}
+      data-card-text-tone={textTone}
+      data-primary-tag={item.tags[0] ?? "Work"}
+      href={`/case-studies/${item.slug}`}
+      style={{ "--index": index } as CSSProperties}
+      onPointerEnter={() => onEnter(item)}
+      onPointerLeave={onLeave}
+      onFocus={() => onEnter(item)}
+    >
+      <div className={styles.media}>
+        {isVideoItem(item) ? (
+          <LazyVideo
+            className={styles.image}
+            src={itemMediaSource(item)}
+            poster={itemMediaPoster(item)}
+            forceLoad={index < 4}
+          />
+        ) : (
+          <Image
+            className={styles.image}
+            src={itemMediaSource(item)}
+            alt={item.coverMedia?.alt || item.title}
+            fill
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
+            sizes={workCardImageSizes}
+            crossOrigin="anonymous"
+          />
+        )}
+        <div className={styles.overlay} style={{ "--accent": item.accentColor ?? "rgb(79, 79, 79)" } as CSSProperties} />
+        <div className={styles.tag}>{item.tags[0] ?? "Work"}</div>
+      </div>
+      <h2 className={styles.title}>{item.title}</h2>
+      {item.description ? <p className={styles.description}>{item.description}</p> : null}
+      <span className={styles.listIndustry}>{item.industry}</span>
+      <span className={styles.listService}>{item.tags[0] ?? "Work"}</span>
+      <span className={styles.listYear}>{item.year}</span>
+    </a>
+  );
+}
+
 export function WorkJournalSection({
   filters,
   initialFilters = [],
@@ -713,85 +885,41 @@ export function WorkJournalSection({
   const nextViewMode: WorkJournalViewMode = viewMode === "grid" ? "list" : "grid";
   const buttonViewMode = isViewButtonPreviewed ? viewMode : nextViewMode;
 
-  function renderFilterButtons(options: { closeOnSelect?: boolean } = {}) {
-    return filters.map((filter) => {
-      const isActive = activeFilters.includes(filter);
-
-      return (
-        <button
-          key={filter}
-          type="button"
-          className={styles.filterButton}
-          data-active={isActive}
-          aria-pressed={isActive}
-          onClick={() => {
-            toggleFilter(filter);
-            if (options.closeOnSelect) setIsMobileFilterOpen(false);
-          }}
-        >
-          {filter}
-        </button>
-      );
-    });
-  }
-
-  function renderViewToggleButton() {
-    return (
-      <button
-        type="button"
-        className={styles.viewButton}
-        data-button-view={buttonViewMode}
-        data-view={viewMode}
-        aria-label={`Switch to ${nextViewMode} view`}
-        onClick={handleViewToggleClick}
-        onPointerEnter={handleViewToggleEnter}
-        onPointerLeave={handleViewToggleLeave}
-      >
-        <span className={styles.viewButtonWindow} aria-hidden="true">
-          <span className={styles.viewButtonTrack}>
-            <span className={styles.viewButtonOption}>
-              <span>List View</span>
-              <ListIcon />
-            </span>
-            <span className={styles.viewButtonOption}>
-              <span>Grid View</span>
-              <GridIcon />
-            </span>
-          </span>
-        </span>
-      </button>
-    );
-  }
-
   return (
     <section className={styles.section} data-view={viewMode} aria-label="Work journal">
       <div className={styles.viewSwitcher} aria-label="Project view">
-        {renderViewToggleButton()}
+        <WorkJournalViewToggle
+          buttonViewMode={buttonViewMode}
+          onClick={handleViewToggleClick}
+          onPointerEnter={handleViewToggleEnter}
+          onPointerLeave={handleViewToggleLeave}
+          viewMode={viewMode}
+        />
       </div>
 
       <div className={styles.mobileControls}>
         <h1 className={styles.mobileTitle}>All Work</h1>
         <div className={styles.mobileControlRow}>
-          <button
-            type="button"
-            className={styles.mobileCategoryButton}
-            aria-expanded={isMobileFilterOpen}
-            aria-controls="work-mobile-filters"
-            onClick={() => setIsMobileFilterOpen(true)}
-          >
-            <FilterIcon />
-            <span>Categories</span>
-          </button>
+          <WorkJournalMobileCategoriesButton expanded={isMobileFilterOpen} onClick={() => setIsMobileFilterOpen(true)} />
           <div className={styles.mobileViewSwitcher} aria-label="Project view">
-            {renderViewToggleButton()}
+            <WorkJournalViewToggle
+              buttonViewMode={buttonViewMode}
+              onClick={handleViewToggleClick}
+              onPointerEnter={handleViewToggleEnter}
+              onPointerLeave={handleViewToggleLeave}
+              viewMode={viewMode}
+            />
           </div>
         </div>
         <div className={styles.mobileControlDivider} aria-hidden="true" />
       </div>
 
-      <div className={`${styles.filters} ${styles.desktopFilters}`} aria-label="Work filters">
-        {renderFilterButtons()}
-      </div>
+      <WorkJournalFilterGroup
+        activeFilters={activeFilters}
+        className={styles.desktopFilters}
+        filters={filters}
+        onToggle={toggleFilter}
+      />
 
       <div
         id="work-mobile-filters"
@@ -803,13 +931,17 @@ export function WorkJournalSection({
         aria-label="Work categories"
       >
         <div className={styles.mobileFilterModalBar}>
-          <button type="button" className={styles.mobileCloseButton} onClick={() => setIsMobileFilterOpen(false)}>
-            Close
-          </button>
+          <WorkJournalMobileCloseButton onClick={() => setIsMobileFilterOpen(false)} />
         </div>
-        <div className={`${styles.filters} ${styles.mobileModalFilters}`} aria-label="Work filters">
-          {renderFilterButtons({ closeOnSelect: true })}
-        </div>
+        <WorkJournalFilterGroup
+          activeFilters={activeFilters}
+          className={styles.mobileModalFilters}
+          filters={filters}
+          onToggle={(filter) => {
+            toggleFilter(filter);
+            setIsMobileFilterOpen(false);
+          }}
+        />
       </div>
 
       <div className={styles.filterDivider} aria-hidden="true" />
@@ -835,64 +967,25 @@ export function WorkJournalSection({
         onBlur={handleGridBlur}
       >
         {visibleItems.map((item, index) => (
-          <a
+          <WorkJournalCard
             key={item.slug}
-            ref={(node) => {
+            cardRef={(node) => {
               if (node) {
                 cardElementsRef.current.set(item.slug, node);
               } else {
                 cardElementsRef.current.delete(item.slug);
               }
             }}
-            className={styles.card}
-            data-hovered={hoveredSlug === item.slug}
-            data-list-preview-exit={listPreviewExitSlug === item.slug}
-            data-list-label-visible={listPreviewLabelSlug === item.slug}
-            data-list-preview-entry={listPreviewEntrySlug === item.slug}
-            data-card-text-tone={cardTextTones[item.slug] ?? "dark"}
-            data-primary-tag={item.tags[0] ?? "Work"}
-            href={`/case-studies/${item.slug}`}
-            style={{ "--index": index } as CSSProperties}
-            onPointerEnter={() => handleCardEnter(item)}
-            onPointerLeave={clearTheme}
-            onFocus={() => handleCardEnter(item)}
-          >
-            <div className={styles.media}>
-              {isVideoItem(item) ? (
-                <LazyVideo
-                  className={styles.image}
-                  src={itemMediaSource(item)}
-                  poster={itemMediaPoster(item)}
-                  forceLoad={index < 4}
-                />
-              ) : (
-                <Image
-                  className={styles.image}
-                  src={itemMediaSource(item)}
-                  alt={item.coverMedia?.alt || item.title}
-                  fill
-                  loading={index < 4 ? "eager" : "lazy"}
-                  fetchPriority={index < 4 ? "high" : "auto"}
-                  sizes={workCardImageSizes}
-                  crossOrigin="anonymous"
-                />
-              )}
-              <div
-                className={styles.overlay}
-                style={
-                  {
-                    "--accent": item.accentColor ?? "rgb(79, 79, 79)",
-                  } as CSSProperties
-                }
-              />
-              <div className={styles.tag}>{item.tags[0] ?? "Work"}</div>
-            </div>
-            <h2 className={styles.title}>{item.title}</h2>
-            {item.description ? <p className={styles.description}>{item.description}</p> : null}
-            <span className={styles.listIndustry}>{item.industry}</span>
-            <span className={styles.listService}>{item.tags[0] ?? "Work"}</span>
-            <span className={styles.listYear}>{item.year}</span>
-          </a>
+            hovered={hoveredSlug === item.slug}
+            index={index}
+            item={item}
+            listLabelVisible={listPreviewLabelSlug === item.slug}
+            listPreviewEntry={listPreviewEntrySlug === item.slug}
+            listPreviewExit={listPreviewExitSlug === item.slug}
+            onEnter={handleCardEnter}
+            onLeave={clearTheme}
+            textTone={cardTextTones[item.slug] ?? "dark"}
+          />
         ))}
         {!visibleItems.length ? <p className={styles.empty}>No work matches the selected filters.</p> : null}
         <div

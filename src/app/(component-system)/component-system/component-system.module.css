@@ -80,7 +80,7 @@
   background: transparent;
   color: var(--system-subtle);
   font-family: var(--ripe-font-mono);
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.04em;
 }
 
@@ -504,7 +504,7 @@
 .componentGroup > header h2 {
   margin: 0;
   font-family: var(--ripe-font-sans);
-  font-size: 1.4rem;
+  font-size: 2.1rem;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -515,12 +515,12 @@
 }
 
 .specimen + .specimen {
-  margin-top: clamp(2.5rem, 4vw, 4rem);
+  margin-top: clamp(10rem, 16vw, 16rem);
 }
 
 .specimenHeader {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.75fr) minmax(16rem, 1.25fr) minmax(15rem, 1fr);
+  grid-template-columns: minmax(16rem, 1fr) minmax(15rem, auto);
   gap: clamp(1.5rem, 4vw, 4rem);
   align-items: start;
   margin-bottom: 1.5rem;
@@ -535,9 +535,53 @@
   line-height: 1.15;
 }
 
+.componentPath {
+  display: flex;
+  align-items: baseline;
+  font-family: var(--ripe-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.055em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.componentIdCopy {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: copy;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-transform: none;
+  transition: opacity 160ms ease;
+}
+
+.componentIdCopy:hover {
+  opacity: 0.5;
+}
+
+.componentIdCopy:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.componentIdStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .specimenHeader p {
   max-width: 40rem;
-  margin: 0;
+  margin: 0.55rem 0 0;
   color: var(--system-subtle);
   font-size: 0.95rem;
   line-height: 1.55;
@@ -551,17 +595,29 @@
 }
 
 .variant {
+  border: 0;
   padding: 0.42rem 0.62rem;
   border-radius: 3px;
   background: var(--system-muted);
   color: #494947;
+  cursor: pointer;
   font-size: 12px;
 }
 
+.variant:hover,
+.variant:focus-visible {
+  background: #d5d4cf;
+}
+
+.variant[aria-pressed="true"] {
+  background: var(--system-ink);
+  color: var(--system-panel);
+}
+
 .stageShell {
-  padding: 0.5rem;
+  padding: 0;
   border-radius: 5px;
-  background: #dfded9;
+  background: transparent;
 }
 
 .surfaceMeta {
@@ -570,7 +626,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.35rem 0.55rem 0.75rem;
+  padding: 0.75rem 0.55rem 0.35rem;
   color: #4f4f4c;
 }
 
@@ -586,6 +642,14 @@
   border-radius: 50%;
   background: #2f7a45;
   content: "";
+}
+
+.surfaceLabel[data-loaded="false"]::before {
+  background: #8b8b86;
+}
+
+.surfaceLabelText {
+  opacity: 0.7;
 }
 
 .surfaceSource {
@@ -636,8 +700,16 @@
   min-height: 32rem;
   border: 0;
   border-radius: 2px;
-  background: var(--system-panel);
+  background: #faf9f7;
   transition: width 180ms ease;
+}
+
+.previewPlaceholder {
+  display: grid;
+  place-items: center;
+  border: 0;
+  color: #4f4f4c;
+  font: inherit;
 }
 
 .stageFrame[data-component-frame="public-navigation"] {
@@ -646,6 +718,21 @@
 
 .stageFrame[data-component-frame="home-feed"] {
   height: min(82vh, 820px);
+}
+
+.stageFrame[data-component-category="Atoms"] {
+  height: 18rem;
+  min-height: 18rem;
+}
+
+.stageFrame[data-component-category="Molecules"] {
+  height: 26rem;
+  min-height: 26rem;
+}
+
+.stageFrame[data-component-category="Cards"] {
+  height: 34rem;
+  min-height: 34rem;
 }
 
 .footerNote {
@@ -746,7 +833,7 @@
   }
 
   .stageShell {
-    padding: 0.5rem;
+    padding: 0;
     border-radius: 5px;
   }
 

@@ -530,7 +530,12 @@ test("careers page preserves the approved spacing, typography, contrast, and rev
   }
 
   const cta = page.getByRole("link", { name: "Get In Touch" });
+  await expect(cta).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(cta).toHaveCSS("border-radius", "8px");
   await expect(cta).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(cta).toHaveCSS("font-family", /Graphik/);
+  await expect(cta).toHaveCSS("font-size", "14px");
+  await expect(cta).toHaveCSS("padding", "16px 26px");
   await expect(page.getByRole("heading", { name: "WeWork Passes" })).toHaveCSS(
     "color",
     "rgb(255, 255, 255)",

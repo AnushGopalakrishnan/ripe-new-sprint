@@ -1,44 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { CopyEmailCta } from "@/components/copy-email-cta";
 import { DirectionalRoleItem } from "@/components/directional-role-item";
 import styles from "@/components/careers-open-roles.module.css";
 import teamStyles from "@/components/team-page-client.module.css";
 import typeStyles from "@/styles/careers-typography.module.css";
 import type { JobPosting } from "@/types/content";
 
-export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
-  const [tooltip, setTooltip] = useState("Copy");
-  const [tooltipState, setTooltipState] = useState<"idle" | "visible" | "hiding">("idle");
+export type CareersOpenRolesProps = { roles: JobPosting[] };
 
-  const copyEmail = async () => {
-    const email = "careers@ripe.studio";
-    try {
-      await navigator.clipboard.writeText(email);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = email;
-      ta.style.cssText = "position:fixed;opacity:0";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-
-    setTooltip("Copied to clipboard");
-
-    if (window.matchMedia("(hover: none)").matches) {
-      setTooltipState("visible");
-      window.setTimeout(() => {
-        setTooltipState("hiding");
-        window.setTimeout(() => {
-          setTooltipState("idle");
-          setTooltip("Copy");
-        }, 300);
-      }, 1500);
-    }
-  };
-
+export default function CareersOpenRoles({ roles }: CareersOpenRolesProps) {
   return (
     <div className={`join_us-section ${styles.root}`}>
       <section className={`join_us-wrap ${styles.wrap}`}>
@@ -54,19 +25,7 @@ export default function CareersOpenRoles({ roles }: { roles: JobPosting[] }) {
                 <br />
                 If you don&apos;t see a open role here that fits you, but you still think you&apos;d be a good fit at
                 Ripe, feel free to drop a line at{" "}
-                <span
-                  data-email="careers@ripe.studio"
-                  data-tooltip={tooltip}
-                  className={`copy-email ${teamStyles.copyEmail} ${
-                    tooltipState === "visible" ? "tooltip-visible" : tooltipState === "hiding" ? "tooltip-hiding" : ""
-                  }`}
-                  onClick={copyEmail}
-                  onMouseLeave={() => {
-                    setTooltip("Copy");
-                  }}
-                >
-                  <span>careers@ripe.studio</span>
-                </span>
+                <CopyEmailCta className={teamStyles.copyEmail} email="careers@ripe.studio" />
                 !
                 <br />
                 <br />

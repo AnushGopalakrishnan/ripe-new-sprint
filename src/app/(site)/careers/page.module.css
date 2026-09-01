@@ -2,8 +2,9 @@
   --careers-visual-section-gap: 16rem;
   --careers-content-max: 90rem;
   --careers-inline-gutter: clamp(1rem, 3vw, 2rem);
+  --careers-surface: #fff;
   --hero-content-max: 53.75rem;
-  background: #fff;
+  background: var(--careers-surface);
   color: #000;
   font-family: "Graphik", Arial, sans-serif;
   gap: 64px;
@@ -188,10 +189,11 @@
 
 .avatarStack img {
   background: #f1ebe2;
-  border: 1px solid #f1ebe2;
+  border: 0.25rem solid var(--careers-surface, #fff);
   border-radius: 999px;
   display: block;
   height: 3.75rem;
+  left: calc(var(--logo-index) * 3.125rem);
   object-fit: contain;
   padding: 0.7rem;
   position: absolute;
@@ -203,6 +205,7 @@
     opacity 420ms ease calc(var(--logo-index) * 90ms),
     transform 680ms cubic-bezier(0.2, 0.9, 0.25, 1.25) calc(var(--logo-index) * 90ms);
   width: 3.75rem;
+  z-index: calc(100 - var(--logo-index));
 }
 
 .avatarStack[data-visible="true"] img {
@@ -210,54 +213,10 @@
   transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
 }
 
-.avatarStack img:nth-child(1) {
-  left: 0;
-}
-
-.avatarStack img:nth-child(2) {
-  left: 3.125rem;
-}
-
-.avatarStack img:nth-child(3) {
-  left: 6.25rem;
-}
-
-.avatarStack img:nth-child(4) {
-  left: 9.375rem;
-}
-
 .trustRow p {
   color: #666;
   flex: 1 0 0;
   max-width: 16rem;
-}
-
-.trustRow a {
-  background: #000;
-  border-radius: 8px;
-  color: #fff !important;
-  display: inline-flex;
-  font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.875rem;
-  font-weight: 400;
-  justify-content: center;
-  line-height: 1;
-  padding: 1rem 1.625rem;
-  text-decoration: none;
-  text-transform: capitalize;
-  transition: background-color 220ms ease, color 220ms ease, transform 220ms ease;
-  white-space: nowrap;
-}
-
-.trustRow a:hover {
-  background: #3a1f13;
-  color: #fff !important;
-  transform: translateY(-2px);
-}
-
-.trustRow a:focus-visible {
-  outline: 2px solid #3a1f13;
-  outline-offset: 3px;
 }
 
 .page .pillarsSection {

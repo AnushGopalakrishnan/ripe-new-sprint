@@ -12,6 +12,7 @@ export type CommentSpecimenProps = {
   expandLeft?: boolean;
   x?: number;
   y?: number;
+  variant?: string;
 };
 
 export function CommentSpecimen({
@@ -22,8 +23,9 @@ export function CommentSpecimen({
   expandLeft = true,
   x = 58,
   y = 42,
+  variant,
 }: CommentSpecimenProps) {
-  const [active, setActive] = useState(defaultOpen);
+  const [active, setActive] = useState(defaultOpen || variant === "open");
 
   return (
     <div className={detailStyles.detailCommentable} style={{ position: "relative", aspectRatio: "16 / 9", maxWidth: 900 }}>
@@ -39,8 +41,8 @@ export function CommentSpecimen({
         isActive={active}
         x={`${x}%`}
         y={`${y}%`}
-        expandLeft={expandLeft}
-        expandDown={expandDown}
+        expandLeft={variant === "edge-aware" ? true : expandLeft}
+        expandDown={variant === "edge-aware" ? true : expandDown}
         styles={detailStyles}
         buttonProps={{ onClick: () => setActive((current) => !current) }}
       />

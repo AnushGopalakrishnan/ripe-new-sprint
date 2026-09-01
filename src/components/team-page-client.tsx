@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { CopyEmailCta } from "@/components/copy-email-cta";
 import { DirectionalRoleItem } from "@/components/directional-role-item";
 import type { JobPosting, TeamMember } from "@/types/content";
 import styles from "@/components/team-page-client.module.css";
@@ -13,6 +14,41 @@ export type TeamPageClientProps = {
 
 const PLACEHOLDER_IMAGE = "/team-media/placeholder.svg";
 const GROUP_ORDER = ["Leadership", "Brand", "Motion", "Web", "Operations"];
+
+export type TeamMemberCardProps = {
+  active?: boolean;
+  member: TeamMember;
+  onActivate?: () => void;
+};
+
+export function TeamMemberCard({ active = false, member, onActivate }: TeamMemberCardProps) {
+  return (
+    <Link
+      data-team-card="true"
+      href={`/team/${member.slug}`}
+      className={`team-card_wrap-new w-inline-block ${styles.cardLink} ${active ? styles.cardActive : ""}`}
+      onMouseEnter={onActivate}
+      onFocus={onActivate}
+    >
+      <div className="content-wrap u-flex-vertical u-align-left">
+        <img
+          src={member.avatar?.src || PLACEHOLDER_IMAGE}
+          loading="lazy"
+          data-member-img="true"
+          alt={member.name}
+          sizes="100vw"
+          className="team_image"
+        />
+        <div className="w-layout-hflex text-content">
+          <div className="team-name-text">{member.name}</div>
+          <div className="job_title-text">{member.role || "Team Member"}</div>
+        </div>
+      </div>
+      <div className="team_card-bg u-position-absolute u-absolute-cover" />
+      <div className="card-overlay" />
+    </Link>
+  );
+}
 
 function normalizeGroup(value: string | undefined) {
   const trimmed = value?.trim();
@@ -56,37 +92,6 @@ export function TeamPageClient({ members, roles }: TeamPageClientProps) {
   }, [members]);
 
   const [activeByGroup, setActiveByGroup] = useState<Record<string, string | null>>({});
-  const [tooltip, setTooltip] = useState("Copy");
-  const [tooltipState, setTooltipState] = useState<"idle" | "visible" | "hiding">("idle");
-
-  const copyEmail = async () => {
-    const email = "careers@ripe.studio";
-    try {
-      await navigator.clipboard.writeText(email);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = email;
-      ta.style.cssText = "position:fixed;opacity:0";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-
-    setTooltip("Copied to clipboard");
-
-    if (window.matchMedia("(hover: none)").matches) {
-      setTooltipState("visible");
-      window.setTimeout(() => {
-        setTooltipState("hiding");
-        window.setTimeout(() => {
-          setTooltipState("idle");
-          setTooltip("Copy");
-        }, 300);
-      }, 1500);
-    }
-  };
-
   return (
     <>
       <section className="main">
@@ -126,33 +131,13 @@ export function TeamPageClient({ members, roles }: TeamPageClientProps) {
                       {groupMembers.length > 0 ? (
                         groupMembers.map((member) => (
                           <div key={member.slug} role="listitem" className="collection-item-7 w-dyn-item">
-                            <Link
-                              data-team-card="true"
-                              href={`/team/${member.slug}`}
-                              className={`team-card_wrap-new w-inline-block ${styles.cardLink} ${
-                                activeSlug === member.slug ? styles.cardActive : ""
-                              }`}
-                              onMouseEnter={() => {
+                            <TeamMemberCard
+                              active={activeSlug === member.slug}
+                              member={member}
+                              onActivate={() => {
                                 setActiveByGroup((prev) => ({ ...prev, [group]: member.slug }));
                               }}
-                            >
-                              <div className="content-wrap u-flex-vertical u-align-left">
-                                <img
-                                  src={member.avatar?.src || PLACEHOLDER_IMAGE}
-                                  loading="lazy"
-                                  data-member-img="true"
-                                  alt={member.name}
-                                  sizes="100vw"
-                                  className="team_image"
-                                />
-                                <div className="w-layout-hflex text-content">
-                                  <div className="team-name-text">{member.name}</div>
-                                  <div className="job_title-text">{member.role || "Team Member"}</div>
-                                </div>
-                              </div>
-                              <div className="team_card-bg u-position-absolute u-absolute-cover" />
-                              <div className="card-overlay" />
-                            </Link>
+                            />
                           </div>
                         ))
                       ) : (
@@ -184,19 +169,7 @@ export function TeamPageClient({ members, roles }: TeamPageClientProps) {
                   <br />
                   If you don&apos;t see a open role here that fits you, but you still think you&apos;d be a good fit at Ripe,
                   feel free to drop a line at{" "}
-                  <span
-                    data-email="careers@ripe.studio"
-                    data-tooltip={tooltip}
-                    className={`copy-email ${styles.copyEmail} ${
-                      tooltipState === "visible" ? "tooltip-visible" : tooltipState === "hiding" ? "tooltip-hiding" : ""
-                    }`}
-                    onClick={copyEmail}
-                    onMouseLeave={() => {
-                      setTooltip("Copy");
-                    }}
-                  >
-                    <span>careers@ripe.studio</span>
-                  </span>
+                  <CopyEmailCta className={styles.copyEmail} email="careers@ripe.studio" />
                   !
                   <br />
                   <br />
