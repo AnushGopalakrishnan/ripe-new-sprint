@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { publicComponentDefinitions } from "@/components/component-system/registry";
 import type { PublicComponentCategory } from "@/components/component-system/registry";
+import { CategoryIndex } from "../category-index";
 import { SpecimenStage } from "./specimen-stage";
 import styles from "../component-system.module.css";
 
@@ -19,14 +20,17 @@ export default function ComponentSystemComponentsPage() {
         </div>
         <p className={styles.pageIntro}>Only shared React components imported by current public routes are included below.</p>
       </header>
-      <nav className={styles.categoryIndex} aria-label="Component categories">
-        {categories.map((category) => <a key={category} href={`#${categoryId(category)}`}>{category}</a>)}
-      </nav>
+      <CategoryIndex
+        items={categories.map((category) => ({ id: categoryId(category), label: category }))}
+        label="Component categories"
+      />
       {categories.map((category) => {
         const definitions = publicComponentDefinitions.filter((definition) => definition.category === category);
         return (
           <section className={styles.componentGroup} id={categoryId(category)} key={category}>
-            <header><h2>{category}</h2></header>
+            <header>
+              <h2>{category}</h2>
+            </header>
             {definitions.map(({ id, name, description, sourcePath, variants }) => (
               <article className={styles.specimen} id={id} key={id} data-component-specimen={id}>
                 <header className={styles.specimenHeader}>

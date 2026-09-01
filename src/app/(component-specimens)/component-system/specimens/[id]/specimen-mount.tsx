@@ -13,6 +13,12 @@ type SurfaceValues = {
   viewport?: string;
 };
 
+type DialKitMessage = {
+  type: "ripe:component-specimen-dialkit";
+  id: PublicComponentId;
+  enabled: boolean;
+};
+
 export function SpecimenMount({ id }: Readonly<{ id: PublicComponentId }>) {
   const [isReady, setIsReady] = useState(false);
   const [isTuning, setIsTuning] = useState(false);
@@ -27,7 +33,21 @@ export function SpecimenMount({ id }: Readonly<{ id: PublicComponentId }>) {
   useEffect(() => {
     setIsReady(true);
     setIsTuning(new URLSearchParams(window.location.search).get("dialkit") === "1");
-  }, []);
+
+    const receiveDialKitState = (event: MessageEvent<DialKitMessage>) => {
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== window.parent ||
+        event.data?.type !== "ripe:component-specimen-dialkit" ||
+        event.data.id !== id
+      ) return;
+
+      setIsTuning(event.data.enabled);
+    };
+
+    window.addEventListener("message", receiveDialKitState);
+    return () => window.removeEventListener("message", receiveDialKitState);
+  }, [id]);
 
   useEffect(() => {
     const specimenSurface = document.querySelector<HTMLElement>("[data-component-specimen-page]");

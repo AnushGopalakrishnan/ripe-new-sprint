@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicComponentId } from "@/components/component-system/registry";
 import styles from "../component-system.module.css";
 
@@ -46,6 +46,17 @@ export function SpecimenStage({
     return () => window.removeEventListener("message", receiveSurfaceSettings);
   }, [id]);
 
+  const publishDialKitState = useCallback((enabled: boolean) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "ripe:component-specimen-dialkit", id, enabled },
+      window.location.origin,
+    );
+  }, [id]);
+
+  useEffect(() => {
+    publishDialKitState(isTuning);
+  }, [isTuning, publishDialKitState]);
+
   return (
     <div className={styles.stageShell}>
       <div className={styles.surfaceMeta}>
@@ -70,7 +81,8 @@ export function SpecimenStage({
           className={styles.stageFrame}
           data-component-frame={id}
           loading="eager"
-          src={`/component-system/specimens/${id}${isTuning ? "?dialkit=1" : ""}`}
+          onLoad={() => publishDialKitState(isTuning)}
+          src={`/component-system/specimens/${id}`}
           style={{ width: viewportWidths[viewport] ?? viewportWidths.Full }}
           title={`${name} live component surface`}
         />

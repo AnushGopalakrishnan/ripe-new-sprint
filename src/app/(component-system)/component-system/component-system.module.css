@@ -45,12 +45,18 @@
   text-decoration: none;
 }
 
+.categoryIndex a[data-active="true"] {
+  background: var(--system-ink);
+  color: #fff;
+}
+
 .brand {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-family: var(--ripe-font-serif);
+  font-size: 1.35rem;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 1;
 }
 
@@ -62,7 +68,7 @@
 .surfaceLabel,
 .surfaceSource {
   font-family: var(--ripe-font-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.055em;
   line-height: 1.35;
@@ -74,7 +80,7 @@
   background: transparent;
   color: var(--system-subtle);
   font-family: var(--ripe-font-mono);
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 0.04em;
 }
 
@@ -93,7 +99,7 @@
   padding: 0.45rem 0.7rem;
   border-radius: 4px;
   background: var(--system-panel);
-  font-size: 11px;
+  font-size: 12px;
   transition: background-color 160ms ease, color 160ms ease;
 }
 
@@ -230,7 +236,7 @@
 .categoryIndex a {
   min-height: 30px;
   padding: 0.35rem 0.6rem;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .foundationSection,
@@ -311,7 +317,7 @@
   max-width: 48%;
   color: var(--system-subtle);
   font-family: var(--ripe-font-mono);
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
   text-align: right;
@@ -341,7 +347,7 @@
   margin: 0 0 0.35rem;
   color: var(--system-subtle);
   font-family: var(--ripe-font-mono);
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 0.055em;
   line-height: 1.35;
   text-transform: uppercase;
@@ -351,7 +357,7 @@
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--ripe-font-mono);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -389,7 +395,95 @@
   margin-top: 0.8rem;
   overflow-wrap: anywhere;
   font-family: var(--ripe-font-mono);
-  font-size: 10px;
+  font-size: 12px;
+}
+
+.motionExample {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  width: 100%;
+  align-items: center;
+  margin-top: 1.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.motionTrack {
+  position: relative;
+  display: block;
+  height: 2px;
+  background: #d8d7d3;
+}
+
+.motionMarker {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.65rem;
+  height: 0.65rem;
+  background: var(--system-ink);
+  transform: translateY(-50%);
+  animation: motionExampleTravel var(--motion-demo-duration) var(--motion-demo-ease) infinite alternate;
+}
+
+.motionExample[data-instant="true"] .motionMarker {
+  animation-name: motionExampleInstant;
+  animation-timing-function: steps(1, end);
+}
+
+.motionReplay {
+  color: var(--system-subtle);
+  font-family: var(--ripe-font-mono);
+  font-size: 12px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@keyframes motionExampleTravel {
+  from {
+    left: 0;
+  }
+
+  to {
+    left: calc(100% - 0.65rem);
+  }
+}
+
+@keyframes motionExampleInstant {
+  0%,
+  49.99% {
+    left: 0;
+  }
+
+  50%,
+  100% {
+    left: calc(100% - 0.65rem);
+  }
+}
+
+.borderExample {
+  width: 100%;
+  height: 2rem;
+  margin-top: 1.25rem;
+}
+
+.borderExample[data-variant="line"] {
+  border-top: 1px solid var(--system-ink);
+}
+
+.borderExample[data-variant="muted"] {
+  border-top: 1px solid rgb(25 25 25 / 10%);
+}
+
+.borderExample[data-variant="radius"] {
+  width: 3.5rem;
+  border: 1px solid rgb(25 25 25 / 18%);
+  border-radius: 0.5rem;
 }
 
 .componentGroup {
@@ -403,6 +497,8 @@
 
 .componentGroup > header {
   margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgb(25 25 25 / 18%);
 }
 
 .componentGroup > header h2 {
@@ -459,7 +555,7 @@
   border-radius: 3px;
   background: var(--system-muted);
   color: #494947;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .stageShell {
@@ -692,5 +788,9 @@
   .backLink,
   .choice {
     transition: none;
+  }
+
+  .motionMarker {
+    animation: none;
   }
 }

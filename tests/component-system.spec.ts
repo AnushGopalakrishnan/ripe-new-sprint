@@ -78,15 +78,20 @@ test.describe("component system", () => {
     const stage = page.locator('[data-component-specimen="work-journal"]');
     const frame = stage.locator('[data-component-frame="work-journal"]');
     await expect(frame).toHaveAttribute("src", "/component-system/specimens/work-journal");
+    const untunedSurface = page.frameLocator('[data-component-frame="work-journal"]');
+    await untunedSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
+    await untunedSurface.getByRole("button", { name: /Switch to list view/i }).click();
+    await expect(untunedSurface.getByRole("region", { name: "Work journal", exact: true })).toHaveAttribute("data-view", "list");
 
     await stage.getByRole("button", { name: "Tune" }).click();
-    await expect(frame).toHaveAttribute("src", "/component-system/specimens/work-journal?dialkit=1");
+    await expect(frame).toHaveAttribute("src", "/component-system/specimens/work-journal");
 
     const tunedSurface = page.frameLocator('[data-component-frame="work-journal"]');
     await tunedSurface.locator("[data-specimen-ready]").waitFor({ state: "attached" });
     await expect(tunedSurface.getByText("Work journal", { exact: true }).last()).toBeVisible();
     await expect(tunedSurface.getByText("Surface", { exact: true })).toBeVisible();
     await expect(tunedSurface.getByText("Props", { exact: true })).toBeVisible();
+    await expect(tunedSurface.getByRole("region", { name: "Work journal", exact: true })).toHaveAttribute("data-view", "list");
 
     await tunedSurface.locator("body").evaluate(() => {
       window.parent.postMessage(
@@ -98,6 +103,7 @@ test.describe("component system", () => {
 
     await stage.getByRole("button", { name: "Close controls" }).click();
     await expect(frame).toHaveAttribute("src", "/component-system/specimens/work-journal");
+    await expect(tunedSurface.getByText("Props", { exact: true })).toHaveCount(0);
   });
 
   test("hub is unlisted and links only to styles and components", async ({ page }) => {
@@ -121,6 +127,18 @@ test.describe("component system", () => {
     await expect(page.locator("#color")).toBeVisible();
     await expect(page.locator("#motion")).toBeVisible();
     await expect(page.locator("#themes")).toBeVisible();
+    await expect(page.getByRole("link", { name: "motion", exact: true })).toHaveAttribute("aria-current", "location");
+  });
+
+  test("category index preserves and updates its selected state", async ({ page }) => {
+    await page.goto("/component-system/components", { waitUntil: "domcontentloaded" });
+    const media = page.getByRole("link", { name: "Media", exact: true });
+    await media.click();
+    await expect(page).toHaveURL(/#media$/);
+    await expect(media).toHaveAttribute("aria-current", "location");
+
+    await page.locator("#people").scrollIntoViewIfNeeded();
+    await expect(page.getByRole("link", { name: "People", exact: true })).toHaveAttribute("aria-current", "location");
   });
 
   test("components renders every registered production specimen", async ({ page }) => {

@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import careersTypeStyles from "@/styles/careers-typography.module.css";
+import { CategoryIndex } from "../category-index";
+import { MotionExample } from "./motion-example";
 import styles from "../component-system.module.css";
 
 export const metadata: Metadata = { title: "Styles" };
@@ -24,6 +26,21 @@ const breakpoints = [
   ["Work journal", "50.5625em"],
   ["Team directory", "992px"],
   ["Case-study detail", "900px / 760px / 560px"],
+] as const;
+
+const motionTokens = [
+  { name: "Fast", value: "180ms", duration: "180ms", easing: "cubic-bezier(.22,1,.36,1)" },
+  { name: "Base", value: "280ms", duration: "280ms", easing: "cubic-bezier(.22,1,.36,1)" },
+  { name: "Slow", value: "560ms", duration: "560ms", easing: "cubic-bezier(.22,1,.36,1)" },
+  { name: "Ease", value: "cubic-bezier(.22,1,.36,1)", duration: "560ms", easing: "cubic-bezier(.22,1,.36,1)" },
+  { name: "Navigation close", value: "850ms", duration: "850ms", easing: "cubic-bezier(.215,.61,.355,1)" },
+  { name: "Reduced motion", value: "No transform sequence", duration: "0ms", easing: "linear" },
+] as const;
+
+const borderTokens = [
+  { name: "Line", value: "1px solid Ink", variant: "line" },
+  { name: "Muted line", value: "1px solid Ink 10", variant: "muted" },
+  { name: "Radius", value: "0 / component-owned", variant: "radius" },
 ] as const;
 
 type TypographySpecimen = {
@@ -184,9 +201,10 @@ export default function ComponentSystemStylesPage() {
         </div>
         <p className={styles.pageIntro}>Defined source tokens and the component-specific conventions currently used by the public site.</p>
       </header>
-      <nav className={styles.categoryIndex} aria-label="Style categories">
-        {foundations.map((item) => <a key={item} href={`#${item}`}>{item}</a>)}
-      </nav>
+      <CategoryIndex
+        items={foundations.map((item) => ({ id: item, label: item }))}
+        label="Style categories"
+      />
 
       <section className={styles.foundationSection} id="typography">
         <header className={styles.sectionHeading}>
@@ -236,7 +254,7 @@ export default function ComponentSystemStylesPage() {
 
       <section className={styles.foundationSection} id="borders">
         <header className={styles.sectionHeading}><span className={styles.eyebrow}>04</span><h2 className={styles.sectionTitle}>Borders</h2><p className={styles.sectionIntro}>The shared source defines solid and muted one-pixel rules. Radius remains component-owned.</p></header>
-        <div className={styles.foundationBody}><div className={styles.tokenGrid}><article className={styles.token}><strong>Line</strong><code>1px solid Ink</code></article><article className={styles.token}><strong>Muted line</strong><code>1px solid Ink 10</code></article><article className={styles.token}><strong>Radius</strong><code>0 / component-owned</code></article></div></div>
+        <div className={styles.foundationBody}><div className={styles.tokenGrid}>{borderTokens.map(({ name, value, variant }) => <article className={styles.token} key={name}><strong>{name}</strong><code>{value}</code><div aria-hidden="true" className={styles.borderExample} data-variant={variant} /></article>)}</div></div>
       </section>
 
       <section className={styles.foundationSection} id="breakpoints">
@@ -251,7 +269,7 @@ export default function ComponentSystemStylesPage() {
 
       <section className={styles.foundationSection} id="motion">
         <header className={styles.sectionHeading}><span className={styles.eyebrow}>07</span><h2 className={styles.sectionTitle}>Motion</h2><p className={styles.sectionIntro}>The first four values are shared tokens. Navigation close timing and reduced-motion handling are current component behavior.</p></header>
-        <div className={styles.foundationBody}><div className={styles.tokenGrid}>{[["Fast","180ms"],["Base","280ms"],["Slow","560ms"],["Ease","cubic-bezier(.22,1,.36,1)"],["Navigation close","850ms"],["Reduced motion","No transform sequence"]].map(([name,value]) => <article className={styles.token} key={name}><strong>{name}</strong><code>{value}</code></article>)}</div></div>
+        <div className={styles.foundationBody}><div className={styles.tokenGrid}>{motionTokens.map(({ name, value, duration, easing }) => <article className={styles.token} key={name}><strong>{name}</strong><code>{value}</code><MotionExample duration={duration} easing={easing} label={name} /></article>)}</div></div>
       </section>
 
       <section className={styles.foundationSection} id="themes">
