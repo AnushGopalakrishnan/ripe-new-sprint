@@ -1,18 +1,4 @@
 .page {
-  --careers-heading-font: var(--ripe-font-serif);
-  --careers-heading-size: 2.25rem;
-  --careers-serif-weight: 300;
-  --careers-display-line-height: 1.2;
-  --careers-display-letter-spacing: -0.02em;
-  --careers-card-heading-size: 1.75rem;
-  --careers-card-heading-line-height: 1;
-  --careers-card-heading-letter-spacing: -0.02em;
-  --careers-body-size: 1rem;
-  --careers-body-line-height: 1.375;
-  --careers-body-letter-spacing: 0;
-  --careers-label-size: 0.75rem;
-  --careers-label-line-height: 1.2;
-  --careers-label-letter-spacing: 0;
   --careers-visual-section-gap: 16rem;
   --careers-content-max: 90rem;
   --careers-inline-gutter: clamp(1rem, 3vw, 2rem);
@@ -77,6 +63,17 @@
   padding: 0;
 }
 
+.heroViewport {
+  box-sizing: border-box;
+  display: grid;
+  gap: clamp(1.5rem, 4vh, 3rem);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 8rem);
+  height: calc(100svh - 8rem);
+  min-height: 0;
+  padding-bottom: 2rem;
+}
+
 .heroTitleWrap {
   display: grid;
   gap: 1.25rem;
@@ -85,19 +82,18 @@
 }
 
 .heroTitleWrap h1 {
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-heading-size);
-  font-weight: 300;
-  letter-spacing: -0.0044em;
-  line-height: 1.3333;
   margin: 0;
   text-align: left;
 }
 
 .filmstripWrap {
+  align-self: end;
   contain: paint;
-  height: 31.875rem;
+  container-type: size;
+  height: 100%;
   margin-left: calc(50% - 50vw);
+  max-height: 31.875rem;
+  min-height: 0;
   overflow: clip;
   width: 100vw;
 }
@@ -113,7 +109,7 @@
   align-items: center;
   display: flex;
   gap: 1.5rem;
-  height: 31.875rem;
+  height: 100%;
   width: max-content;
 }
 
@@ -128,20 +124,20 @@
 
 .frameWide {
   border-radius: 1rem;
-  height: 17.125rem;
-  width: 21.25rem;
+  height: 53.725cqh;
+  width: 66.667cqh;
 }
 
 .frameTall {
   border-radius: 1rem;
-  height: 31.875rem;
-  width: 21.25rem;
+  height: 100cqh;
+  width: 66.667cqh;
 }
 
 .frameSquare {
   border-radius: 1rem;
-  height: 21.25rem;
-  width: 21.25rem;
+  height: 66.667cqh;
+  width: 66.667cqh;
 }
 
 .frameWide img,
@@ -163,17 +159,6 @@
   width: 100%;
 }
 
-.heroNotes h3,
-.pillarsSection h2,
-.pillarCard h3,
-.pillarsStatement {
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-heading-size);
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: var(--careers-display-letter-spacing);
-  line-height: var(--careers-display-line-height);
-}
-
 .heroNotes h3 {
   margin: 0 0 1rem;
   text-transform: capitalize;
@@ -181,11 +166,6 @@
 
 .heroNotes p {
   color: #3c1b0b;
-  font-family: var(--ripe-font-serif);
-  font-size: var(--careers-body-size);
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: var(--careers-body-letter-spacing);
-  line-height: var(--careers-body-line-height);
   margin: 0;
 }
 
@@ -249,9 +229,6 @@
 .trustRow p {
   color: #666;
   flex: 1 0 0;
-  font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.625;
   max-width: 16rem;
 }
 
@@ -350,11 +327,6 @@
 .pillarCardFeatured p {
   --careers-reveal-opacity: 0.5;
   color: #000000;
-  font-family: var(--ripe-font-serif);
-  font-size: 1.25rem;
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: 0;
-  line-height: 1.2;
   margin: 0;
   opacity: 0.5;
   transition: opacity 180ms ease;
@@ -372,10 +344,8 @@
 }
 
 .pillarsStatement {
-  margin: 0 auto;
-  max-width: none;
+  margin: 0;
   text-align: center;
-  width: 70%;
 }
 
 .mosaicSection {
@@ -549,10 +519,6 @@
 }
 
 .peopleSection h2 {
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-heading-size);
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -581,22 +547,12 @@
 }
 
 .founderCard h3 {
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-card-heading-size);
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: var(--careers-card-heading-letter-spacing);
-  line-height: var(--careers-card-heading-line-height);
   margin: 0;
 }
 
 .founderCard p {
   color: rgba(58, 31, 19, 0.66);
-  font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
   margin: 0.3rem 0 0;
-  text-transform: uppercase;
-  line-height: 1;
 }
 
 .groupPhoto {
@@ -617,25 +573,12 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
 }
 
-.rolesCopy :global(.text) {
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-body-size);
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: var(--careers-body-letter-spacing);
-  line-height: var(--careers-body-line-height);
-  margin: 0;
-}
-
 .rolesCopy a {
   color: inherit;
 }
 
 .rolesHeading {
   border-bottom: 1px solid #d7d0ca;
-  font-family: var(--careers-heading-font);
-  font-size: var(--careers-heading-size);
-  font-weight: 300;
-  letter-spacing: -0.02em;
   margin: 0;
   padding-bottom: 0.8rem;
 }
@@ -652,47 +595,8 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
-.peopleSection :global(.join_us-section),
-.peopleSection :global(.join_us-wrap),
-.peopleSection :global(.join_us) {
-  background: transparent !important;
-}
-
-.peopleSection > :global(.join_us-section) {
+.openRolesPlacement {
   margin-top: 8rem;
-}
-
-.peopleSection :global(.join_us-wrap) {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-.peopleSection :global(.join_us) {
-  padding: 0 !important;
-}
-
-.peopleSection :global(.join_us_content .text.u-text-primary),
-.peopleSection :global(.join_us_content .direcitonal-list__p) {
-  font-family: var(--careers-heading-font) !important;
-  font-weight: var(--careers-serif-weight) !important;
-}
-
-.peopleSection :global(.join_us_content .heading) {
-  font-family: var(--careers-heading-font) !important;
-  font-size: var(--careers-heading-size) !important;
-  font-weight: var(--careers-serif-weight) !important;
-  letter-spacing: var(--careers-display-letter-spacing) !important;
-  line-height: var(--careers-display-line-height) !important;
-}
-
-.peopleSection :global(.join_us_content .text.u-text-primary) {
-  font-size: var(--careers-body-size) !important;
-  letter-spacing: var(--careers-body-letter-spacing) !important;
-  line-height: var(--careers-body-line-height) !important;
-}
-
-.peopleSection :global(.join_us_content .direcitonal-list__p) {
-  letter-spacing: -0.02em !important;
 }
 
 .rolesListWrap :global(.directional-list__item) {
@@ -701,58 +605,14 @@
   padding-top: 14px !important;
 }
 
-.roleTitle {
-  font-family: var(--careers-heading-font);
-  font-size: 0.875rem;
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.roleMeta {
-  color: rgba(58, 31, 19, 0.6);
-  font-family: var(--ripe-font-serif);
-  font-size: 0.76rem;
-  font-weight: var(--careers-serif-weight);
-  letter-spacing: 0.05em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
 @media (max-width: 62rem) {
   .heroTitleWrap {
     max-width: 100%;
   }
 
-  .filmstripWrap {
-    height: 23.9375rem;
-  }
-
   .filmstripTrack,
   .filmstripCard {
     gap: 1rem;
-  }
-
-  .filmstripCard {
-    height: 23.9375rem;
-  }
-
-  .frameWide {
-    border-radius: 1rem;
-    height: 12.8125rem;
-    width: 15.9375rem;
-  }
-
-  .frameTall {
-    border-radius: 1rem;
-    height: 23.9375rem;
-    width: 15.9375rem;
-  }
-
-  .frameSquare {
-    border-radius: 1rem;
-    height: 15.9375rem;
-    width: 15.9375rem;
   }
 
   .heroNotes {
@@ -785,13 +645,7 @@
     gap: 1rem;
   }
 
-  .pillarCard h3 {
-    font-size: var(--careers-heading-size);
-  }
-
   .pillarCard p {
-    font-size: 1.25rem;
-    line-height: 1.2;
     margin: 1.5rem auto 0;
     max-width: 42rem;
   }
@@ -809,10 +663,6 @@
     grid-template-columns: 1fr;
   }
 
-  .peopleSection :global(.join_us_content) {
-    gap: 3rem;
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 48rem) {
@@ -832,21 +682,9 @@
     margin-top: 8rem;
   }
 
-  .founderCard h3 {
-    font-size: var(--careers-card-heading-size);
-  }
-
   .pillarCard {
     min-height: 11.5rem;
     padding: 1rem;
-  }
-
-  .pillarCard h3 {
-    font-size: var(--careers-heading-size);
-  }
-
-  .pillarCard p {
-    font-size: 1.25rem;
   }
 
   .page > section.heroSection {
@@ -854,19 +692,17 @@
     padding-top: 6.25rem;
   }
 
+  .heroViewport {
+    height: calc(100vh - 7.25rem);
+    height: calc(100svh - 7.25rem);
+  }
+
   .heroNotes {
     gap: 1.875rem;
   }
 
   .pillarsStatement {
-    font-size: var(--careers-heading-size);
-    line-height: 1.2;
     margin-top: 0;
-  }
-
-  .pillarsSection h2 {
-    font-size: var(--careers-heading-size);
-    line-height: 1.15;
   }
 
   .rolesListWrap :global(.jobs_row-link) {

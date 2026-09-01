@@ -1573,9 +1573,7 @@
   color: #3c1b0b;
   display: block;
   font:
-    400 20px / 1.2 "Times New Roman",
-    Times,
-    serif;
+    400 20px / 1.2 var(--ripe-font-serif);
   letter-spacing: 0;
   margin: 0;
   max-width: 100%;

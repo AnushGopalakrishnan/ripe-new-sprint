@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import CareersMosaic from "./careers-mosaic";
 import CareersTextMotion from "./careers-text-motion";
 import CareersTrustLogos from "./careers-trust-logos";
+import typeStyles from "@/styles/careers-typography.module.css";
 
 type Pillar = {
   title: string;
@@ -96,47 +97,49 @@ export default async function CareersPage() {
   const founders = [...leadershipFounders, ...fallbackFounders].slice(0, 2);
 
   return (
-    <main className={styles.page} data-careers-page>
+    <main className={`${styles.page} ${typeStyles.scope}`} data-careers-page>
       <CareersTextMotion />
       <section className={styles.heroSection}>
-        <div className={styles.heroTitleWrap}>
-          <h1 data-careers-reveal>
-            A brand design studio where everyone&apos;s success feels personal. We exist to support ambitious designers
-            and founders building brands worth believing in.
-          </h1>
-        </div>
+        <div className={styles.heroViewport}>
+          <div className={styles.heroTitleWrap}>
+            <h1 data-careers-reveal>
+              A brand design studio where everyone&apos;s success feels personal. We exist to support ambitious designers
+              and founders building brands worth believing in.
+            </h1>
+          </div>
 
-        <div className={styles.filmstripWrap} aria-label="Showcase strip">
-          <div className={styles.filmstripTrack}>
-            {[0, 1].map((copy) => (
-              <div key={copy} className={styles.filmstripCard}>
-                {filmstripMedia.map((item, index) => (
-                  <figure
-                    key={`${copy}-${index}-${item.src}`}
-                    className={styles[item.className as keyof typeof styles]}
-                  >
-                    {item.kind === "video" ? (
-                      <video src={item.src} autoPlay loop muted playsInline preload="none" />
-                    ) : (
-                      <img src={item.src} alt={item.alt} loading="lazy" />
-                    )}
-                  </figure>
-                ))}
-              </div>
-            ))}
+          <div className={styles.filmstripWrap} aria-label="Showcase strip">
+            <div className={styles.filmstripTrack}>
+              {[0, 1].map((copy) => (
+                <div key={copy} className={styles.filmstripCard}>
+                  {filmstripMedia.map((item, index) => (
+                    <figure
+                      key={`${copy}-${index}-${item.src}`}
+                      className={styles[item.className as keyof typeof styles]}
+                    >
+                      {item.kind === "video" ? (
+                        <video src={item.src} autoPlay loop muted playsInline preload="none" />
+                      ) : (
+                        <img src={item.src} alt={item.alt} loading="lazy" />
+                      )}
+                    </figure>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className={styles.heroNotes}>
           <article data-careers-reveal>
-            <h3>Our mission</h3>
+            <h3 className={typeStyles.h1}>Our mission</h3>
             <p>
               From strategy to design, every detail was handled with care and expertise. We&apos;ve already seen a
               boost in engagement and couldn&apos;t be happier with the results highly recommended for anyone looking.
             </p>
           </article>
           <article data-careers-reveal data-careers-reveal-delay="1">
-            <h3>Our vision</h3>
+            <h3 className={typeStyles.h1}>Our vision</h3>
             <p>
               We&apos;ve already seen a boost in engagement and couldn&apos;t be happier with the results highly
               recommended for anyone looking.
@@ -155,7 +158,7 @@ export default async function CareersPage() {
       </section>
 
       <section className={styles.pillarsSection}>
-        <h2 data-careers-reveal>The pillars that Ripe is built on</h2>
+        <h2 className={typeStyles.h1} data-careers-reveal>The pillars that Ripe is built on</h2>
         <div className={styles.pillarsGrid}>
           {pillars.map((pillar, index) => (
             <article key={`${pillar.title}-${index}`} className={styles.pillarCard}>
@@ -166,16 +169,16 @@ export default async function CareersPage() {
                   alt=""
                   aria-hidden="true"
                 />
-                <h3 data-careers-reveal>{pillar.title}</h3>
+                <h3 className={typeStyles.h1} data-careers-reveal>{pillar.title}</h3>
               </div>
-              <p data-careers-reveal data-careers-reveal-delay="1">{pillar.body}</p>
+              <p className={typeStyles.h3} data-careers-reveal data-careers-reveal-delay="1">{pillar.body}</p>
             </article>
           ))}
         </div>
       </section>
 
       <section className={styles.mosaicSection}>
-        <p className={styles.pillarsStatement} data-careers-reveal>
+        <p className={`${styles.pillarsStatement} ${typeStyles.h1}`} data-careers-reveal>
           Work thrives when people do. We have built a place where craft and care move together, where designers grow
           without burning out, and founders find partners who treat their vision like it is their own.
         </p>
@@ -183,15 +186,15 @@ export default async function CareersPage() {
       </section>
 
       <section className={styles.peopleSection}>
-        <h2 data-careers-reveal>Some faces you will be working with</h2>
+        <h2 className={typeStyles.h1} data-careers-reveal>Some faces you will be working with</h2>
 
         <div className={styles.foundersRow}>
           {founders.map((founder) => (
             <article key={founder.name} className={styles.founderCard}>
               <img src={founder.photo} alt={founder.name} loading="lazy" />
               <div data-careers-reveal>
-                <h3>{founder.name}</h3>
-                <p>{founder.role}</p>
+                <h3 className={typeStyles.h2}>{founder.name}</h3>
+                <p className={typeStyles.h4}>{founder.role}</p>
               </div>
             </article>
           ))}
@@ -205,7 +208,9 @@ export default async function CareersPage() {
           />
         </figure>
 
-        <CareersOpenRoles roles={roles} />
+        <div className={styles.openRolesPlacement}>
+          <CareersOpenRoles roles={roles} />
+        </div>
       </section>
     </main>
   );

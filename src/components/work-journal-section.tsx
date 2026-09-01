@@ -21,7 +21,7 @@ const workCardImageSizes = "(max-width: 50.5625em) 100vw, 25vw";
 const preloadedWorkImages = new Set<string>();
 const videoExtensions = [".mp4", ".webm", ".mov", ".m4v", ".m3u8", ".ogv", ".ogg"];
 
-type WorkJournalSectionProps = {
+export type WorkJournalSectionProps = {
   filters: string[];
   initialFilters?: string[];
   initialViewMode?: WorkJournalViewMode;

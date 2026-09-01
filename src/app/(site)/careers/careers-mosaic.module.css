@@ -30,11 +30,6 @@
 }
 
 .card h3 {
-  font-family: var(--ripe-font-serif);
-  font-size: var(--careers-card-heading-size);
-  font-weight: 300;
-  letter-spacing: var(--careers-card-heading-letter-spacing);
-  line-height: var(--careers-card-heading-line-height);
   position: relative;
   text-align: center;
   z-index: 2;
@@ -42,12 +37,7 @@
 
 .card > p {
   bottom: 1.75rem;
-  font-family: "Graphik", Arial, sans-serif;
-  font-size: var(--careers-label-size);
-  font-weight: 400;
   left: 1rem;
-  letter-spacing: var(--careers-label-letter-spacing);
-  line-height: var(--careers-label-line-height);
   position: absolute;
   right: 1rem;
   text-align: center;
@@ -336,10 +326,6 @@
 @media (max-width: 40rem) {
   .wrap {
     gap: 0.75rem;
-  }
-
-  .card h3 {
-    font-size: var(--careers-card-heading-size);
   }
 
   .booksCard,

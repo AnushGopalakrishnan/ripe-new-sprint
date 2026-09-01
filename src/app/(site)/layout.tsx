@@ -5,7 +5,9 @@ import { EditorBridgeRuntime } from "@/components/editor-bridge-runtime";
 import { PageTransitionController } from "@/components/page-transition-controller";
 import { PublicNavigation } from "@/components/public-navigation";
 import { SmoothScrollProvider } from "@/components/smooth-scroll-provider";
+import { SmoothScrollSettingsLab } from "@/components/smooth-scroll-settings-lab";
 import { getSiteSettings } from "@/lib/content";
+import "dialkit/styles.css";
 
 export default async function SiteLayout({
   children,
@@ -36,6 +38,7 @@ export default async function SiteLayout({
         }}
       />
       <SmoothScrollProvider />
+      <SmoothScrollSettingsLab />
       <PageTransitionController />
       <PublicNavigation
         contactEmail={siteSettings.contactEmail}

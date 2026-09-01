@@ -260,14 +260,12 @@ test("home new feed keeps the hero and custom feed stable after hydration", asyn
   expect(late.cls).toBeGreaterThanOrEqual(0);
 });
 
-test("internal style guide renders the Ripe design system", async ({ page }) => {
+test("legacy style guide redirects to the component system", async ({ page }) => {
   await gotoAppPage(page, "/style-guide");
 
-  await expect(page).toHaveTitle("Ripe Style Guide | Ripe Studios");
-  await expect(page.getByRole("heading", { name: "The Natural Outcome" })).toBeVisible();
-  await expect(page.locator("section#typography")).toBeVisible();
-  await expect(page.locator("section#color")).toBeVisible();
-  await expect(page.locator("section#components")).toBeVisible();
+  await expect(page).toHaveURL(/\/component-system$/);
+  await expect(page).toHaveTitle(/Component System/);
+  await expect(page.getByRole("heading", { name: "Component System" })).toBeVisible();
   await expect(page.locator("meta[name='robots']")).toHaveAttribute("content", /noindex/);
 });
 

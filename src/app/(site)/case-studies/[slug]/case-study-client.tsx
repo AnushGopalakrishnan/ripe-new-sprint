@@ -6,6 +6,8 @@ import type { Route } from "next";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { CaseStudyLongFormPlayer } from "@/components/case-study-long-form-player";
+import { CaseStudyCommentNote } from "@/components/case-study-comment-note";
+import { CaseStudyFact, CaseStudyInformation } from "@/components/case-study-information";
 import styles from "@/app/(site)/detail-page.module.css";
 
 type MediaKind = "auto" | "image" | "video";
@@ -109,7 +111,6 @@ const DESIGN_SIDE_PADDING_PX = 20;
 const DESIGN_CELL_GAP_PX = 20;
 const DEFAULT_LAYOUT_DESIGN_WIDTH_PX = 1440;
 const CELL_WIDTH_MATCH_TOLERANCE = 0.5;
-const INFORMATION_COLLAPSED_LINES = 10;
 const videoExtensions = new Set(["mp4", "webm", "mov", "m4v", "ogv", "ogg", "m3u8"]);
 
 type SpanningLayoutItem = {
@@ -471,29 +472,22 @@ function CommentableMedia({
         const isActive = activeId === comment.id;
         const x = frame ? frame.offsetX + (frame.width * position.x) / 100 : `${position.x}%`;
         const y = frame ? frame.offsetY + (frame.height * position.y) / 100 : `${position.y}%`;
-        const threadClasses = [
-          styles.detailCommentThread,
-          isActive ? styles.detailCommentThreadOpen : "",
-          position.x > 50 ? styles.detailCommentThreadExpandLeft : "",
-          position.y <= 50 ? styles.detailCommentThreadExpandDown : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        const style = {
-          "--comment-x": typeof x === "number" ? `${x}px` : x,
-          "--comment-y": typeof y === "number" ? `${y}px` : y,
-        } as CSSProperties;
-
         return (
-          <div key={comment.id} className={threadClasses} style={style}>
-            <button
-              aria-expanded={isActive}
-              aria-label={`Open and drag note ${index + 1}`}
-              className={styles.detailCommentSurface}
-              onBlur={() => {
+          <CaseStudyCommentNote
+            key={comment.id}
+            comment={comment}
+            index={index}
+            isActive={isActive}
+            x={x}
+            y={y}
+            expandLeft={position.x > 50}
+            expandDown={position.y <= 50}
+            styles={styles}
+            buttonProps={{
+              onBlur: () => {
                 setActiveId((prev) => (prev === comment.id ? null : prev));
-              }}
-              onClick={(event) => {
+              },
+              onClick: (event) => {
                 event.stopPropagation();
                 if (suppressNextClickRef.current) {
                   suppressNextClickRef.current = false;
@@ -504,9 +498,9 @@ function CommentableMedia({
                   return;
                 }
                 setActiveId(comment.id);
-              }}
-              onFocus={() => openComment(comment.id)}
-              onPointerDown={(event) => {
+              },
+              onFocus: () => openComment(comment.id),
+              onPointerDown: (event) => {
                 lastPointerTypeRef.current = event.pointerType;
                 if (!event.isPrimary || event.button !== 0) return;
                 clearCloseTimer();
@@ -518,14 +512,14 @@ function CommentableMedia({
                   startY: event.clientY,
                 };
                 event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerEnter={(event) => {
+              },
+              onPointerEnter: (event) => {
                 if (event.pointerType !== "touch") openComment(comment.id);
-              }}
-              onPointerLeave={(event) => {
+              },
+              onPointerLeave: (event) => {
                 if (event.pointerType !== "touch") closeComment(comment.id);
-              }}
-              onPointerMove={(event) => {
+              },
+              onPointerMove: (event) => {
                 const dragState = dragStateRef.current;
                 if (!dragState || dragState.id !== comment.id) return;
 
@@ -538,8 +532,8 @@ function CommentableMedia({
                 clearCloseTimer();
                 setActiveId(comment.id);
                 moveCommentToPointer(comment.id, event.clientX, event.clientY);
-              }}
-              onPointerUp={(event) => {
+              },
+              onPointerUp: (event) => {
                 const dragState = dragStateRef.current;
                 if (!dragState || dragState.id !== comment.id) return;
 
@@ -553,8 +547,8 @@ function CommentableMedia({
                   event.currentTarget.releasePointerCapture(dragState.pointerId);
                 }
                 dragStateRef.current = null;
-              }}
-              onTouchEnd={(event) => {
+              },
+              onTouchEnd: (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 if (suppressNextTouchRef.current) {
@@ -563,181 +557,12 @@ function CommentableMedia({
                 }
                 lastPointerTypeRef.current = "touch";
                 setActiveId((prev) => (prev === comment.id ? null : comment.id));
-              }}
-              type="button"
-            >
-              <span
-                className={`${styles.detailCommentAvatarWrap} ${
-                  comment.avatar ? styles.detailCommentAvatarWrapWithImage : ""
-                }`}
-              >
-                {comment.avatar ? (
-                  <img
-                    className={styles.detailCommentAvatar}
-                    src={comment.avatar}
-                    alt={comment.author}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <span className={styles.detailCommentAvatarFallback} aria-hidden="true" />
-                )}
-              </span>
-              <span className={styles.detailCommentCard}>
-                <span className={styles.detailCommentAuthor}>{comment.author}</span>
-                <span className={styles.detailCommentBody}>{comment.body}</span>
-              </span>
-            </button>
-          </div>
+              },
+            }}
+          />
         );
       })
         : null}
-    </div>
-  );
-}
-
-function FormaFact({ label, children }: { label: string; children: string }) {
-  return (
-    <div className={styles.formaFact}>
-      <p>({label})</p>
-      <strong>{children}</strong>
-    </div>
-  );
-}
-
-function getInitialInformationText(paragraphs: string[]) {
-  return paragraphs
-    .map((paragraph) => paragraph.replace(/<[^>]*>/g, " "))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getDecodedInformationText(paragraphs: string[]) {
-  const container = document.createElement("div");
-
-  return paragraphs
-    .map((paragraph) => {
-      container.innerHTML = paragraph;
-      return container.textContent ?? "";
-    })
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getCollapsedInformationText(
-  text: string,
-  content: HTMLDivElement,
-  computed: CSSStyleDeclaration,
-  collapsedHeight: number,
-) {
-  const width = content.clientWidth;
-  if (width <= 0 || text.length === 0) return text;
-
-  const probe = document.createElement("p");
-  probe.style.fontFamily = computed.fontFamily;
-  probe.style.fontSize = computed.fontSize;
-  probe.style.fontStyle = computed.fontStyle;
-  probe.style.fontWeight = computed.fontWeight;
-  probe.style.letterSpacing = computed.letterSpacing;
-  probe.style.lineHeight = computed.lineHeight;
-  probe.style.margin = "0";
-  probe.style.pointerEvents = "none";
-  probe.style.position = "absolute";
-  probe.style.visibility = "hidden";
-  probe.style.whiteSpace = "normal";
-  probe.style.width = `${width}px`;
-  document.body.appendChild(probe);
-
-  let low = 0;
-  let high = text.length;
-  let best = "";
-
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const candidate = text.slice(0, mid).trimEnd();
-    probe.textContent = `${candidate}..`;
-
-    if (probe.scrollHeight <= collapsedHeight + 1) {
-      best = candidate;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  document.body.removeChild(probe);
-
-  const wordSafe = best.replace(/\s+\S*$/, "").trimEnd();
-  return `${wordSafe || best.trimEnd()}..`;
-}
-
-function CaseStudyInformation({ paragraphs }: { paragraphs: string[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const [canExpand, setCanExpand] = useState(false);
-  const [collapsedText, setCollapsedText] = useState(() => getInitialInformationText(paragraphs));
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const contentKey = paragraphs.join("\n");
-
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content) return;
-
-    const measure = () => {
-      const firstParagraph = content.querySelector("p");
-      const computed = window.getComputedStyle(firstParagraph ?? content);
-      const fontSize = Number.parseFloat(computed.fontSize) || 15;
-      const parsedLineHeight = Number.parseFloat(computed.lineHeight);
-      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.38;
-      const collapsedHeight = lineHeight * INFORMATION_COLLAPSED_LINES;
-      const nextCanExpand = content.scrollHeight > collapsedHeight + 1;
-
-      setCanExpand(nextCanExpand);
-      setCollapsedText(
-        nextCanExpand
-          ? getCollapsedInformationText(getDecodedInformationText(paragraphs), content, computed, collapsedHeight)
-          : getDecodedInformationText(paragraphs),
-      );
-    };
-
-    measure();
-
-    const observer = new ResizeObserver(measure);
-    observer.observe(content);
-
-    return () => observer.disconnect();
-  }, [contentKey, paragraphs]);
-
-  const showCollapsedPreview = !expanded && canExpand;
-
-  return (
-    <div className={styles.formaInformation}>
-      <p className={styles.formaLabel}>(Information)</p>
-      <div
-        ref={contentRef}
-        aria-hidden={showCollapsedPreview}
-        className={`${styles.formaInformationCopy} ${showCollapsedPreview ? styles.formaInformationCopyMeasure : ""}`}
-      >
-        {paragraphs.map((paragraph, index) => (
-          <p key={`${index}-${paragraph}`} dangerouslySetInnerHTML={{ __html: paragraph }} />
-        ))}
-      </div>
-      {showCollapsedPreview ? (
-        <div className={`${styles.formaInformationCopy} ${styles.formaInformationPreview}`}>
-          <p>{collapsedText}</p>
-        </div>
-      ) : null}
-      {canExpand ? (
-        <button
-          aria-expanded={expanded}
-          className={styles.formaInformationToggle}
-          onClick={() => setExpanded((current) => !current)}
-          type="button"
-        >
-          {expanded ? "See Less" : "See More"}
-        </button>
-      ) : null}
     </div>
   );
 }
@@ -875,13 +700,13 @@ export function CaseStudyClient({ reference, moreProjects }: CaseStudyClientProp
         <section className={styles.formaInfoStage} data-nav-tone="dark">
           <section className={styles.formaInfo} aria-label="Project information" data-case-info>
             <div className={styles.formaFacts}>
-              <FormaFact label="Brand">{reference.brand}</FormaFact>
-              <FormaFact label="Services">{reference.services.join(", ")}</FormaFact>
-              <FormaFact label="Industry">{reference.industry}</FormaFact>
-              <FormaFact label="Year">{reference.year}</FormaFact>
+              <CaseStudyFact label="Brand" styles={styles}>{reference.brand}</CaseStudyFact>
+              <CaseStudyFact label="Services" styles={styles}>{reference.services.join(", ")}</CaseStudyFact>
+              <CaseStudyFact label="Industry" styles={styles}>{reference.industry}</CaseStudyFact>
+              <CaseStudyFact label="Year" styles={styles}>{reference.year}</CaseStudyFact>
             </div>
             {reference.information.length > 0 ? (
-              <CaseStudyInformation paragraphs={reference.information} />
+              <CaseStudyInformation paragraphs={reference.information} styles={styles} />
             ) : (
               <div />
             )}

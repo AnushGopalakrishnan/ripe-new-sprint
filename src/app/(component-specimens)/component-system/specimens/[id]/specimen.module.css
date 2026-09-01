@@ -1,0 +1,45 @@
+:global(body:has([data-component-specimen-page])) {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  background: #fff;
+}
+
+.surface {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  overflow: clip;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  background: #fff;
+}
+
+.surface[data-component="public-navigation"] {
+  height: 100dvh;
+  padding: 0;
+  background: #d7e1cf;
+}
+
+.surface[data-component="work-journal"],
+.surface[data-component="home-feed"],
+.surface[data-component="careers-open-roles"] {
+  padding: 0;
+}
+
+.surface[data-component="long-form-player"] > * {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+@media (max-width: 800px) {
+  .surface {
+    padding: 1rem;
+  }
+
+  .surface[data-component="public-navigation"],
+  .surface[data-component="work-journal"],
+  .surface[data-component="home-feed"],
+  .surface[data-component="careers-open-roles"] {
+    padding: 0;
+  }
+}

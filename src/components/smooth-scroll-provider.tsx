@@ -2,20 +2,62 @@
 
 import Lenis from "lenis";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+export type SmoothScrollSettings = {
+  enabled: boolean;
+  lerp: number;
+  smoothWheel: boolean;
+  syncTouch: boolean;
+  syncTouchLerp: number;
+  touchInertiaExponent: number;
+  touchMultiplier: number;
+  wheelMultiplier: number;
+};
+
+export const SMOOTH_SCROLL_DEFAULTS: SmoothScrollSettings = {
+  enabled: true,
+  lerp: 0.075,
+  smoothWheel: true,
+  syncTouch: false,
+  syncTouchLerp: 0.075,
+  touchInertiaExponent: 1.7,
+  touchMultiplier: 1,
+  wheelMultiplier: 0.82,
+};
+
+export const SMOOTH_SCROLL_SETTINGS_EVENT = "ripe:smooth-scroll-settings";
 
 export function SmoothScrollProvider() {
   const pathname = usePathname();
   const lenisRef = useRef<Lenis | null>(null);
   const rafRef = useRef<number>(0);
+  const [settings, setSettings] = useState<SmoothScrollSettings>(SMOOTH_SCROLL_DEFAULTS);
 
   useEffect(() => {
+    const updateSettings = (event: Event) => {
+      setSettings((event as CustomEvent<SmoothScrollSettings>).detail);
+    };
+
+    window.addEventListener(SMOOTH_SCROLL_SETTINGS_EVENT, updateSettings);
+    return () => window.removeEventListener(SMOOTH_SCROLL_SETTINGS_EVENT, updateSettings);
+  }, []);
+
+  useEffect(() => {
+    if (!settings.enabled) {
+      lenisRef.current = null;
+      return;
+    }
+
     const lenis = new Lenis({
-      lerp: 0.075,
-      smoothWheel: true,
-      syncTouch: false,
-      touchMultiplier: 1,
-      wheelMultiplier: 0.82,
+      lerp: settings.lerp,
+      smoothWheel: settings.smoothWheel,
+      syncTouch: settings.syncTouch,
+      syncTouchLerp: settings.syncTouchLerp,
+      touchInertiaExponent: settings.touchInertiaExponent,
+      touchMultiplier: settings.touchMultiplier,
+      wheelMultiplier: settings.wheelMultiplier,
+      prevent: (node) => Boolean(node.closest(".dialkit-panel")),
     });
     lenisRef.current = lenis;
 
@@ -41,7 +83,7 @@ export function SmoothScrollProvider() {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, []);
+  }, [settings]);
 
   useEffect(() => {
     const lenis = lenisRef.current;
