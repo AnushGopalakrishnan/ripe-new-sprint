@@ -78,7 +78,7 @@ test.describe("component system", () => {
       Atoms: [
         "navigation-logo-link", "navigation-menu-button", "navigation-dismiss-control", "navigation-menu-link", "navigation-showreel-button",
         "contact-cta", "journal-filter-button", "journal-view-toggle", "journal-mobile-categories-button", "journal-mobile-close-button",
-        "feed-pill", "feed-overlay-link", "case-study-disclosure-button", "case-study-carousel-button", "case-study-all-projects-link", "comment-trigger", "comments-toggle", "player-play-control",
+        "feed-pill", "case-study-disclosure-button", "case-study-carousel-button", "case-study-all-projects-link", "comment-trigger", "comments-toggle", "player-play-control",
         "player-timeline", "player-volume-control", "player-fullscreen-control", "copy-email-cta", "profile-link",
       ],
       Molecules: ["journal-filter-group", "case-study-fact", "case-study-information", "comment-note", "player-controls", "directional-role", "careers-trust-logos"],
