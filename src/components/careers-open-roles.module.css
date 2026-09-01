@@ -1,0 +1,30 @@
+.root,
+.wrap,
+.inner {
+  background: transparent !important;
+}
+
+.wrap {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.inner {
+  padding: 0 !important;
+}
+
+.root .content h2 {
+  margin: 0 0 1rem;
+}
+
+.root .content h4,
+.root .content p {
+  margin: 0;
+}
+
+@media (max-width: 62rem) {
+  .root .content {
+    gap: 3rem;
+    grid-template-columns: 1fr;
+  }
+}

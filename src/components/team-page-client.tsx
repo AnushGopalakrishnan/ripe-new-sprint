@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import type { MouseEvent } from "react";
+import { useMemo, useState } from "react";
+import { DirectionalRoleItem } from "@/components/directional-role-item";
 import type { JobPosting, TeamMember } from "@/types/content";
 import styles from "@/components/team-page-client.module.css";
 
-type TeamPageClientProps = {
+export type TeamPageClientProps = {
   members: TeamMember[];
   roles: JobPosting[];
 };
@@ -21,82 +21,6 @@ function normalizeGroup(value: string | undefined) {
     .split(/\s+/)
     .map((part) => part[0]?.toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function DirectionalRoleItem({ role }: { role: JobPosting }) {
-  const tileRef = useRef<HTMLDivElement | null>(null);
-
-  const getDirection = (event: MouseEvent<HTMLElement>, element: HTMLElement) => {
-    const { left, top, width, height } = element.getBoundingClientRect();
-    const x = event.clientX - left;
-    const y = event.clientY - top;
-    const distances = {
-      top: y,
-      right: width - x,
-      bottom: height - y,
-      left: x,
-    };
-
-    return (Object.entries(distances).reduce((a, b) => (a[1] < b[1] ? a : b))[0] ?? "top") as
-      | "top"
-      | "right"
-      | "bottom"
-      | "left";
-  };
-
-  const toTransform = (direction: "top" | "right" | "bottom" | "left") => {
-    if (direction === "top") return "translateY(-100%)";
-    if (direction === "bottom") return "translateY(100%)";
-    if (direction === "left") return "translateX(-100%)";
-    return "translateX(100%)";
-  };
-
-  const handleMouseEnter = (event: MouseEvent<HTMLDivElement>) => {
-    const tile = tileRef.current;
-    if (!tile) return;
-
-    const direction = getDirection(event, event.currentTarget);
-    tile.style.transition = "none";
-    tile.style.transform = toTransform(direction);
-    void tile.offsetHeight;
-    tile.style.transition = "";
-    tile.style.transform = "translate(0%, 0%)";
-  };
-
-  const handleMouseLeave = (event: MouseEvent<HTMLDivElement>) => {
-    const tile = tileRef.current;
-    if (!tile) return;
-
-    const direction = getDirection(event, event.currentTarget);
-    tile.style.transform = toTransform(direction);
-  };
-
-  return (
-    <div
-      data-directional-hover-item=""
-      role="listitem"
-      className={`directional-list__item w-dyn-item ${styles.directionalItem}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      <a href={role.externalUrl} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
-        <div
-          ref={tileRef}
-          data-directional-hover-tile=""
-          className={`directional-list__hover-tile-2 ${styles.directionalTile}`}
-        />
-        <div className="directional-list__border is--item" />
-        <div className="directional-list__col-award">
-          <p className="direcitonal-list__p">
-            {role.title} - {role.location}
-          </p>
-        </div>
-        <div className="directional-list__col-year">
-          <p className="direcitonal-list__p">{role.contractType}</p>
-        </div>
-      </a>
-    </div>
-  );
 }
 
 export function TeamPageClient({ members, roles }: TeamPageClientProps) {

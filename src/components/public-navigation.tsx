@@ -45,10 +45,11 @@ const fallbackShowreel: Required<NavigationShowreel> = {
   title: "Ripe Showreel 2026",
 };
 
-type PublicNavigationProps = {
+export type PublicNavigationProps = {
   contactEmail?: string;
   navLinks?: NavLink[];
   navigationShowreel?: NavigationShowreel;
+  panelBackgroundColor?: string;
   socialLinks?: SocialLink[];
 };
 
@@ -98,7 +99,7 @@ function toneFromRgb(r: number, g: number, b: number): NavTone {
   return relativeLuminance({ r, g, b }) <= 0.45 ? "light" : "dark";
 }
 
-export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, socialLinks }: PublicNavigationProps) {
+export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, panelBackgroundColor, socialLinks }: PublicNavigationProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -434,7 +435,7 @@ export function PublicNavigation({ contactEmail, navLinks, navigationShowreel, s
         data-open={open ? "true" : "false"}
         id="public-navigation-panel"
       >
-        <div className={styles.panelBackground} />
+        <div className={styles.panelBackground} style={panelBackgroundColor ? { backgroundColor: panelBackgroundColor } : undefined} />
         <div className={styles.closeBar}>
           <button aria-label="Close navigation" className={styles.closeButton} onClick={closeNavigation} type="button">
             <span />

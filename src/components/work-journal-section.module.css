@@ -112,6 +112,18 @@
   z-index: 2;
 }
 
+.filterButton,
+.title,
+.grid[data-view="list"] .listIndustry,
+.grid[data-view="list"] .listService,
+.grid[data-view="list"] .listYear {
+  font-family: var(--ripe-font-serif);
+  font-size: clamp(2.125rem, 2.944vw, 2.65rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.03;
+}
+
 .filterButton {
   appearance: none;
   background: transparent;
@@ -119,11 +131,6 @@
   border-radius: 0;
   color: var(--journal-black);
   cursor: pointer;
-  font-family: "Times New Roman", serif;
-  font-size: clamp(2.125rem, 2.944vw, 2.65rem);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.03;
   opacity: 1;
   padding: 0;
   text-transform: none;
@@ -504,11 +511,6 @@
 
 .title {
   color: var(--journal-black);
-  font-family: "Times New Roman", serif;
-  font-size: clamp(2.125rem, 2.944vw, 2.65rem);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.03;
   margin: 1.25rem 1.0625rem 0 0;
   transition: color 560ms ease;
 }
@@ -516,9 +518,7 @@
 .grid[data-view="list"] .title {
   align-self: start;
   color: currentColor;
-  font-size: clamp(2.125rem, 2.944vw, 2.65rem);
   grid-column: 2;
-  line-height: 1.08;
   margin: 0;
   min-width: 0;
   overflow: visible;
@@ -554,11 +554,6 @@
   align-self: start;
   color: currentColor;
   display: block;
-  font-family: "Times New Roman", serif;
-  font-size: clamp(2.125rem, 2.944vw, 2.65rem);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
   min-width: 0;
   overflow: visible;
   padding-bottom: 0.08em;
@@ -834,7 +829,7 @@
 
   .mobileTitle {
     color: currentColor;
-    font-family: "Times New Roman", serif;
+    font-family: var(--ripe-font-serif);
     font-size: clamp(3.25rem, 16vw, 5.75rem);
     font-weight: 400;
     letter-spacing: -0.04em;
@@ -947,7 +942,7 @@
 
   .mobileModalFilters .filterButton {
     color: #0a0a0a !important;
-    font-family: "Times New Roman", serif;
+    font-family: var(--ripe-font-serif);
     font-size: clamp(2rem, 9vw, 3.5rem);
     letter-spacing: -0.02em;
     line-height: 0.98;

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import "hls-video-element";
 
-type CaseStudyLongFormPlayerProps = {
+export type CaseStudyLongFormPlayerProps = {
   styles: Record<string, string>;
   mediaClassName: string;
   src: string;
