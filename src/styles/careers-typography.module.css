@@ -25,7 +25,7 @@
 .scope.scope .benefitCardMain {
   font-family: var(--ripe-font-serif-regular);
   font-size: 1.75rem;
-  font-weight: 400;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.02em;
   line-height: 1;
   text-align: center;

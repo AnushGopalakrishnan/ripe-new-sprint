@@ -393,6 +393,7 @@
 .pillarsStatement {
   margin: 0;
   text-align: center;
+  text-wrap: balance;
 }
 
 .mosaicSection {
@@ -562,7 +563,7 @@
   display: grid;
   gap: 0;
   margin-top: var(--careers-visual-section-gap);
-  padding-top: 0;
+  padding: 0 0 8rem;
 }
 
 .peopleSection h2 {

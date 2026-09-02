@@ -54,25 +54,25 @@
 .booksCard,
 .flexibleCard,
 .referralCard {
-  height: 20.5rem;
+  height: 30.75rem;
 }
 
 .headspaceCard,
 .offsiteCard {
-  height: 27.75rem;
+  height: 41.625rem;
 }
 
 .commissionCard,
 .homeOfficeCard {
-  height: 20.5rem;
+  height: 30.75rem;
 }
 
 .learningCard {
-  height: 12.75rem;
+  height: 19.125rem;
 }
 
 .weworkCard {
-  height: 35.5rem;
+  height: 53.25rem;
 }
 
 .booksCard h3,
@@ -87,7 +87,7 @@
 .booksCard h3 {
   left: 36%;
   right: 8%;
-  text-align: left;
+  text-align: right !important;
   top: 10%;
 }
 
@@ -255,7 +255,7 @@
   .booksCard h3 {
     left: 1rem;
     right: 1rem;
-    text-align: center;
+    text-align: right !important;
   }
 }
 
@@ -309,17 +309,17 @@
   .referralCard,
   .commissionCard,
   .homeOfficeCard {
-    height: 22rem;
+    height: 33rem;
   }
 
   .learningCard {
-    height: 22rem;
+    height: 33rem;
   }
 
   .headspaceCard,
   .offsiteCard,
   .weworkCard {
-    height: 31rem;
+    height: 46.5rem;
   }
 }
 
@@ -334,17 +334,17 @@
   .commissionCard,
   .homeOfficeCard,
   .learningCard {
-    height: 20.5rem;
+    height: 30.75rem;
   }
 
   .headspaceCard,
   .offsiteCard,
   .weworkCard {
-    height: 31rem;
+    height: 46.5rem;
   }
 
   .learningCard {
-    height: 13rem;
+    height: 19.5rem;
   }
 }
 

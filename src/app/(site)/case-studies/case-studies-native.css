@@ -886,6 +886,7 @@ body.mobile-filters-open {
   color: inherit;
   font-family: "Plantin MT Pro Light", "Times New Roman", serif;
   font-size: 2rem;
+  font-weight: 300;
   line-height: 1;
   text-decoration: none;
 }
