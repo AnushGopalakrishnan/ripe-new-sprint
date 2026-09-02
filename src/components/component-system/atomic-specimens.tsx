@@ -22,6 +22,7 @@ import { CareersBenefitCard, CareersBenefits, CareersFilmstripCard, CareersFound
 import { CareersPillarsGrid } from "@/components/careers-pillars-grid";
 import careersPageStyles from "@/app/(site)/careers/page.module.css";
 import careersMosaicStyles from "@/app/(site)/careers/careers-mosaic.module.css";
+import careersTypeStyles from "@/styles/careers-typography.module.css";
 import homeFeedStyles from "@/components/home-feed.module.css";
 import {
   HomeFeedAwardsCard,
@@ -315,7 +316,7 @@ export function CareersFounderCardSpecimen({ variant }: SpecimenVariantProps) {
 
 export function CareersBenefitCardsSpecimen({ variant }: SpecimenVariantProps) {
   const selected = (variant === "home office" ? "home-office" : variant ?? "books") as "books" | "referral" | "headspace" | "flexible" | "offsite" | "commission" | "learning" | "wework" | "home-office";
-  return <div className={careersMosaicStyles.wrap} style={{ padding: 20 }}><CareersBenefitCard styles={careersMosaicStyles} variant={selected}><h3>{selected.replace("-", " ")}</h3></CareersBenefitCard></div>;
+  return <div className={`${careersMosaicStyles.wrap} ${careersTypeStyles.scope}`} style={{ padding: 20 }}><CareersBenefitCard styles={careersMosaicStyles} variant={selected}><h3 className={careersTypeStyles.benefitCardMain}>{selected.replace("-", " ")}</h3></CareersBenefitCard></div>;
 }
 
 export function CareersBenefitsSpecimen({ variant }: SpecimenVariantProps) {

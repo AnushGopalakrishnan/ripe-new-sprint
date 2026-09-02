@@ -1,0 +1,122 @@
+.cover {
+  --preloader-pause-edge: 78px;
+
+  background: var(--ripe-color-beige, #f1ebe2);
+  color: var(--ripe-color-ink, #191919);
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  position: fixed;
+  transform: translate3d(0, 0, 0);
+  width: 100%;
+  z-index: 3000;
+}
+
+.cover[data-playing="true"] {
+  animation: paperLift 1.98s cubic-bezier(0.72, 0, 0.16, 1) 120ms both;
+  will-change: transform;
+}
+
+.mark {
+  --preloader-logo-scale: 1;
+  --preloader-logo-x: 0px;
+  --preloader-logo-y: 0px;
+
+  bottom: clamp(1.25rem, 2.5vw, 2.5rem);
+  color: var(--ripe-color-ink, #191919);
+  display: flex;
+  height: clamp(1.7rem, 2.25vw, 2.5rem);
+  left: clamp(1.25rem, 2.5vw, 2.5rem);
+  position: fixed;
+  transform: translate3d(0, 0, 0) scale(4);
+  transform-origin: left bottom;
+  transition: transform 320ms cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 3001;
+}
+
+.mark[data-complete="true"] {
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.mark[data-playing="true"] {
+  animation: logoSettle 1.98s cubic-bezier(0.72, 0, 0.16, 1) 120ms both;
+  transform-origin: left top;
+  transition: none;
+  will-change: transform;
+}
+
+.logoLayer {
+  display: flex;
+  height: 100%;
+}
+
+.logoBase {
+  color: #bdb6ac;
+}
+
+.logoFill {
+  clip-path: inset(0 calc(100% - var(--preloader-logo-progress, 0%)) 0 0);
+  inset: 0;
+  position: absolute;
+  transition: clip-path 80ms linear;
+  will-change: clip-path;
+}
+
+.note {
+  font-family: var(--ripe-font-sans, "Graphik", Arial, sans-serif);
+  font-size: 0.55rem;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  margin: 0;
+  position: absolute;
+  right: clamp(1.25rem, 2.5vw, 2.5rem);
+  text-align: right;
+  text-transform: uppercase;
+  top: clamp(1.25rem, 2.5vw, 2.5rem);
+}
+
+@keyframes paperLift {
+  0%,
+  17% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  24% {
+    transform: translate3d(0, -1.4%, 0);
+  }
+
+  61%,
+  71% {
+    transform: translate3d(0, calc(-100% + var(--preloader-pause-edge)), 0);
+  }
+
+  100% {
+    transform: translate3d(0, -101%, 0);
+  }
+}
+
+@keyframes logoSettle {
+  0%,
+  17% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  61%,
+  100% {
+    transform: translate3d(var(--preloader-logo-x), var(--preloader-logo-y), 0)
+      scale(var(--preloader-logo-scale));
+  }
+}
+
+@media (max-width: 720px) {
+  .note {
+    font-size: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover,
+  .mark {
+    display: none;
+  }
+}

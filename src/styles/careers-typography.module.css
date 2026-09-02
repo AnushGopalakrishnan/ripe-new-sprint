@@ -22,6 +22,24 @@
   line-height: 1.333;
 }
 
+.scope.scope .benefitCardMain {
+  font-family: var(--ripe-font-serif-regular);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-align: center;
+}
+
+.scope.scope .benefitCardLabel {
+  font-family: var(--ripe-font-sans);
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0em;
+  line-height: 1;
+  text-align: center;
+}
+
 .scope.scope h3,
 .scope.scope .h3 {
   font-size: 1.25rem;

@@ -89,19 +89,19 @@ export function CareersBenefits({ styles }: CareersBenefitsProps) {
   return (
     <div className={styles.wrap} aria-label="Benefits of working at Ripe">
       <div className={styles.column}>
-        <CareersBenefitCard styles={styles} variant="books"><img src="/careers-media/unsplash_JlNJEAUBa1E.png" alt="" /><h3 className={typeStyles.h2} data-careers-reveal>Reimbursements<br />on Books</h3></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="referral"><h3 className={typeStyles.h2} data-careers-reveal>Earn referral commissions for team members you help us hire.</h3><p className={typeStyles.h4} data-careers-reveal data-careers-reveal-delay="1">Designer Referrals</p></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="headspace"><img src="/careers-media/Headspace.png" alt="" /><h3 className={typeStyles.h2} data-careers-reveal>Annual Headspace Subscription</h3></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="books"><img src="/careers-media/unsplash_JlNJEAUBa1E.png" alt="" /><h3 className={typeStyles.benefitCardMain} data-careers-reveal>Reimbursements<br />on Books</h3></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="referral"><h3 className={typeStyles.benefitCardMain} data-careers-reveal>Earn referral commissions for team members you help us hire.</h3><p className={typeStyles.benefitCardLabel} data-careers-reveal data-careers-reveal-delay="1">Designer Referrals</p></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="headspace"><img src="/careers-media/Headspace.png" alt="" /><h3 className={typeStyles.benefitCardMain} data-careers-reveal>Annual Headspace Subscription</h3></CareersBenefitCard>
       </div>
       <div className={styles.column}>
-        <CareersBenefitCard styles={styles} variant="flexible"><h3 className={typeStyles.h2} data-careers-reveal>Work when you want,<br />just own your tasks.</h3><p className={typeStyles.h4} data-careers-reveal data-careers-reveal-delay="1">Flexible Work Hours</p></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="offsite"><img src="/careers-media/Group 2.png" alt="" /><h3 className={typeStyles.h2} data-careers-reveal>Yearly, all expenses<br />paid offsite.</h3><p className={typeStyles.h4} data-careers-reveal data-careers-reveal-delay="1">Offsites</p></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="commission"><h3 className={typeStyles.h2} data-careers-reveal>We give you commissions<br />for bringing in projects,<br />starting from 7%</h3><p className={typeStyles.h4} data-careers-reveal data-careers-reveal-delay="1">Project Referrals</p></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="flexible"><h3 className={typeStyles.benefitCardMain} data-careers-reveal>Work when you want,<br />just own your tasks.</h3><p className={typeStyles.benefitCardLabel} data-careers-reveal data-careers-reveal-delay="1">Flexible Work Hours</p></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="offsite"><img src="/careers-media/Group 2.png" alt="" /><h3 className={typeStyles.benefitCardMain} data-careers-reveal>Yearly, all expenses<br />paid offsite.</h3><p className={typeStyles.benefitCardLabel} data-careers-reveal data-careers-reveal-delay="1">Offsites</p></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="commission"><h3 className={typeStyles.benefitCardMain} data-careers-reveal>We give you commissions<br />for bringing in projects,<br />starting from 7%</h3><p className={typeStyles.benefitCardLabel} data-careers-reveal data-careers-reveal-delay="1">Project Referrals</p></CareersBenefitCard>
       </div>
       <div className={styles.column}>
-        <CareersBenefitCard styles={styles} variant="learning"><p className={typeStyles.h4} data-careers-reveal>Subscriptions to Learn</p><div className={styles.learningCarousel}><div className={styles.learningTrack}><CareersLearningLogoRow styles={styles} /><CareersLearningLogoRow duplicate styles={styles} /></div></div></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="wework"><img src="/careers-media/unsplash_ZFy_KeVv8vE.png" alt="" /><h3 className={typeStyles.h2} data-careers-reveal>WeWork Passes</h3></CareersBenefitCard>
-        <CareersBenefitCard styles={styles} variant="home-office"><img src="/careers-media/unsplash_otfbs6vO4N8.png" alt="" /><p className={typeStyles.h4} data-careers-reveal>Home Office Allowances</p></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="learning"><p className={typeStyles.benefitCardLabel} data-careers-reveal>Subscriptions to Learn</p><div className={styles.learningCarousel}><div className={styles.learningTrack}><CareersLearningLogoRow styles={styles} /><CareersLearningLogoRow duplicate styles={styles} /></div></div></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="wework"><img src="/careers-media/unsplash_ZFy_KeVv8vE.png" alt="" /><h3 className={typeStyles.benefitCardMain} data-careers-reveal>WeWork Passes</h3></CareersBenefitCard>
+        <CareersBenefitCard styles={styles} variant="home-office"><img src="/careers-media/unsplash_otfbs6vO4N8.png" alt="" /><p className={typeStyles.benefitCardLabel} data-careers-reveal>Home Office Allowances</p></CareersBenefitCard>
       </div>
     </div>
   );
