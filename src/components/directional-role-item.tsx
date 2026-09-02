@@ -6,7 +6,9 @@ import styles from "@/components/team-page-client.module.css";
 import type { JobPosting } from "@/types/content";
 
 export type DirectionalRoleItemProps = {
+  disableDirectionalTile?: boolean;
   initialEntryDirection?: EntryDirection;
+  onItemEnter?: (element: HTMLDivElement) => void;
   role: JobPosting;
   titleElement?: "p" | "h4";
 };
@@ -19,7 +21,7 @@ function DirectionalRoleLink({ role, tileRef, titleElement = "p" }: DirectionalR
   const TitleElement = titleElement;
   return (
     <a href={role.externalUrl} target="_blank" rel="noreferrer" className="jobs_row-link w-inline-block">
-      <div ref={tileRef} data-directional-hover-tile="" className={`directional-list__hover-tile-2 ${styles.directionalTile}`} />
+      {tileRef ? <div ref={tileRef} data-directional-hover-tile="" className={`directional-list__hover-tile-2 ${styles.directionalTile}`} /> : null}
       <div className="directional-list__border is--item" />
       <div className="directional-list__col-award">
         <TitleElement className="direcitonal-list__p">{role.title} - {role.location}</TitleElement>
@@ -52,7 +54,7 @@ function toTransform(direction: EntryDirection) {
   return "translateX(100%)";
 }
 
-export function DirectionalRoleItem({ initialEntryDirection, role, titleElement = "p" }: DirectionalRoleItemProps) {
+export function DirectionalRoleItem({ disableDirectionalTile = false, initialEntryDirection, onItemEnter, role, titleElement = "p" }: DirectionalRoleItemProps) {
   const tileRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,8 @@ export function DirectionalRoleItem({ initialEntryDirection, role, titleElement 
   }, [initialEntryDirection]);
 
   const handleMouseEnter = (event: MouseEvent<HTMLDivElement>) => {
+    onItemEnter?.(event.currentTarget);
+    if (disableDirectionalTile) return;
     const tile = tileRef.current;
     if (!tile) return;
 
@@ -79,6 +83,7 @@ export function DirectionalRoleItem({ initialEntryDirection, role, titleElement 
   };
 
   const handleMouseLeave = (event: MouseEvent<HTMLDivElement>) => {
+    if (disableDirectionalTile) return;
     if (!tileRef.current) return;
     tileRef.current.style.transform = toTransform(getDirection(event, event.currentTarget));
   };
@@ -91,7 +96,7 @@ export function DirectionalRoleItem({ initialEntryDirection, role, titleElement 
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <DirectionalRoleLink role={role} tileRef={tileRef} titleElement={titleElement} />
+      <DirectionalRoleLink role={role} tileRef={disableDirectionalTile ? undefined : tileRef} titleElement={titleElement} />
     </div>
   );
 }

@@ -1,3 +1,9 @@
+:global(html:has([data-site-preloader])),
+:global(body:has([data-site-preloader])) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .cover {
   --preloader-pause-edge: 78px;
 

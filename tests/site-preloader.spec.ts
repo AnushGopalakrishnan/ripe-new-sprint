@@ -10,6 +10,10 @@ test("Paper Lift reveals the prepared homepage and restores scrolling", async ({
   const preloaderLogoFill = page.locator("[data-site-preloader-logo-fill]");
   const navigationLogo = page.locator("[data-navigation-logo]");
   await expect(preloader).toBeVisible();
+  await expect(page.locator("html")).toHaveCSS("overflow", "hidden");
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(preloader).toHaveCSS("background-color", "rgb(241, 235, 226)");
   await expect(preloaderLogo.locator("svg path")).toHaveCount(2);
   await expect(preloaderLogo.locator("svg path").first()).toHaveAttribute(

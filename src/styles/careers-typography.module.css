@@ -10,21 +10,21 @@
 
 .scope.scope h1,
 .scope.scope .h1 {
-  font-size: 2.25rem;
+  font-size: 1.96875rem;
   letter-spacing: -0.0044em;
   line-height: 1.333;
 }
 
 .scope.scope h2,
 .scope.scope .h2 {
-  font-size: 1.75rem;
+  font-size: 1.53125rem;
   letter-spacing: -0.0044em;
   line-height: 1.333;
 }
 
 .scope.scope .benefitCardMain {
   font-family: var(--ripe-font-serif-regular);
-  font-size: 1.75rem;
+  font-size: 1.53125rem;
   font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.02em;
   line-height: 1;
@@ -33,7 +33,7 @@
 
 .scope.scope .benefitCardLabel {
   font-family: var(--ripe-font-sans);
-  font-size: 0.875rem;
+  font-size: 0.765625rem;
   font-weight: 400;
   letter-spacing: 0em;
   line-height: 1;
@@ -42,21 +42,21 @@
 
 .scope.scope h3,
 .scope.scope .h3 {
-  font-size: 1.25rem;
+  font-size: 1.09375rem;
   letter-spacing: -0.008em;
   line-height: 1.2;
 }
 
 .scope.scope h4,
 .scope.scope .h4 {
-  font-size: 1rem;
+  font-size: 0.875rem;
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .scope.scope p,
 .scope.scope .paragraph {
-  font-size: 1rem;
+  font-size: 0.875rem;
   letter-spacing: 0;
   line-height: 1.375;
 }
