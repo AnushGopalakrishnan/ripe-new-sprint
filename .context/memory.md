@@ -654,6 +654,7 @@
 
 ## Maintenance
 
+- Team card preferences from 2026-09-02: the floating member image shown while hovering names on `/team` uses a fixed `0.5rem` corner radius, and the role beneath each member name is title-cased rather than all caps.
 - Shared Team/Careers typography decision from 2026-09-02: `/team` uses the Careers typography module as its source of truth. The Team hero uses H1, department labels H2, member names H3 and roles H4; reusable Team member cards carry the Careers scope so catalogue specimens match production. The shared Join Us/Open Roles section already owns the same scope.
 - Shared Team/Careers Open Roles decision from 2026-09-02: both `/careers` and `/team` render the exact `CareersOpenRolesSection` composition from `src/components/careers-open-roles.tsx`, including the warm full-bleed section shell, responsive 8rem/2rem/1rem gutters, Careers typography, copy-email behavior and shared sliding hover interaction. Do not restore the duplicated legacy Team Join Us markup.
 - Careers Pillars vertical layout preference from 2026-09-02: descriptions sit exactly 2rem below the icon/title header instead of being pushed to the bottom with `space-between`; base and masked hover layers must retain identical geometry.
