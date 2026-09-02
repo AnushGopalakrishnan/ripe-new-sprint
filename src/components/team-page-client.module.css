@@ -1,4 +1,5 @@
 .teamMemberImage {
+  border-radius: 0.5rem;
   opacity: 0;
   transition: opacity 0.35s ease;
 }
@@ -9,6 +10,10 @@
 
 .cardLink {
   transition: opacity 0.3s ease;
+}
+
+.cardLink :global(.job_title-text) {
+  text-transform: capitalize;
 }
 
 .groupHovering .cardLink {
