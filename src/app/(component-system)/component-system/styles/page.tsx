@@ -88,7 +88,7 @@ const typography: TypographySpecimen[] = [
     sample: "Earn referral commissions for team members you help us hire.",
     source: "careers-typography.module.css · .benefitCardMain",
     settings: { family: "Plantin MT Pro", size: "1.75rem", weight: "400", lineHeight: "1", letterSpacing: "-0.02em", wordSpacing: "normal", transform: "none", style: "normal" },
-    sampleStyle: { fontFamily: "var(--ripe-font-serif-regular)", fontSize: "1.75rem", fontWeight: 400, lineHeight: 1, letterSpacing: "-0.02em", textAlign: "center" },
+    sampleStyle: { fontFamily: "var(--ripe-font-serif-regular)", fontSize: "1.75rem", fontWeight: 300, lineHeight: 1, letterSpacing: "-0.02em", textAlign: "center" },
   },
   {
     name: "Benefits card label",

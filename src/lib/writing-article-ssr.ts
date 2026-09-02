@@ -211,6 +211,7 @@ const articleSsrStyles = `
   font-size: 0.9375rem !important;
   line-height: 1.65 !important;
   font-family: "Plantin MT Pro", "Plantin", Georgia, serif !important;
+  font-weight: 300 !important;
 }
 
 [data-horizontal-scroll-wrap][data-ssr-writing-article="true"] .article__text-content p {

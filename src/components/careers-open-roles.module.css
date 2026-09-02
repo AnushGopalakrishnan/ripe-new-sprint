@@ -22,8 +22,30 @@
   margin: 0;
 }
 
-.root :global([data-directional-hover-tile]) {
+.root :global([data-directional-hover-item]) {
   border-radius: 1rem;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.root :global([data-directional-hover-tile]) {
+  border-radius: inherit;
+  bottom: -1px;
+  height: auto;
+  left: 0;
+  right: 0;
+  top: -1px;
+  width: auto;
+  z-index: 1;
+}
+
+.root :global(.directional-list__border) {
+  z-index: 0;
+}
+
+.root :global(.directional-list__col-award),
+.root :global(.directional-list__col-year) {
+  z-index: 2;
 }
 
 @media (max-width: 62rem) {

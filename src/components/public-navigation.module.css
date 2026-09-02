@@ -281,6 +281,7 @@
 .secondaryList {
   font-family: var(--ripe-font-serif);
   font-size: 14px;
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 20px;
 }
 
@@ -296,6 +297,7 @@
 .primaryList {
   font-family: var(--ripe-font-serif);
   font-size: 32px;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -2%;
   line-height: 100%;
   
@@ -327,6 +329,7 @@ margin-bottom:8px;
   cursor: pointer;
   display: block;
   font-family: var(--ripe-font-serif);
+  font-weight: var(--ripe-font-serif-weight);
   margin: 0;
   padding: 0;
   text-align: left;

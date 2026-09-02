@@ -211,7 +211,7 @@
   color: inherit;
   font-family: var(--ripe-font-serif);
   font-size: clamp(31px, 2.45vw, 38px);
-  font-weight: 400;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.035em;
   line-height: 0.98;
   text-align: center;
@@ -236,7 +236,7 @@
 .soundsTitle {
   font-family: var(--ripe-font-serif);
   font-size: clamp(28px, 2.25vw, 34px);
-  font-weight: 400;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.035em;
   line-height: 0.98;
   word-spacing: 0.04em;
@@ -270,6 +270,7 @@
   color: #000;
   font-family: var(--ripe-font-serif);
   font-size: clamp(16px, 1.2vw, 18px);
+  font-weight: var(--ripe-font-serif-weight);
   line-height: 1.05;
   letter-spacing: -0.02em;
   word-spacing: 0.03em;

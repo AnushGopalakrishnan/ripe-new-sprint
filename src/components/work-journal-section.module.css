@@ -119,7 +119,7 @@
 .grid[data-view="list"] .listYear {
   font-family: var(--ripe-font-serif);
   font-size: clamp(2.125rem, 2.944vw, 2.65rem);
-  font-weight: 400;
+  font-weight: var(--ripe-font-serif-weight);
   letter-spacing: -0.02em;
   line-height: 1.03;
 }
@@ -831,7 +831,7 @@
     color: currentColor;
     font-family: var(--ripe-font-serif);
     font-size: clamp(3.25rem, 16vw, 5.75rem);
-    font-weight: 400;
+    font-weight: var(--ripe-font-serif-weight);
     letter-spacing: -0.04em;
     line-height: 0.92;
     margin: 0 0 5.5rem;
@@ -944,6 +944,7 @@
     color: #0a0a0a !important;
     font-family: var(--ripe-font-serif);
     font-size: clamp(2rem, 9vw, 3.5rem);
+    font-weight: var(--ripe-font-serif-weight);
     letter-spacing: -0.02em;
     line-height: 0.98;
     text-align: center;
