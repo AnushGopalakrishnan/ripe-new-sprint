@@ -1,0 +1,29 @@
+{
+  "label": "after-final",
+  "url": "http://localhost:55020/careers",
+  "interaction": "8 repeated pillar card-to-card hover transitions",
+  "wall_ms": 6941,
+  "performance_deltas": {
+    "TaskDuration_s": 0.359999,
+    "ScriptDuration_s": 0.056216,
+    "LayoutDuration_s": 0,
+    "RecalcStyleDuration_s": 0.057529,
+    "LayoutCount": 0,
+    "RecalcStyleCount": 1000,
+    "JSHeapUsedSize_bytes": 1360428
+  },
+  "frame_stats": {
+    "count": 990,
+    "avg_ms": 8.33,
+    "p95_ms": 9.1,
+    "max_ms": 9.4,
+    "over_20ms": 0,
+    "over_32ms": 0
+  },
+  "trace_events": {
+    "Paint": { "count": 0, "duration_ms": 0 },
+    "RasterTask": { "count": 172, "duration_ms": 25.51 },
+    "PrePaint": { "count": 873, "duration_ms": 39.85 }
+  },
+  "notes": "Same Chromium viewport, URL, transition sequence, waits, CDP categories, and collection script as the baseline."
+}

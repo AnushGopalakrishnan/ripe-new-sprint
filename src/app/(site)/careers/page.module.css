@@ -232,22 +232,103 @@
 }
 
 .pillarsGrid {
+  --pillar-drift-x: 0px;
+  --pillar-drift-y: 0px;
   display: grid;
   gap: 0;
+  grid-auto-rows: 1fr;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  isolation: isolate;
   margin-top: clamp(1.75rem, 4vw, 2.75rem);
+  position: relative;
   width: 100%;
+}
+
+.pillarsActiveViewport {
+  background: #000;
+  border-radius: 1rem;
+  contain: paint;
+  inset: 0 auto 0 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(var(--pillar-drift-x), var(--pillar-drift-y), 0);
+  transition: opacity 220ms ease;
+  width: calc(100% / 3);
+  z-index: 2;
+}
+
+.pillarsGrid[data-pillars-drifting="true"] .pillarsActiveViewport {
+  transition: opacity 220ms ease, transform 80ms ease-out;
+}
+
+.pillarsGrid[data-pillars-sliding="true"] .pillarsActiveViewport {
+  transition:
+    opacity 220ms ease,
+    transform 680ms cubic-bezier(0.2, 1.24, 0.35, 1) 80ms;
+}
+
+.pillarsGrid[data-pillars-hovering="true"] .pillarsActiveViewport {
+  opacity: 1;
+}
+
+.pillarsGrid[data-active-pillar="0"] .pillarsActiveViewport {
+  transform: translate3d(var(--pillar-drift-x), var(--pillar-drift-y), 0);
+}
+
+.pillarsGrid[data-active-pillar="1"] .pillarsActiveViewport {
+  transform: translate3d(calc(100% + var(--pillar-drift-x)), var(--pillar-drift-y), 0);
+}
+
+.pillarsGrid[data-active-pillar="2"] .pillarsActiveViewport {
+  transform: translate3d(calc(200% + var(--pillar-drift-x)), var(--pillar-drift-y), 0);
+}
+
+.pillarsActiveLayer {
+  display: grid;
+  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 100%;
+  transform: translate3d(calc(0px - var(--pillar-drift-x)), calc(0px - var(--pillar-drift-y)), 0);
+  width: 300%;
+}
+
+.pillarsGrid[data-pillars-drifting="true"] .pillarsActiveLayer {
+  transition: transform 80ms ease-out;
+}
+
+.pillarsGrid[data-pillars-sliding="true"] .pillarsActiveLayer {
+  transition: transform 680ms cubic-bezier(0.2, 1.24, 0.35, 1) 80ms;
+}
+
+.pillarsGrid[data-active-pillar="0"] .pillarsActiveLayer {
+  transform: translate3d(calc(0px - var(--pillar-drift-x)), calc(0px - var(--pillar-drift-y)), 0);
+}
+
+.pillarsGrid[data-active-pillar="1"] .pillarsActiveLayer {
+  transform: translate3d(calc(-33.333333% - var(--pillar-drift-x)), calc(0px - var(--pillar-drift-y)), 0);
+}
+
+.pillarsGrid[data-active-pillar="2"] .pillarsActiveLayer {
+  transform: translate3d(calc(-66.666666% - var(--pillar-drift-x)), calc(0px - var(--pillar-drift-y)), 0);
+}
+
+.pillarCardSlot {
+  min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .pillarCard {
   align-items: center;
+  border-radius: 1rem;
   box-sizing: border-box;
   contain: layout;
   display: grid;
   gap: 1rem;
   padding: clamp(14px, 1.4vw, 24px);
   position: relative;
-  transition: background-color 180ms ease, border-radius 180ms ease;
   display:flex;
   flex-direction: column;
   height: 514px;
@@ -255,13 +336,11 @@
   padding: 76px 70px 56px;
   position: relative;
   text-align: center;
-  transition: background-color 180ms ease, border-radius 180ms ease;
+  z-index: 1;
 }
 
-.pillarCard:hover {
-  background: #EFEFEF;
-  opacity: 1;
-  border-radius: 1rem;
+.pillarsGrid .pillarCard {
+  background: transparent;
 }
 
 .pillarCardHeader {
@@ -288,12 +367,20 @@
   color: #000000;
   margin: 0;
   opacity: 0.5;
-  transition: opacity 180ms ease;
 }
 
-.pillarCard:hover p {
+.pillarsActiveLayer .pillarCard p {
   --careers-reveal-opacity: 1;
+  color: #fff !important;
   opacity: 1;
+}
+
+.pillarsActiveLayer .pillarCard h3 {
+  color: #fff !important;
+}
+
+.pillarsActiveLayer .pillarIcon {
+  filter: brightness(0) invert(1);
 }
 
 @media (min-width: 90rem) {
@@ -554,8 +641,20 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
+.page > .openRolesSection {
+  background: #f1ebe2;
+  margin: 8rem 0 0;
+  max-width: none;
+  width: 100%;
+}
+
 .openRolesPlacement {
-  margin-top: 8rem;
+  margin: 0 auto;
+  max-width: var(--careers-content-max);
+  width: min(
+    var(--careers-content-max),
+    calc(100% - (2 * var(--careers-inline-gutter)))
+  );
 }
 
 .rolesListWrap :global(.directional-list__item) {
@@ -591,6 +690,44 @@
   .pillarsGrid {
     gap: 0;
     grid-template-columns: 1fr;
+  }
+
+  .pillarsActiveViewport {
+    bottom: auto;
+    height: calc(100% / 3);
+    right: 0;
+    transform: translate3d(var(--pillar-drift-x), var(--pillar-drift-y), 0);
+    width: 100%;
+  }
+
+  .pillarsGrid[data-active-pillar="0"] .pillarsActiveViewport {
+    transform: translate3d(var(--pillar-drift-x), var(--pillar-drift-y), 0);
+  }
+
+  .pillarsGrid[data-active-pillar="1"] .pillarsActiveViewport {
+    transform: translate3d(var(--pillar-drift-x), calc(100% + var(--pillar-drift-y)), 0);
+  }
+
+  .pillarsGrid[data-active-pillar="2"] .pillarsActiveViewport {
+    transform: translate3d(var(--pillar-drift-x), calc(200% + var(--pillar-drift-y)), 0);
+  }
+
+  .pillarsActiveLayer {
+    grid-template-columns: 1fr;
+    height: 300%;
+    width: 100%;
+  }
+
+  .pillarsGrid[data-active-pillar="0"] .pillarsActiveLayer {
+    transform: translate3d(calc(0px - var(--pillar-drift-x)), calc(0px - var(--pillar-drift-y)), 0);
+  }
+
+  .pillarsGrid[data-active-pillar="1"] .pillarsActiveLayer {
+    transform: translate3d(calc(0px - var(--pillar-drift-x)), calc(-33.333333% - var(--pillar-drift-y)), 0);
+  }
+
+  .pillarsGrid[data-active-pillar="2"] .pillarsActiveLayer {
+    transform: translate3d(calc(0px - var(--pillar-drift-x)), calc(-66.666666% - var(--pillar-drift-y)), 0);
   }
 
   .pillarCard {
@@ -697,5 +834,14 @@
 
   .filmstripTrack {
     animation: none;
+  }
+
+  .pillarsActiveViewport,
+  .pillarsActiveLayer,
+  .pillarsGrid[data-pillars-drifting="true"] .pillarsActiveViewport,
+  .pillarsGrid[data-pillars-drifting="true"] .pillarsActiveLayer,
+  .pillarsGrid[data-pillars-sliding="true"] .pillarsActiveViewport,
+  .pillarsGrid[data-pillars-sliding="true"] .pillarsActiveLayer {
+    transition: none !important;
   }
 }

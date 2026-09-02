@@ -472,7 +472,7 @@ test("careers page preserves the approved spacing, typography, contrast, and rev
     const people = rect('[class*="peopleSection"]');
     const founders = rect('[class*="foundersRow"]');
     const groupPhoto = rect('[class*="groupPhoto"]');
-    const roles = rect('[class*="peopleSection"] > .join_us-section');
+    const roles = rect('[class*="openRolesSection"]');
     const statement = rect('[class*="pillarsStatement"]');
     const benefitsGrid = rect('[class*="mosaicSection"] > [class*="wrap"]');
 
@@ -514,6 +514,15 @@ test("careers page preserves the approved spacing, typography, contrast, and rev
   expect(layout?.majorGaps).toEqual([256, 256, 256, 256, 256]);
   expect(layout?.internalGaps).toEqual([128, 128, 128]);
   expect(layout?.statementRatio).toBeCloseTo(0.7, 4);
+
+  const openRolesSection = page.locator('[class*="openRolesSection"]');
+  await expect(openRolesSection).toHaveCSS("background-color", "rgb(241, 235, 226)");
+  const openRolesBounds = await openRolesSection.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left, width: rect.width };
+  });
+  expect(openRolesBounds).toEqual({ left: 0, width: 1440 });
+  await expect(openRolesSection.locator(".join_us-section")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 
   const displayHeadings = [
     page.getByRole("heading", { name: "Our mission" }),
@@ -559,11 +568,16 @@ test("careers page preserves the approved spacing, typography, contrast, and rev
   await trustLogos.scrollIntoViewIfNeeded();
   await expect(trustLogos).toHaveAttribute("data-visible", "true");
 
-  const pillarDescription = page.getByText(/^Individual brilliance matters/);
+  const pillarsGrid = page.locator('[class*="pillarsGrid"]');
+  const pillarDescription = pillarsGrid.locator(':scope > [class*="pillarCardSlot"]').first().locator("p");
   await pillarDescription.scrollIntoViewIfNeeded();
   await expect(pillarDescription).toHaveCSS("opacity", "0.5");
   await pillarDescription.locator("..").hover();
-  await expect(pillarDescription).toHaveCSS("opacity", "1");
+  await expect(pillarDescription).toHaveCSS("opacity", "0.5");
+  const activeViewport = pillarsGrid.locator(':scope > [aria-hidden="true"]');
+  await expect(activeViewport).toHaveCSS("opacity", "1");
+  await expect(activeViewport.locator("p").first()).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(activeViewport.locator("p").first()).toHaveCSS("opacity", "1");
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "domcontentloaded" });

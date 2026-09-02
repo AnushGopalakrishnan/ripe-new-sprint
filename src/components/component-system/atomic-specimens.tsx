@@ -18,7 +18,8 @@ import {
 import { CopyEmailCta } from "@/components/copy-email-cta";
 import { ContactCta } from "@/components/contact-cta";
 import { CareersTrustLogos } from "@/components/careers-trust-logos";
-import { CareersBenefitCard, CareersBenefits, CareersFilmstripCard, CareersFounderCard, CareersPillarCard } from "@/components/careers-cards";
+import { CareersBenefitCard, CareersBenefits, CareersFilmstripCard, CareersFounderCard } from "@/components/careers-cards";
+import { CareersPillarsGrid } from "@/components/careers-pillars-grid";
 import careersPageStyles from "@/app/(site)/careers/page.module.css";
 import careersMosaicStyles from "@/app/(site)/careers/careers-mosaic.module.css";
 import homeFeedStyles from "@/components/home-feed.module.css";
@@ -295,7 +296,16 @@ export function CareersTrustLogosSpecimen({ variant }: SpecimenVariantProps) {
 }
 
 export function CareersPillarCardSpecimen() {
-  return <div style={{ maxWidth: 560, padding: 20 }}><CareersPillarCard title="Strategic Craft" body="Local specimen content for the production Careers pillar card." styles={careersPageStyles} /></div>;
+  return (
+    <CareersPillarsGrid
+      pillars={[
+        { title: "Collective Progression", body: "Local specimen content for the production Careers pillar card." },
+        { title: "Strategic Craft", body: "Local specimen content for the production Careers pillar card." },
+        { title: "Human Ambition", body: "Local specimen content for the production Careers pillar card." },
+      ]}
+      styles={careersPageStyles}
+    />
+  );
 }
 
 export function CareersFounderCardSpecimen({ variant }: SpecimenVariantProps) {

@@ -19,16 +19,16 @@ export function CareersBenefitCard({ children, styles, variant }: CareersBenefit
   return <article className={`${styles.card} ${styles[benefitClassNames[variant]]}`}>{children}</article>;
 }
 
-export type CareersPillarCardProps = { body: string; styles: Record<string, string>; title: string };
+export type CareersPillarCardProps = { activeLayer?: boolean; body: string; styles: Record<string, string>; title: string };
 
-export function CareersPillarCard({ body, styles, title }: CareersPillarCardProps) {
+export function CareersPillarCard({ activeLayer = false, body, styles, title }: CareersPillarCardProps) {
   return (
     <article className={styles.pillarCard}>
       <div className={styles.pillarCardHeader}>
         <img className={styles.pillarIcon} src="/careers-media/Icon (1).svg" alt="" aria-hidden="true" />
-        <h3 className={typeStyles.h1} data-careers-reveal>{title}</h3>
+        <h3 className={typeStyles.h1} data-careers-reveal={activeLayer ? undefined : ""}>{title}</h3>
       </div>
-      <p className={typeStyles.h3} data-careers-reveal data-careers-reveal-delay="1">{body}</p>
+      <p className={typeStyles.h3} data-careers-reveal={activeLayer ? undefined : ""} data-careers-reveal-delay={activeLayer ? undefined : "1"}>{body}</p>
     </article>
   );
 }

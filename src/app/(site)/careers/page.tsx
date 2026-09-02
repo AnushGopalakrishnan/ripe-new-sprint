@@ -1,7 +1,8 @@
 import { createExactTitleMetadata } from "@/lib/metadata";
 import CareersOpenRoles from "@/components/careers-open-roles";
 import { ContactCta } from "@/components/contact-cta";
-import { CareersFilmstripCard, CareersFounderCard, CareersPillarCard } from "@/components/careers-cards";
+import { CareersFilmstripCard, CareersFounderCard } from "@/components/careers-cards";
+import { CareersPillarsGrid } from "@/components/careers-pillars-grid";
 import { CareersTrustLogos } from "@/components/careers-trust-logos";
 import type { CareersFilmstripItem } from "@/components/careers-cards";
 import { getJobPostings, getTeamMembers } from "@/lib/content";
@@ -147,11 +148,7 @@ export default async function CareersPage() {
 
       <section className={styles.pillarsSection}>
         <h2 className={typeStyles.h1} data-careers-reveal>The pillars that Ripe is built on</h2>
-        <div className={styles.pillarsGrid}>
-          {pillars.map((pillar, index) => (
-            <CareersPillarCard body={pillar.body} key={`${pillar.title}-${index}`} styles={styles} title={pillar.title} />
-          ))}
-        </div>
+        <CareersPillarsGrid pillars={pillars} styles={styles} />
       </section>
 
       <section className={styles.mosaicSection}>
@@ -179,6 +176,9 @@ export default async function CareersPage() {
           />
         </figure>
 
+      </section>
+
+      <section className={styles.openRolesSection}>
         <div className={styles.openRolesPlacement}>
           <CareersOpenRoles roles={roles} />
         </div>

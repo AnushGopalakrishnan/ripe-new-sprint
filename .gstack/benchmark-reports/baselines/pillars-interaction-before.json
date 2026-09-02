@@ -1,0 +1,29 @@
+{
+  "label": "before",
+  "url": "http://localhost:55020/careers",
+  "interaction": "8 repeated pillar card-to-card hover transitions",
+  "wall_ms": 6931,
+  "performance_deltas": {
+    "TaskDuration_s": 0.562705,
+    "ScriptDuration_s": 0.054904,
+    "LayoutDuration_s": 0,
+    "RecalcStyleDuration_s": 0.064083,
+    "LayoutCount": 0,
+    "RecalcStyleCount": 1064,
+    "JSHeapUsedSize_bytes": 1138240
+  },
+  "frame_stats": {
+    "count": 1054,
+    "avg_ms": 8.34,
+    "p95_ms": 9.2,
+    "max_ms": 15.5,
+    "over_20ms": 0,
+    "over_32ms": 0
+  },
+  "trace_events": {
+    "Paint": { "count": 1344, "duration_ms": 49.1 },
+    "RasterTask": { "count": 1704, "duration_ms": 95.37 },
+    "PrePaint": { "count": 882, "duration_ms": 46.04 }
+  },
+  "notes": "Collected with Playwright Chromium CDP because the bundled gstack browse build was blocked by a pinned Bun installer checksum mismatch."
+}
