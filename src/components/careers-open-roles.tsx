@@ -11,10 +11,12 @@ import type { JobPosting } from "@/types/content";
 export type CareersOpenRolesProps = { roles: JobPosting[] };
 
 export default function CareersOpenRoles({ roles }: CareersOpenRolesProps) {
+  const [activeRoleIndex, setActiveRoleIndex] = useState<number | null>(null);
   const [hoverTile, setHoverTile] = useState<{ height: number; top: number } | null>(null);
   const [rolesHovering, setRolesHovering] = useState(false);
 
-  const positionHoverTile = (element: HTMLDivElement) => {
+  const positionHoverTile = (index: number, element: HTMLDivElement) => {
+    setActiveRoleIndex(index);
     setHoverTile((current) => ({ height: current?.height ?? element.offsetHeight + 8, top: element.offsetTop - 4 }));
     setRolesHovering(true);
   };
@@ -48,11 +50,11 @@ export default function CareersOpenRoles({ roles }: CareersOpenRolesProps) {
                 <h2 className={typeStyles.h1} data-careers-reveal>Open Roles</h2>
               </div>
 
-              <div data-type="all" data-directional-hover="" data-careers-reveal data-careers-reveal-delay="1" className={`jobs-list-wrapper w-dyn-list ${teamStyles.directionalWrap}`} onMouseLeave={() => setRolesHovering(false)}>
+              <div data-type="all" data-directional-hover="" data-roles-hovering={rolesHovering ? "true" : "false"} data-careers-reveal data-careers-reveal-delay="1" className={`jobs-list-wrapper w-dyn-list ${teamStyles.directionalWrap}`} onMouseLeave={() => setRolesHovering(false)}>
                 <div role="list" className={`jobs-list w-dyn-items ${styles.rolesList}`}>
                   {hoverTile ? <div aria-hidden="true" className={styles.sharedHoverTile} data-visible={rolesHovering ? "true" : "false"} style={{ height: hoverTile.height, transform: `translate3d(0, ${hoverTile.top}px, 0)` }} /> : null}
-                  {roles.map((role) => (
-                    <DirectionalRoleItem disableDirectionalTile key={`${role.title}-${role.location}-${role.contractType}`} onItemEnter={positionHoverTile} role={role} titleElement="h4" />
+                  {roles.map((role, index) => (
+                    <DirectionalRoleItem active={activeRoleIndex === index} disableDirectionalTile key={`${role.title}-${role.location}-${role.contractType}`} onItemEnter={(element) => positionHoverTile(index, element)} role={role} titleElement="h4" />
                   ))}
                 </div>
               </div>

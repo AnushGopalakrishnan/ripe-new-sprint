@@ -6,6 +6,7 @@ import styles from "@/components/team-page-client.module.css";
 import type { JobPosting } from "@/types/content";
 
 export type DirectionalRoleItemProps = {
+  active?: boolean;
   disableDirectionalTile?: boolean;
   initialEntryDirection?: EntryDirection;
   onItemEnter?: (element: HTMLDivElement) => void;
@@ -54,7 +55,7 @@ function toTransform(direction: EntryDirection) {
   return "translateX(100%)";
 }
 
-export function DirectionalRoleItem({ disableDirectionalTile = false, initialEntryDirection, onItemEnter, role, titleElement = "p" }: DirectionalRoleItemProps) {
+export function DirectionalRoleItem({ active, disableDirectionalTile = false, initialEntryDirection, onItemEnter, role, titleElement = "p" }: DirectionalRoleItemProps) {
   const tileRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export function DirectionalRoleItem({ disableDirectionalTile = false, initialEnt
 
   return (
     <div
+      data-active={active === undefined ? undefined : active ? "true" : "false"}
       data-directional-hover-item=""
       role="listitem"
       className={`directional-list__item w-dyn-item ${styles.directionalItem}`}

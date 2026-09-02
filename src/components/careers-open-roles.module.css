@@ -29,6 +29,17 @@
 .root :global([data-directional-hover-item]) {
   opacity: 1 !important;
   overflow: visible;
+  transition:
+    opacity 220ms ease,
+    padding 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.root :global([data-directional-hover][data-roles-hovering="true"] [data-directional-hover-item]) {
+  opacity: 0.3 !important;
+}
+
+.root :global([data-directional-hover][data-roles-hovering="true"] [data-directional-hover-item][data-active="true"]) {
+  opacity: 1 !important;
   transition: padding 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -73,6 +84,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .root :global([data-directional-hover-item]),
   .sharedHoverTile {
     transition: none;
   }
