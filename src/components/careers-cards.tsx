@@ -60,7 +60,12 @@ export function CareersFilmstripCard({ copy, items, styles }: CareersFilmstripCa
   return (
     <div className={styles.filmstripCard}>
       {items.map((item, index) => (
-        <figure key={`${copy}-${index}-${item.src}`} className={styles[item.className]}>
+        <figure
+          key={`${copy}-${index}-${item.src}`}
+          className={styles[item.className]}
+          data-filmstrip-frame
+          style={{ "--filmstrip-frame-index": index } as React.CSSProperties}
+        >
           {item.kind === "video" ? <video src={item.src} autoPlay loop muted playsInline preload="none" /> : <img src={item.src} alt={item.alt} loading="lazy" />}
         </figure>
       ))}
