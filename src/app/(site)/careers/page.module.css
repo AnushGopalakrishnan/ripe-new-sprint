@@ -1,7 +1,7 @@
 .page {
-  --careers-visual-section-gap: 16rem;
+  --careers-visual-section-gap: 24rem;
   --careers-content-max: 90rem;
-  --careers-inline-gutter: clamp(1rem, 3vw, 2rem);
+  --careers-inline-gutter: 8rem;
   --careers-surface: #fff;
   --hero-content-max: 53.75rem;
   background: var(--careers-surface);
@@ -14,6 +14,10 @@
 
 .page * {
   color: #000000 !important;
+}
+
+.page.page :global(a[href^="mailto:"]) {
+  font-size: 0.765625rem;
 }
 
 .page[data-text-motion="ready"] :global([data-careers-reveal]) {
@@ -51,7 +55,7 @@
 
 .heroSection {
   display: grid;
-  gap: var(--careers-visual-section-gap);
+  gap: 16rem;
   max-width: none;
   padding: 0px;
   width: 100%;
@@ -64,7 +68,7 @@
 .heroViewport {
   box-sizing: border-box;
   display: grid;
-  gap: clamp(1.5rem, 4vh, 3rem);
+  gap: clamp(4rem, 8vh, 6rem);
   grid-template-rows: auto minmax(0, 1fr);
   height: calc(100vh - 8rem);
   height: calc(100svh - 8rem);
@@ -168,6 +172,16 @@
 .heroNotes p {
   color: #3c1b0b;
   margin: 0;
+}
+
+.heroNotes > article > p {
+  --careers-reveal-opacity: 0.6;
+  opacity: 0.6;
+}
+
+.trustRow > p {
+  --careers-reveal-opacity: 0.6;
+  opacity: 0.6;
 }
 
 .trustRow {
@@ -327,13 +341,13 @@
   box-sizing: border-box;
   contain: layout;
   display: grid;
-  gap: 1rem;
+  gap: 0;
   padding: clamp(14px, 1.4vw, 24px);
   position: relative;
   display:flex;
   flex-direction: column;
   height: 514px;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 76px 70px 56px;
   position: relative;
   text-align: center;
@@ -366,7 +380,8 @@
 .pillarCardFeatured p {
   --careers-reveal-opacity: 0.5;
   color: #000000;
-  margin: 0;
+  font-size: 0.875rem !important;
+  margin: 2rem 0 0;
   opacity: 0.5;
 }
 
@@ -426,7 +441,7 @@
   color: rgba(58, 31, 19, 0.72);
   display: inline-flex;
   font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.65625rem;
   gap: 0.45rem;
   letter-spacing: 0.01em;
   line-height: 1;
@@ -444,12 +459,12 @@
 .mosaicMeta {
   color: rgba(58, 31, 19, 0.45);
   font-family: "Graphik", Arial, sans-serif;
-  font-size: 0.62rem;
+  font-size: 0.5425rem;
   letter-spacing: 0.05em;
 }
 
 .mosaicCard p {
-  font-size: 1.05rem;
+  font-size: 0.91875rem;
   line-height: 1.4;
   margin-top: 2.1rem;
   text-align: center;
@@ -458,7 +473,7 @@
 .mosaicCard a {
   color: #3a1f13;
   display: block;
-  font-size: 0.95rem;
+  font-size: 0.83125rem;
   margin-top: 1rem;
   text-align: center;
   text-decoration: none;
@@ -503,13 +518,13 @@
 .clientsLogos span {
   color: rgb(255, 255, 255);
   font-family: "Graphik", Arial, sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.00625rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .mosaicBlue blockquote {
-  font-size: 1.52rem;
+  font-size: 1.33rem;
   line-height: 1.3;
   margin: 3.6rem 0 1.15rem;
   text-align: center;
@@ -518,7 +533,7 @@
 .mosaicBlue cite {
   color: rgba(247, 248, 255, 0.82);
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.74375rem;
   font-style: normal;
   line-height: 1.2;
   text-align: center;
@@ -545,7 +560,7 @@
 
 .servicesWord {
   font-family: "Graphik", Arial, sans-serif;
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.75rem, 3.5vw, 2.625rem);
   margin-top: 4rem;
   text-align: center;
 }
@@ -563,7 +578,7 @@
   display: grid;
   gap: 0;
   margin-top: var(--careers-visual-section-gap);
-  padding: 0 0 8rem;
+  padding: 0 0 12rem;
 }
 
 .peopleSection h2 {
@@ -667,6 +682,10 @@
 }
 
 @media (max-width: 62rem) {
+  .page {
+    --careers-inline-gutter: 2rem;
+  }
+
   .heroTitleWrap {
     max-width: 100%;
   }
@@ -745,7 +764,7 @@
   }
 
   .pillarCard p {
-    margin: 1.5rem auto 0;
+    margin: 2rem auto 0;
     max-width: 42rem;
   }
   .mosaicSection {
@@ -766,6 +785,7 @@
 
 @media (max-width: 48rem) {
   .page {
+    --careers-inline-gutter: 1rem;
     padding-top: 1rem;
   }
 
@@ -787,7 +807,7 @@
   }
 
   .page > section.heroSection {
-    gap: var(--careers-visual-section-gap);
+    gap: 16rem;
     padding-top: 6.25rem;
   }
 
