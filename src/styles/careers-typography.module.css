@@ -2,7 +2,12 @@
 .scope.scope h2,
 .scope.scope h3,
 .scope.scope h4,
-.scope.scope p {
+.scope.scope p,
+.scope.scope .h1,
+.scope.scope .h2,
+.scope.scope .h3,
+.scope.scope .h4,
+.scope.scope .paragraph {
   font-family: var(--ripe-font-serif);
   font-style: normal;
   font-weight: 300;

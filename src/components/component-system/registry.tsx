@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { DialConfig, ResolvedValues } from "dialkit";
-import CareersOpenRoles from "@/components/careers-open-roles";
+import { CareersOpenRolesSection } from "@/components/careers-open-roles";
 import { DirectionalRoleItem } from "@/components/directional-role-item";
 import { HomeFeed } from "@/components/home-feed";
 import { PublicNavigation } from "@/components/public-navigation";
@@ -166,7 +166,7 @@ const SitePreloaderSpecimen = () => (
 const WorkSpecimen = ({ variant }: PublicComponentSpecimenProps) => <WorkJournalSection filters={["Strategy", "Identity", "Motion", "Web Design"]} initialFilters={variant === "filtered" ? ["Strategy"] : undefined} items={specimenWork} layout={variant === "alternating" ? "alternating" : "standard"} initialViewMode={variant === "list" ? "list" : "grid"} />;
 const HomeFeedSpecimen = ({ variant }: PublicComponentSpecimenProps) => <div style={{ maxWidth: variant === "responsive" ? 760 : undefined, margin: "0 auto" }}><HomeFeed /></div>;
 const RoleSpecimen = ({ variant }: PublicComponentSpecimenProps) => <div role="list" className="jobs-list w-dyn-items"><DirectionalRoleItem initialEntryDirection={variant as "top" | "right" | "bottom" | "left"} role={specimenRoles[0]} /></div>;
-const CareersSpecimen = ({ variant }: PublicComponentSpecimenProps) => <CareersOpenRoles roles={variant === "empty" ? [] : specimenRoles} />;
+const CareersSpecimen = ({ variant }: PublicComponentSpecimenProps) => <CareersOpenRolesSection roles={variant === "empty" ? [] : specimenRoles} />;
 const TeamDirectorySpecimen = () => <TeamPageClient members={[specimenTeamMember]} roles={specimenRoles} />;
 
 const navigationControls = defineControls({ ...surfaceControls(), Content: { contactEmail: { type: "text", default: "hello@ripe.studio" }, showreelTitle: { type: "text", default: "Ripe Showreel" }, primaryLinks: [specimenNav.length, 1, specimenNav.length, 1] }, Props: { menuBackground: { type: "color", default: "#f1ebe2" } } }, ({ Content, Props }, variant) => {
@@ -176,7 +176,7 @@ const navigationControls = defineControls({ ...surfaceControls(), Content: { con
 });
 const workControls = defineControls({ ...surfaceControls(), Props: { layout: { type: "select", options: ["alternating", "standard"], default: "alternating" }, initialView: { type: "select", options: ["grid", "list"], default: "grid" }, items: [specimenWork.length, 1, specimenWork.length, 1], filters: [4, 1, 4, 1] } }, ({ Props }, variant) => <WorkJournalSection key={`${Props.layout}-${Props.initialView}-${variant}`} filters={["Strategy", "Identity", "Motion", "Web Design"].slice(0, Props.filters)} initialFilters={variant === "filtered" ? ["Strategy"] : undefined} items={specimenWork.slice(0, Props.items)} layout={variant === "alternating" ? "alternating" : Props.layout as "standard" | "alternating"} initialViewMode={variant === "list" ? "list" : Props.initialView as "grid" | "list"} />);
 const playerControls = defineControls({ ...surfaceControls(), Props: { preload: { type: "select", options: ["metadata", "auto"], default: "metadata" }, showPoster: true } }, ({ Props }, variant) => <PlayerSpecimen preload={Props.preload as "auto" | "metadata"} showPoster={Props.showPoster} variant={variant} />);
-const careersControls = defineControls({ ...surfaceControls(), Props: { roles: [specimenRoles.length, 0, specimenRoles.length, 1] } }, ({ Props }, variant) => <CareersOpenRoles roles={variant === "empty" ? [] : specimenRoles.slice(0, Props.roles)} />);
+const careersControls = defineControls({ ...surfaceControls(), Props: { roles: [specimenRoles.length, 0, specimenRoles.length, 1] } }, ({ Props }, variant) => <CareersOpenRolesSection roles={variant === "empty" ? [] : specimenRoles.slice(0, Props.roles)} />);
 
 type EntryInput = Omit<PublicComponentDefinition, "controls" | "surfaceAlignment"> & {
   controls?: PublicComponentControlSchema;

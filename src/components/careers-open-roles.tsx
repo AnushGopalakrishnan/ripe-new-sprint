@@ -10,6 +10,16 @@ import type { JobPosting } from "@/types/content";
 
 export type CareersOpenRolesProps = { roles: JobPosting[] };
 
+export function CareersOpenRolesSection({ roles }: CareersOpenRolesProps) {
+  return (
+    <div className={styles.section}>
+      <div className={styles.placement}>
+        <CareersOpenRoles roles={roles} />
+      </div>
+    </div>
+  );
+}
+
 export default function CareersOpenRoles({ roles }: CareersOpenRolesProps) {
   const [activeRoleIndex, setActiveRoleIndex] = useState<number | null>(null);
   const [hoverTile, setHoverTile] = useState<{ height: number; top: number } | null>(null);
@@ -22,7 +32,7 @@ export default function CareersOpenRoles({ roles }: CareersOpenRolesProps) {
   };
 
   return (
-    <div className={`join_us-section ${styles.root}`}>
+    <div className={`join_us-section ${styles.root} ${typeStyles.scope}`}>
       <section className={`join_us-wrap ${styles.wrap}`}>
         <div className={`join_us ${styles.inner}`}>
           <div className={`join_us_content ${styles.content}`}>

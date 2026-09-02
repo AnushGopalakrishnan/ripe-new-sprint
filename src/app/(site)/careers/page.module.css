@@ -658,23 +658,6 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
-.page > .openRolesSection {
-  background: #f1ebe2;
-  margin: 0;
-  max-width: none;
-  padding: 8rem 0;
-  width: 100%;
-}
-
-.openRolesPlacement {
-  margin: 0 auto;
-  max-width: var(--careers-content-max);
-  width: min(
-    var(--careers-content-max),
-    calc(100% - (2 * var(--careers-inline-gutter)))
-  );
-}
-
 .rolesListWrap :global(.directional-list__item) {
   border-bottom: 1px solid #ddd7d1;
   padding-bottom: 14px !important;
