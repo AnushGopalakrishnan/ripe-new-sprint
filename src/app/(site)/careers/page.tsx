@@ -106,7 +106,7 @@ export default async function CareersPage() {
       <section className={styles.heroSection}>
         <div className={styles.heroViewport}>
           <div className={styles.heroTitleWrap}>
-            <h1 data-careers-reveal>
+            <h1>
               A brand design studio where everyone&apos;s success feels personal. We exist to support ambitious designers
               and founders building brands worth believing in.
             </h1>

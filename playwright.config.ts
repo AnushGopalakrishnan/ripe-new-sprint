@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100";
 
 export default defineConfig({
   testDir: "./tests",
@@ -8,7 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://127.0.0.1:3100",
+    baseURL,
     trace: "on-first-retry",
   },
   webServer: skipWebServer ? undefined : {

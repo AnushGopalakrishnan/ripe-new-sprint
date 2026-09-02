@@ -109,7 +109,7 @@ export type NavigationMenuButtonProps = {
 export type NavigationLogoLinkProps = { onClick?: () => void; variant?: "header" | "panel" };
 
 export function NavigationLogoLink({ onClick, variant = "header" }: NavigationLogoLinkProps) {
-  return <Link aria-label="Ripe Studios home" className={variant === "panel" ? styles.panelLogo : styles.headerLogo} href="/" onClick={onClick}><RipeLogo /></Link>;
+  return <Link aria-label="Ripe Studios home" className={variant === "panel" ? styles.panelLogo : styles.headerLogo} data-navigation-logo={variant === "header" ? "" : undefined} href="/" onClick={onClick}><RipeLogo /></Link>;
 }
 
 export function NavigationMenuButton({ expanded, onClick }: NavigationMenuButtonProps) {
@@ -590,7 +590,7 @@ export function PublicNavigation({ contactEmail, initialState = "closed", navLin
   );
 }
 
-function RipeLogo() {
+export function RipeLogo() {
   return (
     <svg aria-hidden="true" className={styles.logoSvg} fill="none" viewBox="0 0 58 27" xmlns="http://www.w3.org/2000/svg">
       <path

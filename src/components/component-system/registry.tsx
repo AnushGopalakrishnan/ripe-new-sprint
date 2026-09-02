@@ -4,6 +4,7 @@ import CareersOpenRoles from "@/components/careers-open-roles";
 import { DirectionalRoleItem } from "@/components/directional-role-item";
 import { HomeFeed } from "@/components/home-feed";
 import { PublicNavigation } from "@/components/public-navigation";
+import { SitePreloader } from "@/components/site-preloader";
 import { TeamPageClient } from "@/components/team-page-client";
 import { WorkJournalSection } from "@/components/work-journal-section";
 import { PlayerSpecimen } from "@/components/component-system/player-specimen";
@@ -105,6 +106,7 @@ export const publicComponentIds = [
   "feed-sounds-card",
   "feed-services-card",
   "public-navigation",
+  "site-preloader",
   "work-journal",
   "home-feed",
   "team-directory",
@@ -154,6 +156,13 @@ const NavigationSpecimen = ({ variant }: PublicComponentSpecimenProps) => {
   const tone = variant === "light tone" ? "light" : "dark";
   return <div data-nav-tone={tone} style={{ minHeight: "100dvh", background: tone === "light" ? "#171717" : "#d7e1cf" }}><PublicNavigation contactEmail="hello@ripe.studio" initialState={initialState} navLinks={specimenNav} socialLinks={specimenSocials} navigationShowreel={{ title: "Ripe Showreel", video: { kind: "video", src: "/feed-media/polestar.mp4", alt: "Ripe showreel" } }} /></div>;
 };
+const SitePreloaderSpecimen = () => (
+  <div style={{ alignItems: "center", display: "grid", minHeight: "100dvh", placeItems: "center" }}>
+    <PublicNavigation contactEmail="hello@ripe.studio" navLinks={specimenNav} socialLinks={specimenSocials} />
+    <p style={{ fontFamily: "var(--ripe-font-serif)", fontSize: "clamp(2rem, 6vw, 5rem)", margin: 0 }}>The Natural Outcome</p>
+    <SitePreloader />
+  </div>
+);
 const WorkSpecimen = ({ variant }: PublicComponentSpecimenProps) => <WorkJournalSection filters={["Strategy", "Identity", "Motion", "Web Design"]} initialFilters={variant === "filtered" ? ["Strategy"] : undefined} items={specimenWork} layout={variant === "alternating" ? "alternating" : "standard"} initialViewMode={variant === "list" ? "list" : "grid"} />;
 const HomeFeedSpecimen = ({ variant }: PublicComponentSpecimenProps) => <div style={{ maxWidth: variant === "responsive" ? 760 : undefined, margin: "0 auto" }}><HomeFeed /></div>;
 const RoleSpecimen = ({ variant }: PublicComponentSpecimenProps) => <div role="list" className="jobs-list w-dyn-items"><DirectionalRoleItem initialEntryDirection={variant as "top" | "right" | "bottom" | "left"} role={specimenRoles[0]} /></div>;
@@ -226,6 +235,7 @@ export const publicComponentRegistry: Record<PublicComponentId, PublicComponentD
   "feed-sounds-card": entry({ id: "feed-sounds-card", name: "Feed sounds card", category: "Cards", description: "Studio playlist card.", sourcePath: "src/components/home-feed.tsx", variants: ["playlist"], Specimen: FeedSoundsCardSpecimen }),
   "feed-services-card": entry({ id: "feed-services-card", name: "Feed services card", category: "Cards", description: "Animated service-word typewriter card.", sourcePath: "src/components/home-feed.tsx", variants: ["strategy", "identity", "design", "motion"], Specimen: FeedServicesCardSpecimen }),
   "public-navigation": entry({ id: "public-navigation", name: "Public navigation", category: "Compositions", description: "Fixed wordmark, menu panel, links, contact CTA and showreel player.", sourcePath: "src/components/public-navigation.tsx", variants: ["dark tone", "light tone", "open", "closing", "showreel"], Specimen: NavigationSpecimen, controls: navigationControls }),
+  "site-preloader": entry({ id: "site-preloader", name: "Site preloader", category: "Compositions", description: "Warm-paper first-load cover whose logo settles into the live navigation as the sheet lifts.", sourcePath: "src/components/site-preloader.tsx", variants: ["default"], Specimen: SitePreloaderSpecimen }),
   "work-journal": entry({ id: "work-journal", name: "Work Journal", category: "Compositions", description: "Project collection composed from filters, view controls and project cards.", sourcePath: "src/components/work-journal-section.tsx", variants: ["grid", "list", "filtered", "alternating"], Specimen: WorkSpecimen, controls: workControls }),
   "home-feed": entry({ id: "home-feed", name: "Home Feed", category: "Compositions", description: "The production feed assembled from every registered feed card family.", sourcePath: "src/components/home-feed.tsx", variants: ["three-column", "responsive"], Specimen: HomeFeedSpecimen }),
   "team-directory": entry({ id: "team-directory", name: "Team directory", category: "Compositions", description: "Grouped team profiles with hover preview, contact CTA and open roles.", sourcePath: "src/components/team-page-client.tsx", variants: ["grouped profiles"], Specimen: TeamDirectorySpecimen }),

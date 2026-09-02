@@ -87,7 +87,7 @@ test.describe("component system", () => {
         "feed-media-card", "feed-news-card", "feed-copy-card", "feed-time-card",
         "feed-logos-card", "feed-awards-card", "feed-sounds-card", "feed-services-card", "careers-pillar-card", "careers-founder-card", "careers-benefit-card", "careers-filmstrip-card",
       ],
-      Compositions: ["public-navigation", "work-journal", "home-feed", "team-directory", "long-form-player", "case-study-media", "case-study-related-projects", "careers-open-roles", "careers-benefits"],
+      Compositions: ["public-navigation", "site-preloader", "work-journal", "home-feed", "team-directory", "long-form-player", "case-study-media", "case-study-related-projects", "careers-open-roles", "careers-benefits"],
     };
 
     for (const [category, ids] of Object.entries(required) as Array<[PublicComponentCategory, PublicComponentId[]]>) {

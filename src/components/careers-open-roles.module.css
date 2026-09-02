@@ -22,6 +22,10 @@
   margin: 0;
 }
 
+.root :global([data-directional-hover-tile]) {
+  border-radius: 1rem;
+}
+
 @media (max-width: 62rem) {
   .root .content {
     gap: 3rem;

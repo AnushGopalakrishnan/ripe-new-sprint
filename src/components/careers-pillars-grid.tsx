@@ -20,6 +20,7 @@ export function CareersPillarsGrid({ pillars, styles }: { pillars: CareersPillar
   const gridRef = useRef<HTMLDivElement | null>(null);
   const hoveredCardRectRef = useRef<DOMRect | null>(null);
   const isHoveringRef = useRef(false);
+  const isSlidingRef = useRef(false);
   const pendingDriftRef = useRef({ x: 0, y: 0 });
   const slideTimerRef = useRef<number | null>(null);
 
@@ -47,12 +48,18 @@ export function CareersPillarsGrid({ pillars, styles }: { pillars: CareersPillar
     }
 
     if (isMovingBetweenCards) {
+      isSlidingRef.current = true;
+      pendingDriftRef.current = { x: 0, y: 0 };
+      gridRef.current?.style.setProperty("--pillar-drift-x", "0px");
+      gridRef.current?.style.setProperty("--pillar-drift-y", "0px");
       slideTimerRef.current = window.setTimeout(() => {
+        isSlidingRef.current = false;
         setIsSliding(false);
         setIsDrifting(true);
         slideTimerRef.current = null;
-      }, 840);
+      }, 540);
     } else {
+      isSlidingRef.current = false;
       driftEnableFrameRef.current = window.requestAnimationFrame(() => {
         driftEnableFrameRef.current = window.requestAnimationFrame(() => {
           setIsDrifting(true);
@@ -63,6 +70,8 @@ export function CareersPillarsGrid({ pillars, styles }: { pillars: CareersPillar
   };
 
   const driftHighlight = (event: PointerEvent<HTMLDivElement>) => {
+    if (isSlidingRef.current) return;
+
     const rect = hoveredCardRectRef.current ?? event.currentTarget.getBoundingClientRect();
     const x = Math.max(-6, Math.min(6, ((event.clientX - rect.left) / rect.width - 0.5) * 12));
     const y = Math.max(-6, Math.min(6, ((event.clientY - rect.top) / rect.height - 0.5) * 12));
@@ -88,6 +97,7 @@ export function CareersPillarsGrid({ pillars, styles }: { pillars: CareersPillar
       slideTimerRef.current = null;
     }
     isHoveringRef.current = false;
+    isSlidingRef.current = false;
     hoveredCardRectRef.current = null;
     setIsHovering(false);
     setIsDrifting(false);
