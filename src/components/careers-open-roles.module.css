@@ -1,3 +1,16 @@
+.section {
+  background: #f1ebe2;
+  box-sizing: border-box;
+  padding: 8rem 0;
+  width: 100%;
+}
+
+.placement {
+  margin: 0 auto;
+  max-width: 90rem;
+  width: min(90rem, calc(100% - 16rem));
+}
+
 .root,
 .wrap,
 .inner {
@@ -77,9 +90,19 @@
 }
 
 @media (max-width: 62rem) {
+  .placement {
+    width: calc(100% - 4rem);
+  }
+
   .root .content {
     gap: 3rem;
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48rem) {
+  .placement {
+    width: calc(100% - 2rem);
   }
 }
 

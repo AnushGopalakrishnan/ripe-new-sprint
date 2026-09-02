@@ -1,5 +1,5 @@
 import { createExactTitleMetadata } from "@/lib/metadata";
-import CareersOpenRoles from "@/components/careers-open-roles";
+import { CareersOpenRolesSection } from "@/components/careers-open-roles";
 import { ContactCta } from "@/components/contact-cta";
 import { CareersFilmstripCard, CareersFounderCard } from "@/components/careers-cards";
 import { CareersPillarsGrid } from "@/components/careers-pillars-grid";
@@ -178,11 +178,7 @@ export default async function CareersPage() {
 
       </section>
 
-      <section className={styles.openRolesSection}>
-        <div className={styles.openRolesPlacement}>
-          <CareersOpenRoles roles={roles} />
-        </div>
-      </section>
+      <CareersOpenRolesSection roles={roles} />
     </main>
   );
 }
